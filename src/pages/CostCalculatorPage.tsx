@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload } from "lucide-react";
+import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
+import { MenuItem } from "@/hooks/useMenuItems";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
@@ -151,6 +153,7 @@ const CostCalculatorPage = () => {
 
   // Recipe builder
   const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
   const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; quantity: string }[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
 
@@ -313,15 +316,30 @@ const CostCalculatorPage = () => {
             <CardContent className="space-y-4">
               <div>
                 <Label>Selecciona un platillo del menú</Label>
-                <Select value={selectedItemId} onValueChange={handleSelectItem}>
-                  <SelectTrigger><SelectValue placeholder="— Seleccionar platillo —" /></SelectTrigger>
-                  <SelectContent>
-                    {menuItems.map((mi) => (
-                      <SelectItem key={mi.id} value={mi.id}>{mi.name} — ${Number(mi.price).toFixed(0)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={selectedItemId} onValueChange={handleSelectItem}>
+                    <SelectTrigger><SelectValue placeholder="— Seleccionar platillo —" /></SelectTrigger>
+                    <SelectContent>
+                      {menuItems.map((mi) => (
+                        <SelectItem key={mi.id} value={mi.id}>{mi.name} — ${Number(mi.price).toFixed(0)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="icon" className="shrink-0" onClick={() => setNewItemDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+              <MenuItemDialog
+                open={newItemDialogOpen}
+                onOpenChange={setNewItemDialogOpen}
+                item={null}
+                onSave={(values) => {
+                  upsertMenuItem.mutate(values, {
+                    onSuccess: () => toast({ title: "Platillo creado" }),
+                  });
+                }}
+              />
 
               {selectedItemId && (
                 <>
