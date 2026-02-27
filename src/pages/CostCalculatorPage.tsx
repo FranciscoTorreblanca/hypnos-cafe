@@ -13,8 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, ExternalLink, Calculator } from "lucide-react";
+import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 /* ── Price suggestion logic ──────────────────────────────── */
 function suggestPrice(rawCost: number) {
@@ -129,8 +130,10 @@ const IngredientFormDialog = ({
 const CostCalculatorPage = () => {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
-  const { data: ingredients = [], upsert, remove } = useIngredients();
+  const { data: ingredients = [], upsert, remove, bulkImport } = useIngredients();
   const { data: menuItems = [], upsert: upsertMenuItem } = useMenuItems();
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const { toast } = useToast();
 
   // Simple mode
@@ -192,6 +195,77 @@ const CostCalculatorPage = () => {
         setEditingIng(null);
       },
     });
+  };
+
+  const parseCsvCost = (val: string) => {
+    if (!val) return 0;
+    return Number(val.replace(/[$,"]/g, "")) || 0;
+  };
+
+  const handleImportCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      if (!text) return;
+      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2) { toast({ title: "CSV vacío", variant: "destructive" }); return; }
+
+      // Parse header
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const iName = headers.findIndex((h) => h.includes("ingrediente"));
+      const iAlmacen = headers.findIndex((h) => h.includes("almacen"));
+      const iUnit = headers.findIndex((h) => h.includes("unidad") || h === "unidad");
+      const iCosto = headers.findIndex((h) => h === "costo");
+      const iUrl = headers.findIndex((h) => h.includes("url"));
+
+      if (iName < 0) { toast({ title: "Columna 'Ingredientes' no encontrada", variant: "destructive" }); return; }
+
+      // Parse rows - handle commas inside quotes
+      const parseRow = (line: string): string[] => {
+        const result: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        for (const ch of line) {
+          if (ch === '"') { inQuotes = !inQuotes; current += ch; }
+          else if (ch === "," && !inQuotes) { result.push(current.trim()); current = ""; }
+          else { current += ch; }
+        }
+        result.push(current.trim());
+        return result;
+      };
+
+      const items: Array<Partial<Ingredient> & { name: string }> = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseRow(lines[i]);
+        const name = cols[iName]?.trim();
+        if (!name) continue;
+        const presentation_qty = iAlmacen >= 0 ? (Number(cols[iAlmacen]) || 1) : 1;
+        const unit = iUnit >= 0 ? (cols[iUnit] || "g") : "g";
+        const presentation_cost = iCosto >= 0 ? parseCsvCost(cols[iCosto]) : 0;
+        const provider_link = iUrl >= 0 ? (cols[iUrl] || "") : "";
+        items.push({ name, unit, presentation_qty, presentation_cost, provider_link });
+      }
+
+      if (items.length === 0) { toast({ title: "No se encontraron ingredientes", variant: "destructive" }); return; }
+
+      setImporting(true);
+      setImportProgress(0);
+      bulkImport.mutate(items, {
+        onSuccess: () => {
+          toast({ title: `${items.length} ingredientes importados` });
+          setImporting(false);
+          setImportProgress(100);
+        },
+        onError: (err: any) => {
+          toast({ title: "Error al importar", description: err.message, variant: "destructive" });
+          setImporting(false);
+        },
+      });
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   const handleSaveRecipe = () => {
@@ -371,11 +445,23 @@ const CostCalculatorPage = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Ingredientes</CardTitle>
               {isAdmin && (
-                <Button size="sm" onClick={() => { setEditingIng(null); setIngDialogOpen(true); }}>
-                  <Plus className="h-4 w-4 mr-1" />Agregar
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" disabled={importing} onClick={() => document.getElementById("csv-import")?.click()}>
+                    <Upload className="h-4 w-4 mr-1" />{importing ? "Importando..." : "Importar CSV"}
+                  </Button>
+                  <input id="csv-import" type="file" accept=".csv" className="hidden" onChange={handleImportCsv} />
+                  <Button size="sm" onClick={() => { setEditingIng(null); setIngDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-1" />Agregar
+                  </Button>
+                </div>
               )}
             </CardHeader>
+            {importing && (
+              <div className="px-6 pb-2">
+                <Progress value={importProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-1">Importando ingredientes...</p>
+              </div>
+            )}
             <CardContent>
               <Table>
                 <TableHeader>

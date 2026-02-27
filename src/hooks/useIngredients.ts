@@ -51,5 +51,30 @@ export const useIngredients = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ingredients"] }),
   });
 
-  return { ...query, upsert, remove };
+  const bulkImport = useMutation({
+    mutationFn: async (items: Array<Partial<Ingredient> & { name: string }>) => {
+      // Fetch existing ingredients to match by name
+      const { data: existing } = await supabase.from("ingredients").select("id, name");
+      const nameMap = new Map((existing ?? []).map((e) => [e.name.toLowerCase().trim(), e.id]));
+
+      for (const item of items) {
+        const payload = { ...item };
+        if (payload.presentation_qty && payload.presentation_cost) {
+          payload.unit_cost = payload.presentation_cost / payload.presentation_qty;
+        }
+        const existingId = nameMap.get(item.name.toLowerCase().trim());
+        if (existingId) {
+          const { name, ...rest } = payload;
+          const { error } = await supabase.from("ingredients").update({ name, ...rest }).eq("id", existingId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("ingredients").insert(payload);
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ingredients"] }),
+  });
+
+  return { ...query, upsert, remove, bulkImport };
 };
