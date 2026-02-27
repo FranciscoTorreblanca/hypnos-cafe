@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const MenuPage = () => {
   const { t, language } = useLanguage();
@@ -20,6 +21,7 @@ const MenuPage = () => {
   const { data: items = [], upsert, remove, toggleAvailability } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | null>(null);
@@ -107,6 +109,11 @@ const MenuPage = () => {
                     {margin && <span className="text-muted-foreground">Margen {margin}%</span>}
                     {item.inventory_count !== null && (
                       <span className="text-muted-foreground">Inv: {item.inventory_count}</span>
+                    )}
+                    {isAdmin && item.cost > 0 && (
+                      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" onClick={() => navigate(`/cost-calculator`)}>
+                        <Calculator className="h-3 w-3 mr-0.5" />Costear
+                      </Button>
                     )}
                   </div>
                   {isAdmin && (

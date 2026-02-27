@@ -6,6 +6,10 @@ export interface Ingredient {
   name: string;
   unit: string;
   unit_cost: number;
+  presentation_qty: number;
+  presentation_cost: number;
+  provider_link: string;
+  notes: string;
 }
 
 export const useIngredients = () => {
@@ -22,12 +26,17 @@ export const useIngredients = () => {
 
   const upsert = useMutation({
     mutationFn: async (item: Partial<Ingredient> & { name: string }) => {
-      if (item.id) {
-        const { id, ...rest } = item;
+      // Auto-calculate unit_cost from presentation
+      const payload = { ...item };
+      if (payload.presentation_qty && payload.presentation_cost) {
+        payload.unit_cost = payload.presentation_cost / payload.presentation_qty;
+      }
+      if (payload.id) {
+        const { id, ...rest } = payload;
         const { error } = await supabase.from("ingredients").update(rest).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("ingredients").insert(item);
+        const { error } = await supabase.from("ingredients").insert(payload);
         if (error) throw error;
       }
     },
