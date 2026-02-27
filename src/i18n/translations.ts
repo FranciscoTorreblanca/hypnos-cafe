@@ -79,6 +79,24 @@ export const translations = {
   "role.billing": { es: "Cajero", en: "Billing" },
   "role.kitchen": { es: "Cocina", en: "Kitchen" },
 
+  // Orders
+  "orders.order": { es: "Orden", en: "Order" },
+  "orders.added": { es: "agregado", en: "added" },
+  "orders.sentToKitchen": { es: "Orden enviada a cocina", en: "Order sent to kitchen" },
+  "orders.sendToKitchen": { es: "Enviar a cocina", en: "Send to kitchen" },
+  "orders.currentOrder": { es: "Orden actual", en: "Current order" },
+  "orders.empty": { es: "Sin artículos", en: "No items" },
+  "orders.noActive": { es: "No hay órdenes activas", en: "No active orders" },
+  "orders.pending": { es: "Pendiente", en: "Pending" },
+  "orders.inProgress": { es: "En preparación", en: "In progress" },
+  "orders.start": { es: "Iniciar", en: "Start" },
+  "orders.markReady": { es: "Marcar lista", en: "Mark ready" },
+  "orders.newOrder": { es: "Nueva orden", en: "New order" },
+  "orders.viewOrder": { es: "Ver orden", en: "View order" },
+
+  // Kitchen
+  "nav.kitchen": { es: "Cocina", en: "Kitchen" },
+
   // Common
   "common.save": { es: "Guardar", en: "Save" },
   "common.cancel": { es: "Cancelar", en: "Cancel" },
