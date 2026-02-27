@@ -14,6 +14,7 @@ import MenuPage from "@/pages/MenuPage";
 import CostCalculatorPage from "@/pages/CostCalculatorPage";
 import MenuGeneratorPage from "@/pages/MenuGeneratorPage";
 import BillingPage from "@/pages/BillingPage";
+import KitchenPage from "@/pages/KitchenPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/cost-calculator" element={<CostCalculatorPage />} />
                 <Route path="/menu-generator" element={<MenuGeneratorPage />} />
+                <Route path="/kitchen" element={<KitchenPage />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
