@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIngredients, Ingredient } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
@@ -55,7 +55,7 @@ const IngredientFormDialog = ({
   const set = (k: keyof IngFormValues, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   // Reset on open change
-  useMemo(() => {
+  useEffect(() => {
     if (open) setForm(getInitialForm());
   }, [open, initial]);
 
@@ -158,7 +158,7 @@ const CostCalculatorPage = () => {
   };
 
   // Sync existing recipe into local state when data arrives
-  useMemo(() => {
+  useEffect(() => {
     if (selectedItemId && existingRecipe.length > 0) {
       setRecipeRows(existingRecipe.map((r) => ({ ingredient_id: r.ingredient_id, quantity: String(r.quantity) })));
     } else if (selectedItemId) {
