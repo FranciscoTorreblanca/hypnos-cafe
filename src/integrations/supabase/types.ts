@@ -19,6 +19,10 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          notes: string
+          presentation_cost: number
+          presentation_qty: number
+          provider_link: string
           unit: string
           unit_cost: number
           updated_at: string
@@ -27,6 +31,10 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          notes?: string
+          presentation_cost?: number
+          presentation_qty?: number
+          provider_link?: string
           unit?: string
           unit_cost?: number
           updated_at?: string
@@ -35,6 +43,10 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          notes?: string
+          presentation_cost?: number
+          presentation_qty?: number
+          provider_link?: string
           unit?: string
           unit_cost?: number
           updated_at?: string
