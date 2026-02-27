@@ -14,6 +14,152 @@ export type Database = {
   }
   public: {
     Tables: {
+      ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      menu_categories: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          name: string
+          name_en: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          name: string
+          name_en?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          name?: string
+          name_en?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      menu_item_ingredients: {
+        Row: {
+          id: string
+          ingredient_id: string
+          menu_item_id: string
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          ingredient_id: string
+          menu_item_id: string
+          quantity?: number
+        }
+        Update: {
+          id?: string
+          ingredient_id?: string
+          menu_item_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_ingredients_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          category_id: string | null
+          cost: number
+          created_at: string
+          description: string
+          description_en: string
+          id: string
+          image_url: string | null
+          inventory_count: number | null
+          is_available: boolean
+          name: string
+          name_en: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          cost?: number
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          image_url?: string | null
+          inventory_count?: number | null
+          is_available?: boolean
+          name: string
+          name_en?: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          cost?: number
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          image_url?: string | null
+          inventory_count?: number | null
+          is_available?: boolean
+          name?: string
+          name_en?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
