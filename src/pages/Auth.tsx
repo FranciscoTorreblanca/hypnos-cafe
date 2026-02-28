@@ -6,16 +6,14 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -37,25 +35,9 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate("/dashboard");
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        toast({
-          title: t("common.success"),
-          description: t("auth.checkEmail"),
-        });
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      navigate("/dashboard");
     } catch (error: any) {
       toast({
         title: t("common.error"),
@@ -77,26 +59,11 @@ const Auth = () => {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">
             H
           </div>
-          <CardTitle className="text-2xl">
-            {isLogin ? t("auth.loginTitle") : t("auth.signupTitle")}
-          </CardTitle>
-          <CardDescription>
-            {isLogin ? t("auth.loginSubtitle") : t("auth.signupSubtitle")}
-          </CardDescription>
+          <CardTitle className="text-2xl">{t("auth.loginTitle")}</CardTitle>
+          <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">{t("auth.fullName")}</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required={!isLogin}
-                />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
@@ -119,17 +86,10 @@ const Auth = () => {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex-col gap-4">
+          <CardFooter>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t("common.loading") : isLogin ? t("auth.login") : t("auth.signup")}
+              {loading ? t("common.loading") : t("auth.login")}
             </Button>
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setIsLogin(!isLogin)}
-            >
-              {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
-            </button>
           </CardFooter>
         </form>
       </Card>
