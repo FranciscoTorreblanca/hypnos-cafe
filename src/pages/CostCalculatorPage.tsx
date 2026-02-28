@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIngredients, Ingredient } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
@@ -13,11 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Search, ChevronsUpDown, Check } from "lucide-react";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
 import { MenuItem } from "@/hooks/useMenuItems";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 /* ── Price suggestion logic ──────────────────────────────── */
 function suggestPrice(rawCost: number) {
@@ -154,37 +157,54 @@ const CostCalculatorPage = () => {
   // Recipe builder
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
-  const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; quantity: string }[]>([]);
+  const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; source_menu_item_id: string; quantity: string }[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
 
   // Load recipe when item changes
   const handleSelectItem = (id: string) => {
     setSelectedItemId(id);
-    // Load will happen via query; we sync in a useEffect-like pattern below
   };
 
   // Sync existing recipe into local state when data arrives
   useEffect(() => {
     if (selectedItemId && existingRecipe.length > 0) {
-      setRecipeRows(existingRecipe.map((r) => ({ ingredient_id: r.ingredient_id, quantity: String(r.quantity) })));
+      setRecipeRows(existingRecipe.map((r) => ({
+        ingredient_id: r.ingredient_id ?? "",
+        source_menu_item_id: r.source_menu_item_id ?? "",
+        quantity: String(r.quantity),
+      })));
     } else if (selectedItemId) {
       setRecipeRows([]);
     }
   }, [existingRecipe, selectedItemId]);
 
-  const addRecipeRow = () => setRecipeRows((p) => [...p, { ingredient_id: "", quantity: "" }]);
+  const addRecipeRow = () => setRecipeRows((p) => [...p, { ingredient_id: "", source_menu_item_id: "", quantity: "" }]);
   const removeRecipeRow = (i: number) => setRecipeRows((p) => p.filter((_, idx) => idx !== i));
   const updateRecipeRow = (i: number, k: string, v: string) =>
     setRecipeRows((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
 
+  // Helper to get unit cost for a row (ingredient or sub-menu-item)
+  const getRowCostInfo = (row: { ingredient_id: string; source_menu_item_id: string }) => {
+    if (row.ingredient_id) {
+      const ing = ingredients.find((i) => i.id === row.ingredient_id);
+      return ing ? { unitCost: ing.unit_cost, unit: ing.unit, label: ing.name } : null;
+    }
+    if (row.source_menu_item_id) {
+      const mi = menuItems.find((m) => m.id === row.source_menu_item_id);
+      // Use cost (subtotal) of the menu item, quantity is always whole units
+      return mi ? { unitCost: mi.cost, unit: "pz", label: `🍽 ${mi.name}` } : null;
+    }
+    return null;
+  };
+
   const recipeCost = useMemo(() => {
     let total = 0;
     for (const row of recipeRows) {
-      const ing = ingredients.find((i) => i.id === row.ingredient_id);
-      if (ing) total += ing.unit_cost * (Number(row.quantity) || 0);
+      const info = getRowCostInfo(row);
+      if (info) total += info.unitCost * (Number(row.quantity) || 0);
     }
     return total;
-  }, [recipeRows, ingredients]);
+  }, [recipeRows, ingredients, menuItems]);
 
   const suggested = suggestPrice(recipeCost);
   const selectedItem = menuItems.find((i) => i.id === selectedItemId);
@@ -273,12 +293,18 @@ const CostCalculatorPage = () => {
 
   const handleSaveRecipe = () => {
     if (!selectedItemId) return;
-    const valid = recipeRows.filter((r) => r.ingredient_id && Number(r.quantity) > 0);
+    const valid = recipeRows.filter((r) => (r.ingredient_id || r.source_menu_item_id) && Number(r.quantity) > 0);
     saveAll.mutate(
-      { itemId: selectedItemId, ingredients: valid.map((r) => ({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) })) },
+      {
+        itemId: selectedItemId,
+        ingredients: valid.map((r) => ({
+          ingredient_id: r.ingredient_id || null,
+          source_menu_item_id: r.source_menu_item_id || null,
+          quantity: Number(r.quantity),
+        })),
+      },
       {
         onSuccess: () => {
-          // Also update the menu item cost
           upsertMenuItem.mutate(
             { id: selectedItemId, name: selectedItem!.name, cost: Number(recipeCost.toFixed(2)) },
             { onSuccess: () => toast({ title: "Receta y costo guardados" }) }
@@ -360,25 +386,71 @@ const CostCalculatorPage = () => {
                       </TableHeader>
                       <TableBody>
                         {recipeRows.map((row, idx) => {
-                          const ing = ingredients.find((i) => i.id === row.ingredient_id);
-                          const rowCost = ing ? ing.unit_cost * (Number(row.quantity) || 0) : 0;
+                          const info = getRowCostInfo(row);
+                          const rowCost = info ? info.unitCost * (Number(row.quantity) || 0) : 0;
+                          const selectedValue = row.ingredient_id ? `ing:${row.ingredient_id}` : row.source_menu_item_id ? `mi:${row.source_menu_item_id}` : "";
+                          const displayLabel = info?.label ?? "Seleccionar";
+                          // Filter out the currently selected menu item from sub-recipe options
+                          const availableMenuItems = menuItems.filter((mi) => mi.id !== selectedItemId);
                           return (
                             <TableRow key={idx}>
                               <TableCell>
-                                <Select value={row.ingredient_id} onValueChange={(v) => updateRecipeRow(idx, "ingredient_id", v)}>
-                                  <SelectTrigger className="h-8"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                  <SelectContent>
-                                    {ingredients.map((i) => (
-                                      <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" role="combobox" className="h-8 w-full justify-between text-left font-normal">
+                                      <span className="truncate">{selectedValue ? displayLabel : "Buscar..."}</span>
+                                      <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[280px] p-0" align="start">
+                                    <Command>
+                                      <CommandInput placeholder="Buscar ingrediente o platillo..." />
+                                      <CommandList>
+                                        <CommandEmpty>Sin resultados</CommandEmpty>
+                                        <CommandGroup heading="Ingredientes">
+                                          {ingredients.map((i) => (
+                                            <CommandItem
+                                              key={`ing:${i.id}`}
+                                              value={`ing:${i.name}`}
+                                              onSelect={() => {
+                                                updateRecipeRow(idx, "ingredient_id", i.id);
+                                                updateRecipeRow(idx, "source_menu_item_id", "");
+                                              }}
+                                            >
+                                              <Check className={cn("mr-2 h-3.5 w-3.5", row.ingredient_id === i.id ? "opacity-100" : "opacity-0")} />
+                                              {i.name}
+                                              <span className="ml-auto text-xs text-muted-foreground">${Number(i.unit_cost).toFixed(2)}/{i.unit}</span>
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                        {availableMenuItems.length > 0 && (
+                                          <CommandGroup heading="Platillos (sub-receta)">
+                                            {availableMenuItems.map((mi) => (
+                                              <CommandItem
+                                                key={`mi:${mi.id}`}
+                                                value={`mi:${mi.name}`}
+                                                onSelect={() => {
+                                                  updateRecipeRow(idx, "source_menu_item_id", mi.id);
+                                                  updateRecipeRow(idx, "ingredient_id", "");
+                                                }}
+                                              >
+                                                <Check className={cn("mr-2 h-3.5 w-3.5", row.source_menu_item_id === mi.id ? "opacity-100" : "opacity-0")} />
+                                                🍽 {mi.name}
+                                                <span className="ml-auto text-xs text-muted-foreground">${Number(mi.cost).toFixed(2)}</span>
+                                              </CommandItem>
+                                            ))}
+                                          </CommandGroup>
+                                        )}
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
                               </TableCell>
                               <TableCell>
                                 <Input className="h-8" type="number" step="any" value={row.quantity}
                                   onChange={(e) => updateRecipeRow(idx, "quantity", e.target.value)} />
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-sm">{ing?.unit ?? "—"}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm">{info?.unit ?? "—"}</TableCell>
                               <TableCell className="text-right font-mono">${rowCost.toFixed(2)}</TableCell>
                               <TableCell>
                                 <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeRecipeRow(idx)}>
