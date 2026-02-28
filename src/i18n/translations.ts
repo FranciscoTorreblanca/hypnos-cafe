@@ -62,6 +62,8 @@ export const translations = {
   "users.role": { es: "Rol", en: "Role" },
   "users.active": { es: "Activo", en: "Active" },
   "users.inactive": { es: "Inactivo", en: "Inactive" },
+  "users.created": { es: "Usuario creado exitosamente", en: "User created successfully" },
+  "users.selectRole": { es: "Seleccionar rol", en: "Select role" },
 
   // Settings
   "settings.title": { es: "Configuración", en: "Settings" },
