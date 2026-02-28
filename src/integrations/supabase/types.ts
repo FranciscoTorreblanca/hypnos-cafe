@@ -83,21 +83,24 @@ export type Database = {
       menu_item_ingredients: {
         Row: {
           id: string
-          ingredient_id: string
+          ingredient_id: string | null
           menu_item_id: string
           quantity: number
+          source_menu_item_id: string | null
         }
         Insert: {
           id?: string
-          ingredient_id: string
+          ingredient_id?: string | null
           menu_item_id: string
           quantity?: number
+          source_menu_item_id?: string | null
         }
         Update: {
           id?: string
-          ingredient_id?: string
+          ingredient_id?: string | null
           menu_item_id?: string
           quantity?: number
+          source_menu_item_id?: string | null
         }
         Relationships: [
           {
@@ -110,6 +113,13 @@ export type Database = {
           {
             foreignKeyName: "menu_item_ingredients_menu_item_id_fkey"
             columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_ingredients_source_menu_item_id_fkey"
+            columns: ["source_menu_item_id"]
             isOneToOne: false
             referencedRelation: "menu_items"
             referencedColumns: ["id"]
