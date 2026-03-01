@@ -16,7 +16,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   table_number: number;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
+  status: "pending" | "in_progress" | "completed" | "ready" | "served" | "paid" | "cancelled";
   notes: string;
   created_by: string;
   total: number;
@@ -35,10 +35,9 @@ export const useOrders = () => {
       const { data, error } = await supabase
         .from("orders")
         .select("*, order_items(*, menu_items(name, name_en))")
-        .in("status", ["pending", "in_progress"])
+        .in("status", ["pending", "in_progress", "completed", "ready", "served"])
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Flatten the nested menu_items join
       return (data ?? []).map((o: any) => ({
         ...o,
         order_items: (o.order_items ?? []).map((oi: any) => ({
@@ -64,7 +63,7 @@ export const useOrders = () => {
 
   const updateOrderStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Order["status"] }) => {
-      const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+      const { error } = await supabase.from("orders").update({ status: status as any }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
@@ -88,7 +87,6 @@ export const useOrders = () => {
         .from("order_items")
         .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "" });
       if (error) throw error;
-      // Update order total
       const { data: items } = await supabase
         .from("order_items")
         .select("quantity, unit_price")
@@ -115,7 +113,7 @@ export const useOrders = () => {
 
   const getActiveOrderForTable = (tableNumber: number) =>
     (query.data ?? []).find(
-      (o) => o.table_number === tableNumber && (o.status === "pending" || o.status === "in_progress")
+      (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
     );
 
   return { ...query, createOrder, updateOrderStatus, addItem, removeItem, getActiveOrderForTable };
