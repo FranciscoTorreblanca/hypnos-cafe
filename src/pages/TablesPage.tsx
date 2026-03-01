@@ -13,24 +13,27 @@ const TablesPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
 
-  // TODO: make configurable via settings
   const tableCount = 12;
   const tables = Array.from({ length: tableCount }, (_, i) => {
     const num = i + 1;
     const activeOrder = (orders ?? []).find(
-      (o) => o.table_number === num && (o.status === "pending" || o.status === "in_progress")
+      (o) => o.table_number === num && !["paid", "cancelled"].includes(o.status)
     );
     return { number: num, order: activeOrder };
   });
 
   const getStatus = (table: (typeof tables)[0]) => {
     if (!table.order) return "available";
-    return table.order.status === "in_progress" ? "occupied" : "occupied";
+    if (table.order.status === "ready") return "ready";
+    if (table.order.status === "served") return "served";
+    return "occupied";
   };
 
   const statusColors: Record<string, string> = {
     available: "bg-emerald-100 text-emerald-800 border-emerald-200",
     occupied: "bg-amber-100 text-amber-800 border-amber-200",
+    ready: "bg-blue-100 text-blue-800 border-blue-200",
+    served: "bg-purple-100 text-purple-800 border-purple-200",
   };
 
   const openTable = (num: number) => {
@@ -39,7 +42,7 @@ const TablesPage = () => {
   };
 
   const activeOrder = (orders ?? []).find(
-    (o) => o.table_number === selectedTable && (o.status === "pending" || o.status === "in_progress")
+    (o) => o.table_number === selectedTable && !["paid", "cancelled"].includes(o.status)
   );
 
   return (

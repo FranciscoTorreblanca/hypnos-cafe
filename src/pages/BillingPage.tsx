@@ -1,12 +1,302 @@
+import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useOrders } from "@/hooks/useOrders";
+import { usePayments } from "@/hooks/usePayments";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp } from "lucide-react";
 
 const BillingPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { data: orders = [] } = useOrders();
+  const { data: payments = [], createPayment } = usePayments();
+  const { toast } = useToast();
+
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [tipAmount, setTipAmount] = useState<string>("0");
+
+  // Orders ready to bill: served status
+  const billableOrders = orders.filter((o) => o.status === "served");
+
+  const selectedOrder = orders.find((o) => o.id === selectedOrderId);
+
+  const openPayDialog = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setPaymentMethod("cash");
+    setTipAmount("0");
+    setPayDialogOpen(true);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!selectedOrder) return;
+    try {
+      await createPayment.mutateAsync({
+        order_id: selectedOrder.id,
+        amount: selectedOrder.total,
+        tip: parseFloat(tipAmount) || 0,
+        payment_method: paymentMethod,
+      });
+      toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
+      setPayDialogOpen(false);
+    } catch {
+      toast({ title: t("common.error"), variant: "destructive" });
+    }
+  };
+
+  const totalSales = payments.reduce((s, p) => s + p.amount, 0);
+  const totalTips = payments.reduce((s, p) => s + p.tip, 0);
+
+  // Group tips by waiter
+  const tipsByWaiter: Record<string, { name: string; tips: number; count: number }> = {};
+  payments.forEach((p) => {
+    const key = p.waiter?.email ?? "unknown";
+    if (!tipsByWaiter[key]) tipsByWaiter[key] = { name: p.waiter?.full_name || key, tips: 0, count: 0 };
+    tipsByWaiter[key].tips += p.tip;
+    tipsByWaiter[key].count += 1;
+  });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("nav.billing")}</h1>
-      <p className="text-muted-foreground">Billing management coming in Phase 4.</p>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("billing.title")}</h1>
+
+      {/* Summary cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> {t("billing.salesTotal")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">${totalSales.toFixed(0)} MXN</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" /> {t("billing.tipsTotal")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">${totalTips.toFixed(0)} MXN</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Receipt className="h-4 w-4" /> {t("billing.pendingBills")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{billableOrders.length}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="pending">
+        <TabsList>
+          <TabsTrigger value="pending">{t("billing.pendingBills")}</TabsTrigger>
+          <TabsTrigger value="history">{t("billing.history")}</TabsTrigger>
+          <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
+        </TabsList>
+
+        {/* Pending bills */}
+        <TabsContent value="pending" className="mt-4">
+          {billableOrders.length === 0 ? (
+            <p className="text-muted-foreground">{t("billing.noPending")}</p>
+          ) : (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {billableOrders.map((order) => (
+                <Card key={order.id}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        {t("billing.table")} {order.table_number}
+                      </CardTitle>
+                      <Badge variant="outline">{t("orders.served")}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(order.created_at).toLocaleTimeString()}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1">
+                      {(order.order_items ?? []).map((oi) => (
+                        <div key={oi.id} className="flex justify-between text-sm">
+                          <span>{oi.quantity}x {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}</span>
+                          <span className="text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between font-semibold text-sm border-t pt-2">
+                      <span>Total</span>
+                      <span>${order.total.toFixed(0)} MXN</span>
+                    </div>
+                    <Button className="w-full gap-2" onClick={() => openPayDialog(order.id)}>
+                      <Receipt className="h-4 w-4" />
+                      {t("billing.payNow")}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Payment history */}
+        <TabsContent value="history" className="mt-4">
+          {payments.length === 0 ? (
+            <p className="text-muted-foreground">{t("billing.noHistory")}</p>
+          ) : (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("billing.date")}</TableHead>
+                    <TableHead>{t("billing.table")}</TableHead>
+                    <TableHead>{t("billing.amount")}</TableHead>
+                    <TableHead>{t("billing.tip")}</TableHead>
+                    <TableHead>{t("billing.method")}</TableHead>
+                    <TableHead>{t("billing.waiter")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
+                      <TableCell>{p.order?.table_number ?? "-"}</TableCell>
+                      <TableCell>${p.amount.toFixed(0)}</TableCell>
+                      <TableCell>${p.tip.toFixed(0)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {p.payment_method === "cash" ? t("billing.cash") : t("billing.card")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">{p.waiter?.full_name || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Tips by waiter */}
+        <TabsContent value="tips" className="mt-4">
+          {Object.keys(tipsByWaiter).length === 0 ? (
+            <p className="text-muted-foreground">{t("billing.noHistory")}</p>
+          ) : (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("billing.waiter")}</TableHead>
+                    <TableHead>{t("billing.tipsTotal")}</TableHead>
+                    <TableHead>#</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.values(tipsByWaiter).map((w) => (
+                    <TableRow key={w.name}>
+                      <TableCell>{w.name}</TableCell>
+                      <TableCell className="font-semibold">${w.tips.toFixed(0)} MXN</TableCell>
+                      <TableCell>{w.count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Payment dialog */}
+      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("billing.confirmPayment")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-between text-sm">
+              <span>{t("billing.subtotal")}</span>
+              <span className="font-semibold">${(selectedOrder?.total ?? 0).toFixed(0)} MXN</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("billing.tip")}</Label>
+              <div className="flex gap-2">
+                {[0, 10, 15, 20].map((pct) => (
+                  <Button
+                    key={pct}
+                    type="button"
+                    variant={tipAmount === String(Math.round((selectedOrder?.total ?? 0) * pct / 100)) && pct > 0 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTipAmount(String(Math.round((selectedOrder?.total ?? 0) * pct / 100)))}
+                  >
+                    {pct === 0 ? "$0" : `${pct}%`}
+                  </Button>
+                ))}
+              </div>
+              <Input
+                type="number"
+                min="0"
+                value={tipAmount}
+                onChange={(e) => setTipAmount(e.target.value)}
+                placeholder="$0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("billing.paymentMethod")}</Label>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
+                    <Banknote className="h-4 w-4" /> {t("billing.cash")}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="card" id="card" />
+                  <Label htmlFor="card" className="flex items-center gap-1 cursor-pointer">
+                    <CreditCard className="h-4 w-4" /> {t("billing.card")}
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="flex justify-between font-bold border-t pt-2">
+              <span>{t("billing.total")}</span>
+              <span>${((selectedOrder?.total ?? 0) + (parseFloat(tipAmount) || 0)).toFixed(0)} MXN</span>
+            </div>
+
+            <Button className="w-full" onClick={handleConfirmPayment} disabled={createPayment.isPending}>
+              {t("billing.confirmPayment")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

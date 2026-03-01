@@ -1,22 +1,76 @@
+import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
+import { useIngredients } from "@/hooks/useIngredients";
+import { useMenuItems } from "@/hooks/useMenuItems";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle, Clock, ChevronDown, BookOpen } from "lucide-react";
 
 const KitchenPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [], updateOrderStatus } = useOrders();
+  const { data: ingredients = [] } = useIngredients();
+  const { data: menuItems = [] } = useMenuItems();
+
+  // Fetch all menu_item_ingredients
+  const { data: allRecipes = [] } = useQuery({
+    queryKey: ["all_menu_item_ingredients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("menu_item_ingredients").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const activeOrders = orders.filter((o) => o.status === "pending" || o.status === "in_progress");
 
   const handleMarkReady = async (orderId: string) => {
-    await updateOrderStatus.mutateAsync({ id: orderId, status: "completed" });
+    await updateOrderStatus.mutateAsync({ id: orderId, status: "ready" });
   };
 
   const handleStart = async (orderId: string) => {
     await updateOrderStatus.mutateAsync({ id: orderId, status: "in_progress" });
+  };
+
+  const getRecipeForItem = (menuItemId: string) => {
+    return allRecipes.filter((r) => r.menu_item_id === menuItemId);
+  };
+
+  const renderRecipe = (menuItemId: string, depth = 0): React.ReactNode => {
+    const recipe = getRecipeForItem(menuItemId);
+    if (recipe.length === 0) return <p className="text-xs text-muted-foreground italic ml-2">{t("orders.noRecipe")}</p>;
+
+    return (
+      <ul className={`space-y-0.5 ${depth > 0 ? "ml-4 border-l border-border pl-2" : "ml-2"}`}>
+        {recipe.map((r) => {
+          if (r.ingredient_id) {
+            const ing = ingredients.find((i) => i.id === r.ingredient_id);
+            return (
+              <li key={r.id} className="text-xs text-muted-foreground">
+                {r.quantity} {ing?.unit ?? ""} — {ing?.name ?? "?"}
+              </li>
+            );
+          }
+          if (r.source_menu_item_id) {
+            const mi = menuItems.find((m) => m.id === r.source_menu_item_id);
+            return (
+              <li key={r.id} className="text-xs">
+                <span className="font-medium text-foreground">
+                  {r.quantity}x {language === "es" ? mi?.name : mi?.name_en}
+                </span>
+                {renderRecipe(r.source_menu_item_id, depth + 1)}
+              </li>
+            );
+          }
+          return null;
+        })}
+      </ul>
+    );
   };
 
   return (
@@ -50,15 +104,25 @@ const KitchenPage = () => {
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {(order.order_items ?? []).map((oi) => (
-                    <div key={oi.id} className="flex justify-between text-sm">
-                      <span>
-                        {oi.quantity}x{" "}
-                        {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
-                      </span>
+                    <Collapsible key={oi.id}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>
+                          {oi.quantity}x{" "}
+                          {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
+                        </span>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <BookOpen className="h-3 w-3" />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
                       {oi.notes && <span className="text-xs text-muted-foreground italic">{oi.notes}</span>}
-                    </div>
+                      <CollapsibleContent className="pt-1 pb-2">
+                        {renderRecipe(oi.menu_item_id)}
+                      </CollapsibleContent>
+                    </Collapsible>
                   ))}
                 </div>
                 {order.notes && (

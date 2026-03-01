@@ -260,6 +260,44 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          order_id: string
+          payment_method: string
+          tip: number
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          order_id: string
+          payment_method?: string
+          tip?: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          order_id?: string
+          payment_method?: string
+          tip?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -359,7 +397,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "waiter" | "billing" | "kitchen"
-      order_status: "pending" | "in_progress" | "completed" | "cancelled"
+      order_status:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "ready"
+        | "served"
+        | "paid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -488,7 +533,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "waiter", "billing", "kitchen"],
-      order_status: ["pending", "in_progress", "completed", "cancelled"],
+      order_status: [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "ready",
+        "served",
+        "paid",
+      ],
     },
   },
 } as const
