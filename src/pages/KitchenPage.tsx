@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useIngredients } from "@/hooks/useIngredients";
@@ -13,11 +12,10 @@ import { CheckCircle, Clock, ChevronDown, BookOpen } from "lucide-react";
 
 const KitchenPage = () => {
   const { t, language } = useLanguage();
-  const { data: orders = [], updateOrderStatus } = useOrders();
+  const { data: orders = [], updateOrderStatus, updateItemStatus } = useOrders();
   const { data: ingredients = [] } = useIngredients();
   const { data: menuItems = [] } = useMenuItems();
 
-  // Fetch all menu_item_ingredients
   const { data: allRecipes = [] } = useQuery({
     queryKey: ["all_menu_item_ingredients"],
     queryFn: async () => {
@@ -29,8 +27,12 @@ const KitchenPage = () => {
 
   const activeOrders = orders.filter((o) => o.status === "pending" || o.status === "in_progress");
 
-  const handleMarkReady = async (orderId: string) => {
-    await updateOrderStatus.mutateAsync({ id: orderId, status: "ready" });
+  const handleMarkItemReady = async (itemId: string, orderId: string) => {
+    await updateItemStatus.mutateAsync({ id: itemId, status: "ready", order_id: orderId });
+  };
+
+  const handleStartItem = async (itemId: string, orderId: string) => {
+    await updateItemStatus.mutateAsync({ id: itemId, status: "in_progress", order_id: orderId });
   };
 
   const handleStart = async (orderId: string) => {
@@ -73,6 +75,18 @@ const KitchenPage = () => {
     );
   };
 
+  const itemStatusColor: Record<string, string> = {
+    pending: "bg-amber-100 text-amber-800 border-amber-200",
+    in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+    ready: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  };
+
+  const itemStatusLabel: Record<string, string> = {
+    pending: t("orders.pending"),
+    in_progress: t("orders.inProgress"),
+    ready: t("orders.ready"),
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("nav.kitchen")}</h1>
@@ -107,16 +121,33 @@ const KitchenPage = () => {
                 <div className="space-y-2">
                   {(order.order_items ?? []).map((oi) => (
                     <Collapsible key={oi.id}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span>
-                          {oi.quantity}x{" "}
-                          {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
-                        </span>
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <BookOpen className="h-3 w-3" />
-                          </Button>
-                        </CollapsibleTrigger>
+                      <div className="flex items-center justify-between text-sm gap-1">
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <span className="truncate">
+                            {oi.quantity}x{" "}
+                            {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
+                          </span>
+                          <Badge variant="outline" className={`text-[10px] shrink-0 ${itemStatusColor[oi.status] ?? itemStatusColor.pending}`}>
+                            {itemStatusLabel[oi.status] ?? itemStatusLabel.pending}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <BookOpen className="h-3 w-3" />
+                            </Button>
+                          </CollapsibleTrigger>
+                          {oi.status === "pending" && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleStartItem(oi.id, order.id)}>
+                              <Clock className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {(oi.status === "pending" || oi.status === "in_progress") && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600" onClick={() => handleMarkItemReady(oi.id, order.id)}>
+                              <CheckCircle className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {oi.notes && <span className="text-xs text-muted-foreground italic">{oi.notes}</span>}
                       <CollapsibleContent className="pt-1 pb-2">
@@ -128,22 +159,12 @@ const KitchenPage = () => {
                 {order.notes && (
                   <p className="text-xs italic text-muted-foreground border-t pt-2">{order.notes}</p>
                 )}
-                <div className="flex gap-2">
-                  {order.status === "pending" && (
-                    <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => handleStart(order.id)}>
-                      <Clock className="h-3 w-3" />
-                      {t("orders.start")}
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    className="flex-1 gap-1"
-                    onClick={() => handleMarkReady(order.id)}
-                  >
-                    <CheckCircle className="h-3 w-3" />
-                    {t("orders.markReady")}
+                {order.status === "pending" && (
+                  <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => handleStart(order.id)}>
+                    <Clock className="h-3 w-3" />
+                    {t("orders.start")}
                   </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           ))}

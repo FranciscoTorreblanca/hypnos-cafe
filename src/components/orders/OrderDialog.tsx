@@ -3,6 +3,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { Order, useOrders } from "@/hooks/useOrders";
+import { usePayments } from "@/hooks/usePayments";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Send, Search, UtensilsCrossed, Receipt } from "lucide-react";
+import { Plus, Trash2, Send, Search, UtensilsCrossed, Receipt, Banknote, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
@@ -29,9 +32,13 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { createOrder, addItem, removeItem, updateOrderStatus } = useOrders();
+  const { createPayment } = usePayments();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [tipAmount, setTipAmount] = useState("0");
 
   const availableItems = items.filter((i) => i.is_available);
   const filtered = availableItems.filter((i) => {
@@ -67,14 +74,30 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     if (!order) return;
     await updateOrderStatus.mutateAsync({ id: order.id, status: "in_progress" });
     toast({ title: t("common.success"), description: t("orders.sentToKitchen") });
-    onOpenChange(false);
   };
 
   const handleMarkServed = async () => {
     if (!order) return;
     await updateOrderStatus.mutateAsync({ id: order.id, status: "served" });
     toast({ title: t("common.success"), description: t("orders.markServed") });
-    onOpenChange(false);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!order) return;
+    try {
+      await createPayment.mutateAsync({
+        order_id: order.id,
+        amount: order.total,
+        tip: parseFloat(tipAmount) || 0,
+        payment_method: paymentMethod,
+      });
+      toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
+      setShowPayment(false);
+      setTipAmount("0");
+      onOpenChange(false);
+    } catch {
+      toast({ title: t("common.error"), variant: "destructive" });
+    }
   };
 
   const getCatName = (id: string | null) => {
@@ -84,16 +107,110 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   };
 
   const orderItems = order?.order_items ?? [];
-  const canAddItems = !order || order.status === "pending";
+  // Allow adding items when pending or in_progress (kitchen already working)
+  const canAddItems = !order || order.status === "pending" || order.status === "in_progress";
   const canSendToKitchen = order?.status === "pending" && orderItems.length > 0;
   const canMarkServed = order?.status === "ready";
+  const canPay = order?.status === "served";
+
+  // Per-item status indicators
+  const itemStatusBadge = (status: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      pending: { label: t("orders.pending"), className: "bg-amber-100 text-amber-800 border-amber-200" },
+      in_progress: { label: t("orders.inProgress"), className: "bg-blue-100 text-blue-800 border-blue-200" },
+      ready: { label: t("orders.ready"), className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+    };
+    const s = map[status] ?? map.pending;
+    return <Badge variant="outline" className={`text-[10px] ${s.className}`}>{s.label}</Badge>;
+  };
 
   const statusLabel: Record<string, string> = {
     pending: t("orders.pending"),
     in_progress: t("orders.inProgress"),
     ready: t("orders.ready"),
     served: t("orders.served"),
+    paid: t("orders.paid"),
   };
+
+  // Payment view
+  if (showPayment && order) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => { if (!v) setShowPayment(false); onOpenChange(v); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("billing.confirmPayment")} — {t("tables.title")} {tableNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              {orderItems.map((oi) => (
+                <div key={oi.id} className="flex justify-between text-sm">
+                  <span>{oi.quantity}x {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}</span>
+                  <span className="text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between text-sm border-t pt-2">
+              <span>{t("billing.subtotal")}</span>
+              <span className="font-semibold">${order.total.toFixed(0)} MXN</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("billing.tip")}</Label>
+              <div className="flex gap-2">
+                {[0, 10, 15, 20].map((pct) => {
+                  const val = Math.round(order.total * pct / 100);
+                  return (
+                    <Button
+                      key={pct}
+                      type="button"
+                      variant={tipAmount === String(val) && pct > 0 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTipAmount(String(val))}
+                    >
+                      {pct === 0 ? "$0" : `${pct}%`}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Input type="number" min="0" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("billing.paymentMethod")}</Label>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="cash" id="pay-cash" />
+                  <Label htmlFor="pay-cash" className="flex items-center gap-1 cursor-pointer">
+                    <Banknote className="h-4 w-4" /> {t("billing.cash")}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="card" id="pay-card" />
+                  <Label htmlFor="pay-card" className="flex items-center gap-1 cursor-pointer">
+                    <CreditCard className="h-4 w-4" /> {t("billing.card")}
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="flex justify-between font-bold border-t pt-2">
+              <span>{t("billing.total")}</span>
+              <span>${(order.total + (parseFloat(tipAmount) || 0)).toFixed(0)} MXN</span>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>
+                {t("common.back")}
+              </Button>
+              <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>
+                {t("billing.confirmPayment")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,7 +229,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         </DialogHeader>
 
         <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
-          {/* Menu items picker - only if can add items */}
+          {/* Menu items picker */}
           {canAddItems && (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="relative mb-2">
@@ -171,14 +288,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               <ScrollArea className="flex-1 max-h-[40vh]">
                 <div className="space-y-2 pr-2">
                   {orderItems.map((oi) => (
-                    <div key={oi.id} className="flex items-center justify-between text-sm">
+                    <div key={oi.id} className="flex items-center justify-between text-sm gap-1">
                       <div className="flex-1 min-w-0">
-                        <p className="truncate">
-                          {oi.quantity}x {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className="truncate">
+                            {oi.quantity}x {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
+                          </p>
+                          {order && order.status !== "pending" && itemStatusBadge(oi.status)}
+                        </div>
                         <p className="text-xs text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</p>
                       </div>
-                      {canAddItems && (
+                      {oi.status === "pending" && canAddItems && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -206,10 +326,22 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                     {t("orders.sendToKitchen")}
                   </Button>
                 )}
+                {order?.status === "in_progress" && orderItems.some((oi) => oi.status === "pending") && (
+                  <Button className="w-full gap-2" size="sm" onClick={handleSendToKitchen} variant="outline">
+                    <Send className="h-4 w-4" />
+                    {t("orders.sendNewItems")}
+                  </Button>
+                )}
                 {canMarkServed && (
                   <Button className="w-full gap-2" size="sm" onClick={handleMarkServed}>
                     <UtensilsCrossed className="h-4 w-4" />
                     {t("orders.markServed")}
+                  </Button>
+                )}
+                {canPay && (
+                  <Button className="w-full gap-2" size="sm" onClick={() => setShowPayment(true)}>
+                    <Receipt className="h-4 w-4" />
+                    {t("billing.payNow")}
                   </Button>
                 )}
               </div>
