@@ -99,6 +99,7 @@ export const translations = {
   "orders.start": { es: "Iniciar", en: "Start" },
   "orders.markReady": { es: "Marcar lista", en: "Mark ready" },
   "orders.markServed": { es: "Servida", en: "Mark served" },
+  "orders.sendNewItems": { es: "Enviar nuevos items", en: "Send new items" },
   "orders.newOrder": { es: "Nueva orden", en: "New order" },
   "orders.viewOrder": { es: "Ver orden", en: "View order" },
   "orders.recipe": { es: "Receta", en: "Recipe" },

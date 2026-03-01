@@ -9,6 +9,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   notes: string;
+  status: string;
   created_at: string;
   menu_item?: { name: string; name_en: string };
 }
@@ -69,6 +70,23 @@ export const useOrders = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
+  const updateItemStatus = useMutation({
+    mutationFn: async ({ id, status, order_id }: { id: string; status: string; order_id: string }) => {
+      const { error } = await supabase.from("order_items").update({ status } as any).eq("id", id);
+      if (error) throw error;
+      // Check if all items in this order are ready
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("status")
+        .eq("order_id", order_id);
+      const allReady = (items ?? []).every((i: any) => i.status === "ready");
+      if (allReady && items && items.length > 0) {
+        await supabase.from("orders").update({ status: "ready" as any }).eq("id", order_id);
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
   const addItem = useMutation({
     mutationFn: async ({
       order_id,
@@ -93,6 +111,11 @@ export const useOrders = () => {
         .eq("order_id", order_id);
       const total = (items ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0);
       await supabase.from("orders").update({ total }).eq("id", order_id);
+      // If order was already sent to kitchen, keep it in_progress
+      const { data: order } = await supabase.from("orders").select("status").eq("id", order_id).single();
+      if (order && order.status === "ready") {
+        await supabase.from("orders").update({ status: "in_progress" as any }).eq("id", order_id);
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
@@ -116,5 +139,5 @@ export const useOrders = () => {
       (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
     );
 
-  return { ...query, createOrder, updateOrderStatus, addItem, removeItem, getActiveOrderForTable };
+  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, getActiveOrderForTable };
 };

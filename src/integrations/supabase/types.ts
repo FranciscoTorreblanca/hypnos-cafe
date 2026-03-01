@@ -190,6 +190,7 @@ export type Database = {
           notes: string
           order_id: string
           quantity: number
+          status: string
           unit_price: number
         }
         Insert: {
@@ -199,6 +200,7 @@ export type Database = {
           notes?: string
           order_id: string
           quantity?: number
+          status?: string
           unit_price?: number
         }
         Update: {
@@ -208,6 +210,7 @@ export type Database = {
           notes?: string
           order_id?: string
           quantity?: number
+          status?: string
           unit_price?: number
         }
         Relationships: [
