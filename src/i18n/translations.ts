@@ -130,6 +130,12 @@ export const translations = {
   "billing.table": { es: "Mesa", en: "Table" },
   "billing.amount": { es: "Monto", en: "Amount" },
   "billing.method": { es: "Método", en: "Method" },
+  "billing.actions": { es: "Acciones", en: "Actions" },
+  "billing.editPayment": { es: "Editar pago", en: "Edit payment" },
+  "billing.deletePayment": { es: "Eliminar pago", en: "Delete payment" },
+  "billing.deleteConfirm": { es: "¿Eliminar este pago? La orden volverá a estado 'servida'.", en: "Delete this payment? The order will revert to 'served' status." },
+  "billing.paymentUpdated": { es: "Pago actualizado", en: "Payment updated" },
+  "billing.paymentDeleted": { es: "Pago eliminado", en: "Payment deleted" },
 
   // Common
   "common.save": { es: "Guardar", en: "Save" },

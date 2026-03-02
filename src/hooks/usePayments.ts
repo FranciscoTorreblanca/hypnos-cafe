@@ -80,5 +80,29 @@ export const usePayments = () => {
     },
   });
 
-  return { ...query, createPayment };
+  const updatePayment = useMutation({
+    mutationFn: async ({ id, amount, tip, payment_method }: { id: string; amount: number; tip: number; payment_method: string }) => {
+      const { error } = await supabase.from("payments").update({ amount, tip, payment_method }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payments"] }),
+  });
+
+  const deletePayment = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: payment } = await supabase.from("payments").select("order_id").eq("id", id).single();
+      const { error } = await supabase.from("payments").delete().eq("id", id);
+      if (error) throw error;
+      // Revert order status back to served
+      if (payment?.order_id) {
+        await supabase.from("orders").update({ status: "served" as any }).eq("id", payment.order_id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  return { ...query, createPayment, updatePayment, deletePayment };
 };

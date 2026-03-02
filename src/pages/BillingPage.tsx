@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
-import { usePayments } from "@/hooks/usePayments";
+import { usePayments, Payment } from "@/hooks/usePayments";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,18 +35,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp } from "lucide-react";
+import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
 
 const BillingPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [] } = useOrders();
-  const { data: payments = [], createPayment } = usePayments();
+  const { data: payments = [], createPayment, updatePayment, deletePayment } = usePayments();
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
 
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [tipAmount, setTipAmount] = useState<string>("0");
+
+  // Admin edit/delete state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editTip, setEditTip] = useState("");
+  const [editMethod, setEditMethod] = useState("cash");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
@@ -67,6 +88,33 @@ const BillingPage = () => {
 
   const totalSales = payments.reduce((s, p) => s + p.amount, 0);
   const totalTips = payments.reduce((s, p) => s + p.tip, 0);
+
+  const openEditDialog = (p: Payment) => {
+    setEditingPayment(p);
+    setEditAmount(String(p.amount));
+    setEditTip(String(p.tip));
+    setEditMethod(p.payment_method);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingPayment) return;
+    try {
+      await updatePayment.mutateAsync({ id: editingPayment.id, amount: parseFloat(editAmount) || 0, tip: parseFloat(editTip) || 0, payment_method: editMethod });
+      toast({ title: t("common.success"), description: t("billing.paymentUpdated") });
+      setEditDialogOpen(false);
+    } catch { toast({ title: t("common.error"), variant: "destructive" }); }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingPaymentId) return;
+    try {
+      await deletePayment.mutateAsync(deletingPaymentId);
+      toast({ title: t("common.success"), description: t("billing.paymentDeleted") });
+    } catch { toast({ title: t("common.error"), variant: "destructive" }); }
+    setDeleteDialogOpen(false);
+    setDeletingPaymentId(null);
+  };
 
   // Group tips by waiter
   const tipsByWaiter: Record<string, { name: string; tips: number; count: number }> = {};
@@ -180,6 +228,7 @@ const BillingPage = () => {
                     <TableHead>{t("billing.tip")}</TableHead>
                     <TableHead>{t("billing.method")}</TableHead>
                     <TableHead>{t("billing.waiter")}</TableHead>
+                    {isAdmin && <TableHead>{t("billing.actions")}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -195,6 +244,18 @@ const BillingPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs">{p.waiter?.full_name || "-"}</TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(p)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeletingPaymentId(p.id); setDeleteDialogOpen(true); }}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -297,6 +358,59 @@ const BillingPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Admin edit payment dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("billing.editPayment")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t("billing.amount")}</Label>
+              <Input type="number" min="0" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("billing.tip")}</Label>
+              <Input type="number" min="0" value={editTip} onChange={(e) => setEditTip(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("billing.paymentMethod")}</Label>
+              <RadioGroup value={editMethod} onValueChange={setEditMethod} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="cash" id="edit-cash" />
+                  <Label htmlFor="edit-cash" className="flex items-center gap-1 cursor-pointer">
+                    <Banknote className="h-4 w-4" /> {t("billing.cash")}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="card" id="edit-card" />
+                  <Label htmlFor="edit-card" className="flex items-center gap-1 cursor-pointer">
+                    <CreditCard className="h-4 w-4" /> {t("billing.card")}
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <Button className="w-full" onClick={handleEditSave} disabled={updatePayment.isPending}>
+              {t("common.save")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin delete confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("billing.deletePayment")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("billing.deleteConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>{t("common.delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
