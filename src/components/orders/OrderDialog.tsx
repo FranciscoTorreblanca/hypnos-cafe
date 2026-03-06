@@ -43,8 +43,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const { t, language } = useLanguage();
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
-  const { createOrder, addItem, removeItem, updateOrderStatus } = useOrders();
+  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder } = useOrders();
   const { createPayment } = usePayments();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
