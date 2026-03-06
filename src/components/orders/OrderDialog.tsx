@@ -4,6 +4,7 @@ import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,18 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Send, Search, UtensilsCrossed, Receipt, Banknote, CreditCard } from "lucide-react";
+import { Plus, Trash2, Send, Search, UtensilsCrossed, Receipt, Banknote, CreditCard, XCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
@@ -31,8 +43,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const { t, language } = useLanguage();
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
-  const { createOrder, addItem, removeItem, updateOrderStatus } = useOrders();
+  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder } = useOrders();
   const { createPayment } = usePayments();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -82,6 +95,13 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     toast({ title: t("common.success"), description: t("orders.markServed") });
   };
 
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    await cancelOrder.mutateAsync(order.id);
+    toast({ title: t("common.success"), description: t("orders.orderCancelled") });
+    onOpenChange(false);
+  };
+
   const handleConfirmPayment = async () => {
     if (!order) return;
     try {
@@ -112,6 +132,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const canSendToKitchen = order?.status === "pending" && orderItems.length > 0;
   const canMarkServed = order?.status === "ready";
   const canPay = order?.status === "served";
+  const isOwnOrder = order?.created_by === user?.id;
+  // Waiters can cancel their own orders that aren't ready/served/paid; admins can cancel any order anytime
+  const canCancelOrder = order && (
+    isAdmin || (isOwnOrder && ["pending", "in_progress"].includes(order.status))
+  );
+  // Waiter can delete pending items on their own order; admin can delete any item anytime
+  const canDeleteItem = (itemStatus: string) =>
+    isAdmin || (isOwnOrder && canAddItems && itemStatus === "pending");
 
   // Per-item status indicators
   const itemStatusBadge = (status: string) => {
@@ -298,11 +326,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                         </div>
                         <p className="text-xs text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</p>
                       </div>
-                      {oi.status === "pending" && canAddItems && (
+                      {canDeleteItem(oi.status) && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 shrink-0"
+                          className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
                           onClick={() => handleRemoveItem(oi.id)}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -343,6 +371,26 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                     <Receipt className="h-4 w-4" />
                     {t("billing.payNow")}
                   </Button>
+                )}
+                {canCancelOrder && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full gap-2" size="sm">
+                        <XCircle className="h-4 w-4" />
+                        {t("orders.cancelOrder")}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t("orders.cancelOrder")}</AlertDialogTitle>
+                        <AlertDialogDescription>{t("orders.cancelConfirm")}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancelOrder}>{t("common.confirm")}</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             )}
