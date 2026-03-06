@@ -372,6 +372,26 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                     {t("billing.payNow")}
                   </Button>
                 )}
+                {canCancelOrder && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full gap-2" size="sm">
+                        <XCircle className="h-4 w-4" />
+                        {t("orders.cancelOrder")}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t("orders.cancelOrder")}</AlertDialogTitle>
+                        <AlertDialogDescription>{t("orders.cancelConfirm")}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancelOrder}>{t("common.confirm")}</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             )}
           </div>
