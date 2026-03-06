@@ -156,5 +156,5 @@ export const useOrders = () => {
       (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
     );
 
-  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, getActiveOrderForTable };
+  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, cancelOrder, getActiveOrderForTable };
 };
