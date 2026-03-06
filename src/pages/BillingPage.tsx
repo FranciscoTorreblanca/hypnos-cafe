@@ -106,10 +106,10 @@ const BillingPage = () => {
     } catch { toast({ title: t("common.error"), variant: "destructive" }); }
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (revertToServed: boolean) => {
     if (!deletingPaymentId) return;
     try {
-      await deletePayment.mutateAsync(deletingPaymentId);
+      await deletePayment.mutateAsync({ id: deletingPaymentId, revertToServed });
       toast({ title: t("common.success"), description: t("billing.paymentDeleted") });
     } catch { toast({ title: t("common.error"), variant: "destructive" }); }
     setDeleteDialogOpen(false);
