@@ -132,6 +132,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const canSendToKitchen = order?.status === "pending" && orderItems.length > 0;
   const canMarkServed = order?.status === "ready";
   const canPay = order?.status === "served";
+  const isOwnOrder = order?.created_by === user?.id;
+  // Waiters can cancel their own orders that aren't ready/served/paid; admins can cancel any order anytime
+  const canCancelOrder = order && (
+    isAdmin || (isOwnOrder && ["pending", "in_progress"].includes(order.status))
+  );
+  // Waiter can delete pending items on their own order; admin can delete any item anytime
+  const canDeleteItem = (itemStatus: string) =>
+    isAdmin || (isOwnOrder && canAddItems && itemStatus === "pending");
 
   // Per-item status indicators
   const itemStatusBadge = (status: string) => {
