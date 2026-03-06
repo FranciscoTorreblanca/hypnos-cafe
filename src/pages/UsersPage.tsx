@@ -54,7 +54,7 @@ const UsersPage = () => {
   }, [isAdmin]);
 
   const handleCreate = async () => {
-    if (!form.email || !form.password || !form.full_name || !form.role) return;
+    if (!form.email || !form.full_name || !form.role) return;
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
