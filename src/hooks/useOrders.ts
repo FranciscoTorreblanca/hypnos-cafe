@@ -124,12 +124,29 @@ export const useOrders = () => {
     mutationFn: async ({ id, order_id }: { id: string; order_id: string }) => {
       const { error } = await supabase.from("order_items").delete().eq("id", id);
       if (error) throw error;
+      // Check remaining items
       const { data: items } = await supabase
         .from("order_items")
         .select("quantity, unit_price")
         .eq("order_id", order_id);
-      const total = (items ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0);
-      await supabase.from("orders").update({ total }).eq("id", order_id);
+      if (!items || items.length === 0) {
+        // No items left — cancel the order
+        await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", order_id);
+      } else {
+        const total = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+        await supabase.from("orders").update({ total }).eq("id", order_id);
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
+  const cancelOrder = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete all order items first, then cancel the order
+      const { error: itemsError } = await supabase.from("order_items").delete().eq("order_id", id);
+      if (itemsError) throw itemsError;
+      const { error } = await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
