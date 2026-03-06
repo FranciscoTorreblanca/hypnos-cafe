@@ -138,7 +138,9 @@ export const translations = {
   "billing.actions": { es: "Acciones", en: "Actions" },
   "billing.editPayment": { es: "Editar pago", en: "Edit payment" },
   "billing.deletePayment": { es: "Eliminar pago", en: "Delete payment" },
-  "billing.deleteConfirm": { es: "¿Eliminar este pago? La orden volverá a estado 'servida'.", en: "Delete this payment? The order will revert to 'served' status." },
+  "billing.deleteConfirm": { es: "¿Qué deseas hacer con este pago?", en: "What do you want to do with this payment?" },
+  "billing.deleteAndServe": { es: "Eliminar y volver a Servida", en: "Delete & revert to Served" },
+  "billing.deleteCompletely": { es: "Eliminar completamente", en: "Delete completely" },
   "billing.paymentUpdated": { es: "Pago actualizado", en: "Payment updated" },
   "billing.paymentDeleted": { es: "Pago eliminado", en: "Payment deleted" },
 

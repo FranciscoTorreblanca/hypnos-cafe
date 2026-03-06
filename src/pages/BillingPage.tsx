@@ -106,10 +106,10 @@ const BillingPage = () => {
     } catch { toast({ title: t("common.error"), variant: "destructive" }); }
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (revertToServed: boolean) => {
     if (!deletingPaymentId) return;
     try {
-      await deletePayment.mutateAsync(deletingPaymentId);
+      await deletePayment.mutateAsync({ id: deletingPaymentId, revertToServed });
       toast({ title: t("common.success"), description: t("billing.paymentDeleted") });
     } catch { toast({ title: t("common.error"), variant: "destructive" }); }
     setDeleteDialogOpen(false);
@@ -405,9 +405,14 @@ const BillingPage = () => {
             <AlertDialogTitle>{t("billing.deletePayment")}</AlertDialogTitle>
             <AlertDialogDescription>{t("billing.deleteConfirm")}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>{t("common.delete")}</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleDeleteConfirm(true)} className="bg-orange-600 hover:bg-orange-700">
+              {t("billing.deleteAndServe")}
+            </AlertDialogAction>
+            <AlertDialogAction onClick={() => handleDeleteConfirm(false)} className="bg-destructive hover:bg-destructive/90">
+              {t("billing.deleteCompletely")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

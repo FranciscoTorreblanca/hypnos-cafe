@@ -89,12 +89,11 @@ export const usePayments = () => {
   });
 
   const deletePayment = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, revertToServed }: { id: string; revertToServed: boolean }) => {
       const { data: payment } = await supabase.from("payments").select("order_id").eq("id", id).single();
       const { error } = await supabase.from("payments").delete().eq("id", id);
       if (error) throw error;
-      // Revert order status back to served
-      if (payment?.order_id) {
+      if (payment?.order_id && revertToServed) {
         await supabase.from("orders").update({ status: "served" as any }).eq("id", payment.order_id);
       }
     },
