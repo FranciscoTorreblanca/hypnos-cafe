@@ -23,14 +23,13 @@ Deno.serve(async (req) => {
     const { data: isAdmin } = await callerClient.rpc("is_admin");
     if (!isAdmin) throw new Error("Not authorized");
 
-    const { email, password, full_name, role } = await req.json();
-    if (!email || !password || !full_name || !role) throw new Error("Missing fields");
+    const { email, full_name, role } = await req.json();
+    if (!email || !full_name || !role) throw new Error("Missing fields");
 
-    // Create user with service role
+    // Create user with service role — no password, they'll set it via recovery email
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      password,
       email_confirm: true,
       user_metadata: { full_name },
     });
@@ -41,6 +40,13 @@ Deno.serve(async (req) => {
       .from("user_roles")
       .insert({ user_id: newUser.user.id, role });
     if (roleError) throw roleError;
+
+    // Send password reset email so the new user can set their password
+    const { error: resetError } = await adminClient.auth.admin.generateLink({
+      type: "recovery",
+      email,
+    });
+    if (resetError) throw resetError;
 
     return new Response(JSON.stringify({ id: newUser.user.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

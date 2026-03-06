@@ -18,6 +18,7 @@ export const translations = {
   "auth.loginSubtitle": { es: "Ingresa a tu cuenta de Hypnos Cafe", en: "Sign in to your Hypnos Cafe account" },
   "auth.signupSubtitle": { es: "Únete al equipo de Hypnos Cafe", en: "Join the Hypnos Cafe team" },
   "auth.checkEmail": { es: "Revisa tu correo para confirmar tu cuenta", en: "Check your email to confirm your account" },
+  "auth.inviteSent": { es: "Se envió un correo de invitación al usuario", en: "An invitation email was sent to the user" },
   "auth.forgotPassword": { es: "¿Olvidaste tu contraseña?", en: "Forgot password?" },
   "auth.resetPassword": { es: "Restablecer contraseña", en: "Reset password" },
   "auth.newPassword": { es: "Nueva contraseña", en: "New password" },

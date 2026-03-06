@@ -144,10 +144,6 @@ const UsersPage = () => {
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>{t("auth.password")}</Label>
-              <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={6} />
-            </div>
-            <div className="space-y-2">
               <Label>{t("users.role")}</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
                 <SelectTrigger>
