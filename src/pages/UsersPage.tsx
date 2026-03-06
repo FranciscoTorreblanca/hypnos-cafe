@@ -65,7 +65,7 @@ const UsersPage = () => {
       if (res.data?.error) throw new Error(res.data.error);
       toast({ title: t("common.success"), description: t("users.created") });
       setDialogOpen(false);
-      setForm({ email: "", password: "", full_name: "", role: "" });
+      setForm({ email: "", full_name: "", role: "" });
       fetchUsers();
     } catch (error: any) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
