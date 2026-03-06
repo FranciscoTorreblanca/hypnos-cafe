@@ -30,7 +30,7 @@ const UsersPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "" });
+  const [form, setForm] = useState({ email: "", full_name: "", role: "" });
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*");
@@ -54,7 +54,7 @@ const UsersPage = () => {
   }, [isAdmin]);
 
   const handleCreate = async () => {
-    if (!form.email || !form.password || !form.full_name || !form.role) return;
+    if (!form.email || !form.full_name || !form.role) return;
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -65,7 +65,7 @@ const UsersPage = () => {
       if (res.data?.error) throw new Error(res.data.error);
       toast({ title: t("common.success"), description: t("users.created") });
       setDialogOpen(false);
-      setForm({ email: "", password: "", full_name: "", role: "" });
+      setForm({ email: "", full_name: "", role: "" });
       fetchUsers();
     } catch (error: any) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
@@ -142,10 +142,6 @@ const UsersPage = () => {
             <div className="space-y-2">
               <Label>{t("auth.email")}</Label>
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("auth.password")}</Label>
-              <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={6} />
             </div>
             <div className="space-y-2">
               <Label>{t("users.role")}</Label>
