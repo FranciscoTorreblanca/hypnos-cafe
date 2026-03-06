@@ -326,11 +326,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                         </div>
                         <p className="text-xs text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</p>
                       </div>
-                      {oi.status === "pending" && canAddItems && (
+                      {canDeleteItem(oi.status) && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 shrink-0"
+                          className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
                           onClick={() => handleRemoveItem(oi.id)}
                         >
                           <Trash2 className="h-3 w-3" />
