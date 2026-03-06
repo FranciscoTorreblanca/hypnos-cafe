@@ -30,7 +30,7 @@ const UsersPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "" });
+  const [form, setForm] = useState({ email: "", full_name: "", role: "" });
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*");
