@@ -4,6 +4,7 @@ import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
