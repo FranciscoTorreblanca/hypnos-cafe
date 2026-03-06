@@ -95,6 +95,13 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     toast({ title: t("common.success"), description: t("orders.markServed") });
   };
 
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    await cancelOrder.mutateAsync(order.id);
+    toast({ title: t("common.success"), description: t("orders.orderCancelled") });
+    onOpenChange(false);
+  };
+
   const handleConfirmPayment = async () => {
     if (!order) return;
     try {
