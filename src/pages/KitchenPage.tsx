@@ -149,7 +149,7 @@ const KitchenPage = () => {
                           )}
                         </div>
                       </div>
-                      {oi.notes && <span className="text-xs text-muted-foreground italic">{oi.notes}</span>}
+                      {oi.notes && <span className="text-xs text-muted-foreground italic block">📝 {oi.notes}</span>}
                       <CollapsibleContent className="pt-1 pb-2">
                         {renderRecipe(oi.menu_item_id)}
                       </CollapsibleContent>

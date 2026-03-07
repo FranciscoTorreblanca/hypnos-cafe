@@ -32,6 +32,7 @@ export const useOrders = () => {
 
   const query = useQuery({
     queryKey: ["orders"],
+    staleTime: 30 * 1000, // 30s cache
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
