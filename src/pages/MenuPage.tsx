@@ -74,13 +74,21 @@ const MenuPage = () => {
       </div>
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="all">{t("common.all") || "All"}</TabsTrigger>
           {categories.map((c) => (
             <TabsTrigger key={c.id} value={c.id}>
               {language === "es" ? c.name : c.name_en || c.name}
             </TabsTrigger>
           ))}
+          <TabsTrigger value="uncategorized" className="text-muted-foreground">
+            {language === "es" ? "Sin categoría" : "No category"}
+            {items.filter(i => !i.category_id).length > 0 && (
+              <Badge variant="destructive" className="ml-1.5 h-5 min-w-5 px-1 text-[10px]">
+                {items.filter(i => !i.category_id).length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
