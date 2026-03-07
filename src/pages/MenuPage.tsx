@@ -75,7 +75,7 @@ const MenuPage = () => {
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="all">{t("common.all") || "All"}</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
           {categories.map((c) => (
             <TabsTrigger key={c.id} value={c.id}>
               {language === "es" ? c.name : c.name_en || c.name}
