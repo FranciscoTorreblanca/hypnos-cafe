@@ -109,6 +109,10 @@ export const translations = {
   "orders.viewOrder": { es: "Ver orden", en: "View order" },
   "orders.recipe": { es: "Receta", en: "Recipe" },
   "orders.noRecipe": { es: "Sin receta registrada", en: "No recipe registered" },
+  "orders.itemNotes": { es: "Notas (ej: sin tomate, extra queso...)", en: "Notes (e.g.: no tomato, extra cheese...)" },
+  "orders.itemsAdded": { es: "items agregados", en: "items added" },
+  "orders.newItems": { es: "Nuevos items", en: "New items" },
+  "orders.addToOrder": { es: "Agregar a la orden", en: "Add to order" },
 
   // Kitchen
   "nav.kitchen": { es: "Cocina", en: "Kitchen" },
