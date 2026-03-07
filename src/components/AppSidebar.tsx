@@ -36,11 +36,11 @@ export const AppSidebar = () => {
 
   const navItems = [
     { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: [] },
-    { key: "nav.tables" as const, icon: Grid3X3, path: "/tables", roles: ["admin", "waiter"] },
+    { key: "nav.tables" as const, icon: Grid3X3, path: "/tables", roles: ["admin", "waiter", "kitchen"] },
     { key: "nav.menu" as const, icon: UtensilsCrossed, path: "/menu", roles: ["admin"] },
     { key: "nav.costCalculator" as const, icon: Calculator, path: "/cost-calculator", roles: ["admin"] },
     { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
-    { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "kitchen"] },
+    { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"] },
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
     { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },
     { key: "nav.settings" as const, icon: Settings, path: "/settings", roles: ["admin"] },
