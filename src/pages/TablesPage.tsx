@@ -46,48 +46,44 @@ const TablesPage = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("tables.title")}</h1>
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="space-y-4">
+      <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t("tables.title")}</h1>
+      <div className="grid gap-2 sm:gap-4 grid-cols-3 sm:grid-cols-3 lg:grid-cols-4">
         {tables.map((table) => {
           const status = getStatus(table);
           return (
             <Card
               key={table.number}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className="cursor-pointer hover:shadow-md active:shadow-sm transition-shadow"
               onClick={() => openTable(table.number)}
             >
-              <CardHeader className="pb-2">
+              <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">
-                    {t("tables.title")} {table.number}
+                  <CardTitle className="text-sm sm:text-lg">
+                    <span className="hidden sm:inline">{t("tables.title")} </span>{table.number}
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Badge className={statusColors[status]} variant="outline">
+              <CardContent className="p-2 sm:p-4 pt-0 sm:pt-0">
+                <Badge className={`${statusColors[status]} text-[10px] sm:text-xs`} variant="outline">
                   {t(`tables.${status}` as any)}
                 </Badge>
                 {table.order && (
-                  <div className="mt-2">
-                    <p className="text-sm font-medium">${table.order.total.toFixed(0)} MXN</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="mt-1 sm:mt-2">
+                    <p className="text-xs sm:text-sm font-medium">${table.order.total.toFixed(0)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       {(table.order.order_items ?? []).length} items
                     </p>
                   </div>
                 )}
-                <div className="mt-2">
-                  {table.order ? (
-                    <Button variant="outline" size="sm" className="w-full gap-1">
-                      <Eye className="h-3 w-3" />
-                      {t("orders.viewOrder")}
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" className="w-full gap-1">
-                      <Plus className="h-3 w-3" />
-                      {t("orders.newOrder")}
-                    </Button>
-                  )}
+                <div className="mt-1 sm:mt-2">
+                  <Button variant="outline" size="sm" className="w-full gap-1 h-7 sm:h-8 text-xs">
+                    {table.order ? (
+                      <><Eye className="h-3 w-3" /><span className="hidden sm:inline">{t("orders.viewOrder")}</span></>
+                    ) : (
+                      <><Plus className="h-3 w-3" /><span className="hidden sm:inline">{t("orders.newOrder")}</span></>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
