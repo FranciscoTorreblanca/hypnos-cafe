@@ -49,49 +49,64 @@ const MenuPage = () => {
     return language === "es" ? cat.name : cat.name_en || cat.name;
   };
 
+  const uncategorizedCount = items.filter(i => !i.category_id).length;
+
   return (
     <div className="space-y-6">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">{t("menu.title")}</h1>
-        {isAdmin && (
-          <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
-          </Button>
-        )}
       </div>
 
+      {/* Section 1: Category Management (admin only, collapsible) */}
       {isAdmin && <CategoryManager />}
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("common.search")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      {/* Section 2: Menu Items */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-medium text-foreground">
+            {language === "es" ? "Artículos del Menú" : "Menu Items"}
+          </h2>
+          {isAdmin && (
+            <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
+            </Button>
+          )}
         </div>
-      </div>
 
-      <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="all">All</TabsTrigger>
-          {categories.map((c) => (
-            <TabsTrigger key={c.id} value={c.id}>
-              {language === "es" ? c.name : c.name_en || c.name}
+        {/* Search + filters bar */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("common.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {/* Category filter tabs */}
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="all">{language === "es" ? "Todos" : "All"}</TabsTrigger>
+            {categories.map((c) => (
+              <TabsTrigger key={c.id} value={c.id}>
+                {language === "es" ? c.name : c.name_en || c.name}
+              </TabsTrigger>
+            ))}
+            <TabsTrigger value="uncategorized" className="text-muted-foreground">
+              {language === "es" ? "Sin categoría" : "No category"}
+              {uncategorizedCount > 0 && (
+                <Badge variant="destructive" className="ml-1.5 h-5 min-w-5 px-1 text-[10px]">
+                  {uncategorizedCount}
+                </Badge>
+              )}
             </TabsTrigger>
-          ))}
-          <TabsTrigger value="uncategorized" className="text-muted-foreground">
-            {language === "es" ? "Sin categoría" : "No category"}
-            {items.filter(i => !i.category_id).length > 0 && (
-              <Badge variant="destructive" className="ml-1.5 h-5 min-w-5 px-1 text-[10px]">
-                {items.filter(i => !i.category_id).length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {filtered.length === 0 ? (
         <p className="text-muted-foreground text-center py-12">{t("common.noResults")}</p>
