@@ -31,7 +31,8 @@ const MenuPage = () => {
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
       i.name_en.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === "all" || i.category_id === activeCategory;
+    const matchCat = activeCategory === "all" || 
+      (activeCategory === "uncategorized" ? !i.category_id : i.category_id === activeCategory);
     return matchSearch && matchCat;
   });
 
