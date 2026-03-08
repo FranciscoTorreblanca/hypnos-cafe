@@ -156,6 +156,7 @@ const CostCalculatorPage = () => {
 
   // Recipe builder
   const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [customPrice, setCustomPrice] = useState("");
   const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
   const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; source_menu_item_id: string; quantity: string }[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
