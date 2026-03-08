@@ -512,13 +512,60 @@ const CostCalculatorPage = () => {
                           </div>
                         </div>
 
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex flex-col gap-3 pt-2">
                           <Button size="sm" onClick={handleSaveRecipe}>Guardar receta</Button>
-                          {suggested !== currentPrice && (
-                            <Button size="sm" variant="outline" onClick={() => handleApplyPrice(suggested)}>
-                              Aplicar ${suggested} al menú
-                            </Button>
-                          )}
+                          <div className="border-t pt-3 space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Aplicar precio al menú</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant={customPrice === "" ? "default" : "outline"}
+                                onClick={() => { setCustomPrice(""); handleApplyPrice(suggested); }}
+                              >
+                                Sugerido ${suggested}
+                              </Button>
+                              <span className="text-xs text-muted-foreground">o</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm font-medium">$</span>
+                                <Input
+                                  type="number"
+                                  step="1"
+                                  min="0"
+                                  className="h-8 w-24"
+                                  placeholder="Precio"
+                                  value={customPrice}
+                                  onChange={(e) => setCustomPrice(e.target.value)}
+                                />
+                                <Button
+                                  size="sm"
+                                  disabled={!customPrice || Number(customPrice) <= 0}
+                                  onClick={() => handleApplyPrice(Number(customPrice))}
+                                >
+                                  Aplicar
+                                </Button>
+                              </div>
+                            </div>
+                            {customPrice && Number(customPrice) > 0 && (
+                              <div className="grid grid-cols-3 gap-2 text-center text-xs bg-background rounded-md p-2 border">
+                                <div>
+                                  <p className="text-muted-foreground">Ganancia</p>
+                                  <p className="font-semibold">${(Number(customPrice) - realCost).toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Margen</p>
+                                  <p className={`font-semibold ${((Number(customPrice) - realCost) / Number(customPrice) * 100) >= 60 ? "text-emerald-600" : "text-amber-600"}`}>
+                                    {((Number(customPrice) - realCost) / Number(customPrice) * 100).toFixed(1)}%
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Food cost</p>
+                                  <p className={`font-semibold ${(realCost / Number(customPrice) * 100) <= 35 ? "text-emerald-600" : "text-amber-600"}`}>
+                                    {(realCost / Number(customPrice) * 100).toFixed(1)}%
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
