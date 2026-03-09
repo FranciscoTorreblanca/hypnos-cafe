@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { CategoryManager } from "@/components/menu/CategoryManager";
+import { ComboManager } from "@/components/menu/ComboManager";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
