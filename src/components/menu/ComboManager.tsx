@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export const ComboManager = () => {
