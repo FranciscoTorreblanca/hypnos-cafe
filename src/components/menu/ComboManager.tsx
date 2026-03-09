@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export const ComboManager = () => {
@@ -21,8 +21,8 @@ export const ComboManager = () => {
   const [editing, setEditing] = useState<ComboWithItems | null>(null);
   const [isOpen, setIsOpen] = useState(true);
 
-  const handleSave = (combo: any, items: { menu_item_id: string; quantity: number }[]) => {
-    upsert.mutate({ combo, items }, {
+  const handleSave = (combo: any, items: { menu_item_id: string; quantity: number }[], choiceGroups?: any[]) => {
+    upsert.mutate({ combo, items, choiceGroups }, {
       onSuccess: () => toast({ title: t("common.success") }),
     });
   };
@@ -95,7 +95,7 @@ export const ComboManager = () => {
                           </Badge>
                         </div>
 
-                        {/* Items list */}
+                        {/* Fixed items list */}
                         <div className="text-xs text-muted-foreground space-y-0.5">
                           {combo.combo_items.map((ci) => (
                             <div key={ci.id} className="flex justify-between">
@@ -104,6 +104,30 @@ export const ComboManager = () => {
                             </div>
                           ))}
                         </div>
+
+                        {/* Choice groups */}
+                        {combo.combo_choice_groups && combo.combo_choice_groups.length > 0 && (
+                          <div className="space-y-1.5">
+                            {combo.combo_choice_groups
+                              .sort((a, b) => a.display_order - b.display_order)
+                              .map((cg) => (
+                                <div key={cg.id} className="text-xs">
+                                  <div className="flex items-center gap-1 text-primary/80 font-medium mb-0.5">
+                                    <ListChecks className="h-3 w-3" />
+                                    <span>{language === "es" ? cg.label : cg.label_en || cg.label}</span>
+                                  </div>
+                                  <div className="pl-4 space-y-0.5 text-muted-foreground">
+                                    {cg.combo_choice_options.map((co) => (
+                                      <div key={co.id} className="flex justify-between">
+                                        <span>• {language === "es" ? co.menu_items.name : co.menu_items.name_en || co.menu_items.name}</span>
+                                        <span>${Number(co.menu_items.price).toFixed(2)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
 
                         {/* Price analysis */}
                         <div className="pt-1 border-t space-y-1">

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ComboWithItems } from "@/hooks/useCombos";
+import { ComboWithItems, ChoiceGroupInput } from "@/hooks/useCombos";
 import { useMenuItems } from "@/hooks/useMenuItems";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, Trash2, Search, Package } from "lucide-react";
+import { Plus, Minus, Trash2, Search, Package, ListChecks, X } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -34,23 +34,34 @@ interface ComboItemEntry {
   cost: number;
 }
 
+interface ChoiceGroupEntry {
+  label: string;
+  label_en: string;
+  options: { menu_item_id: string; name: string; price: number; cost: number }[];
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   combo?: ComboWithItems | null;
-  onSave: (combo: any, items: { menu_item_id: string; quantity: number }[]) => void;
+  onSave: (combo: any, items: { menu_item_id: string; quantity: number }[], choiceGroups?: ChoiceGroupInput[]) => void;
 }
 
 export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
   const { t, language } = useLanguage();
   const { data: menuItems = [] } = useMenuItems();
   const [comboItems, setComboItems] = useState<ComboItemEntry[]>([]);
+  const [choiceGroups, setChoiceGroups] = useState<ChoiceGroupEntry[]>([]);
   const [itemSearch, setItemSearch] = useState("");
+  const [optionSearch, setOptionSearch] = useState<{ groupIndex: number; query: string } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "", name_en: "", description: "", description_en: "", price: 0, is_available: true },
   });
+
+  const getItemName = (item: { name: string; name_en?: string }) =>
+    language === "es" ? item.name : item.name_en || item.name;
 
   useEffect(() => {
     if (combo) {
@@ -66,18 +77,35 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
         combo.combo_items.map((ci) => ({
           menu_item_id: ci.menu_item_id,
           quantity: ci.quantity,
-          name: language === "es" ? ci.menu_items.name : ci.menu_items.name_en || ci.menu_items.name,
+          name: getItemName(ci.menu_items),
           price: ci.menu_items.price,
           cost: ci.menu_items.cost,
         }))
       );
+      setChoiceGroups(
+        (combo.combo_choice_groups || [])
+          .sort((a, b) => a.display_order - b.display_order)
+          .map((cg) => ({
+            label: cg.label,
+            label_en: cg.label_en,
+            options: cg.combo_choice_options.map((co) => ({
+              menu_item_id: co.menu_item_id,
+              name: getItemName(co.menu_items),
+              price: co.menu_items.price,
+              cost: co.menu_items.cost,
+            })),
+          }))
+      );
     } else {
       form.reset();
       setComboItems([]);
+      setChoiceGroups([]);
     }
     setItemSearch("");
+    setOptionSearch(null);
   }, [combo, open]);
 
+  // Fixed items management
   const addItem = (item: { id: string; name: string; name_en: string; price: number; cost: number }) => {
     const existing = comboItems.find((ci) => ci.menu_item_id === item.id);
     if (existing) {
@@ -87,44 +115,84 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
     } else {
       setComboItems((prev) => [
         ...prev,
-        {
-          menu_item_id: item.id,
-          quantity: 1,
-          name: language === "es" ? item.name : item.name_en || item.name,
-          price: item.price,
-          cost: item.cost,
-        },
+        { menu_item_id: item.id, quantity: 1, name: getItemName(item), price: item.price, cost: item.cost },
       ]);
     }
   };
 
   const updateQty = (menuItemId: string, delta: number) => {
     setComboItems((prev) =>
-      prev
-        .map((ci) => (ci.menu_item_id === menuItemId ? { ...ci, quantity: ci.quantity + delta } : ci))
-        .filter((ci) => ci.quantity > 0)
+      prev.map((ci) => (ci.menu_item_id === menuItemId ? { ...ci, quantity: ci.quantity + delta } : ci)).filter((ci) => ci.quantity > 0)
     );
   };
 
-  const removeItem = (menuItemId: string) => {
-    setComboItems((prev) => prev.filter((ci) => ci.menu_item_id !== menuItemId));
+  const removeItem = (menuItemId: string) => setComboItems((prev) => prev.filter((ci) => ci.menu_item_id !== menuItemId));
+
+  // Choice group management
+  const addChoiceGroup = () => {
+    setChoiceGroups((prev) => [...prev, { label: "", label_en: "", options: [] }]);
   };
 
-  const originalPrice = comboItems.reduce((sum, ci) => sum + ci.price * ci.quantity, 0);
-  const productionCost = comboItems.reduce((sum, ci) => sum + ci.cost * ci.quantity, 0);
+  const updateGroupLabel = (idx: number, field: "label" | "label_en", value: string) => {
+    setChoiceGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, [field]: value } : g)));
+  };
+
+  const removeChoiceGroup = (idx: number) => {
+    setChoiceGroups((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const addOptionToGroup = (groupIdx: number, item: { id: string; name: string; name_en: string; price: number; cost: number }) => {
+    setChoiceGroups((prev) =>
+      prev.map((g, i) => {
+        if (i !== groupIdx) return g;
+        if (g.options.some((o) => o.menu_item_id === item.id)) return g;
+        return { ...g, options: [...g.options, { menu_item_id: item.id, name: getItemName(item), price: item.price, cost: item.cost }] };
+      })
+    );
+    setOptionSearch(null);
+  };
+
+  const removeOptionFromGroup = (groupIdx: number, menuItemId: string) => {
+    setChoiceGroups((prev) =>
+      prev.map((g, i) => (i === groupIdx ? { ...g, options: g.options.filter((o) => o.menu_item_id !== menuItemId) } : g))
+    );
+  };
+
+  // Calculations — use cheapest option per choice group for conservative cost estimate
+  const choiceGroupMinCost = choiceGroups.reduce((sum, g) => {
+    if (g.options.length === 0) return sum;
+    return sum + Math.min(...g.options.map((o) => o.cost));
+  }, 0);
+  const choiceGroupAvgPrice = choiceGroups.reduce((sum, g) => {
+    if (g.options.length === 0) return sum;
+    return sum + g.options.reduce((s, o) => s + o.price, 0) / g.options.length;
+  }, 0);
+
+  const originalPrice = comboItems.reduce((sum, ci) => sum + ci.price * ci.quantity, 0) + choiceGroupAvgPrice;
+  const productionCost = comboItems.reduce((sum, ci) => sum + ci.cost * ci.quantity, 0) + choiceGroupMinCost;
   const comboPrice = form.watch("price");
   const discount = originalPrice > 0 ? ((originalPrice - comboPrice) / originalPrice) * 100 : 0;
   const margin = comboPrice > 0 ? ((comboPrice - productionCost) / comboPrice) * 100 : 0;
 
   const filteredMenuItems = menuItems.filter((mi) => {
-    const name = language === "es" ? mi.name : mi.name_en || mi.name;
-    return name.toLowerCase().includes(itemSearch.toLowerCase());
+    const query = optionSearch ? optionSearch.query : itemSearch;
+    const name = getItemName(mi);
+    return name.toLowerCase().includes(query.toLowerCase());
   });
 
   const onSubmit = (values: FormValues) => {
+    const choiceGroupInputs: ChoiceGroupInput[] = choiceGroups
+      .filter((g) => g.label.trim() && g.options.length > 0)
+      .map((g) => ({
+        label: g.label,
+        label_en: g.label_en,
+        options: g.options.map((o) => ({ menu_item_id: o.menu_item_id })),
+      }));
+
     onSave(
       { ...values, ...(combo ? { id: combo.id } : {}) },
-      comboItems.map(({ menu_item_id, quantity }) => ({ menu_item_id, quantity }))
+      comboItems.map(({ menu_item_id, quantity }) => ({ menu_item_id, quantity })),
+      choiceGroupInputs
     );
     onOpenChange(false);
   };
@@ -175,19 +243,19 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
               )} />
             </div>
 
-            {/* Add items */}
+            {/* Fixed items */}
             <div className="space-y-2">
-              <FormLabel>{language === "es" ? "Artículos del combo" : "Combo items"}</FormLabel>
+              <FormLabel>{language === "es" ? "Artículos fijos del combo" : "Fixed combo items"}</FormLabel>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={language === "es" ? "Buscar artículo..." : "Search item..."}
                   value={itemSearch}
-                  onChange={(e) => setItemSearch(e.target.value)}
+                  onChange={(e) => { setItemSearch(e.target.value); setOptionSearch(null); }}
                   className="pl-9"
                 />
               </div>
-              {itemSearch && (
+              {itemSearch && !optionSearch && (
                 <div className="border rounded-md max-h-32 overflow-y-auto">
                   {filteredMenuItems.slice(0, 8).map((mi) => (
                     <button
@@ -196,17 +264,16 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                       className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-accent transition-colors"
                       onClick={() => { addItem(mi); setItemSearch(""); }}
                     >
-                      <span>{language === "es" ? mi.name : mi.name_en || mi.name}</span>
+                      <span>{getItemName(mi)}</span>
                       <span className="text-muted-foreground">${Number(mi.price).toFixed(2)}</span>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Selected items list */}
               {comboItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {language === "es" ? "Agrega artículos al combo" : "Add items to the combo"}
+                <p className="text-sm text-muted-foreground text-center py-3">
+                  {language === "es" ? "Agrega artículos fijos al combo" : "Add fixed items to the combo"}
                 </p>
               ) : (
                 <div className="space-y-1.5">
@@ -216,7 +283,7 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                         <p className="text-sm font-medium truncate">{ci.name}</p>
                         <div className="flex gap-2 text-xs text-muted-foreground">
                           <span>${Number(ci.price).toFixed(2)} × {ci.quantity}</span>
-                          {ci.cost > 0 && <span className="text-muted-foreground">({language === "es" ? "costo" : "cost"}: ${(ci.cost * ci.quantity).toFixed(2)})</span>}
+                          {ci.cost > 0 && <span>({language === "es" ? "costo" : "cost"}: ${(ci.cost * ci.quantity).toFixed(2)})</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -237,6 +304,100 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
               )}
             </div>
 
+            {/* Choice Groups */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <FormLabel className="flex items-center gap-1.5">
+                  <ListChecks className="h-4 w-4 text-primary" />
+                  {language === "es" ? "Opciones a elegir" : "Choice options"}
+                </FormLabel>
+                <Button type="button" size="sm" variant="outline" onClick={addChoiceGroup}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  {language === "es" ? "Agregar grupo" : "Add group"}
+                </Button>
+              </div>
+
+              {choiceGroups.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  {language === "es"
+                    ? "Agrega grupos de opciones (ej: \"Elige tu cerveza\")"
+                    : "Add option groups (e.g. \"Choose your beer\")"}
+                </p>
+              )}
+
+              {choiceGroups.map((group, gIdx) => (
+                <Card key={gIdx} className="border-primary/20">
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder={language === "es" ? "Nombre del grupo (ES)" : "Group name (ES)"}
+                        value={group.label}
+                        onChange={(e) => updateGroupLabel(gIdx, "label", e.target.value)}
+                        className="text-sm h-8"
+                      />
+                      <Input
+                        placeholder="EN"
+                        value={group.label_en}
+                        onChange={(e) => updateGroupLabel(gIdx, "label_en", e.target.value)}
+                        className="text-sm h-8 w-28"
+                      />
+                      <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeChoiceGroup(gIdx)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Options search */}
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder={language === "es" ? "Buscar opción..." : "Search option..."}
+                        value={optionSearch?.groupIndex === gIdx ? optionSearch.query : ""}
+                        onChange={(e) => { setOptionSearch({ groupIndex: gIdx, query: e.target.value }); setItemSearch(""); }}
+                        onFocus={() => setItemSearch("")}
+                        className="pl-7 h-7 text-xs"
+                      />
+                    </div>
+                    {optionSearch?.groupIndex === gIdx && optionSearch.query && (
+                      <div className="border rounded-md max-h-28 overflow-y-auto">
+                        {filteredMenuItems.slice(0, 6).map((mi) => (
+                          <button
+                            key={mi.id}
+                            type="button"
+                            className="w-full flex items-center justify-between px-2 py-1 text-xs hover:bg-accent transition-colors"
+                            onClick={() => addOptionToGroup(gIdx, mi)}
+                          >
+                            <span>{getItemName(mi)}</span>
+                            <span className="text-muted-foreground">${Number(mi.price).toFixed(2)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Options list */}
+                    {group.options.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-1">
+                        {language === "es" ? "Sin opciones aún" : "No options yet"}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {group.options.map((opt) => (
+                          <div key={opt.menu_item_id} className="flex items-center justify-between px-2 py-1 rounded border bg-muted/20 text-xs">
+                            <span className="truncate">{opt.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-muted-foreground">${Number(opt.price).toFixed(2)}</span>
+                              <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => removeOptionFromGroup(gIdx, opt.menu_item_id)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
             {/* Price + cost analysis */}
             <div className="space-y-3">
               <FormField control={form.control} name="price" render={({ field }) => (
@@ -246,7 +407,7 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                 </FormItem>
               )} />
 
-              {comboItems.length > 0 && (
+              {(comboItems.length > 0 || choiceGroups.some((g) => g.options.length > 0)) && (
                 <Card className="border-dashed">
                   <CardContent className="p-3 space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -254,11 +415,11 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                     </p>
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div className="space-y-0.5">
-                        <p className="text-xs text-muted-foreground">{language === "es" ? "Costo producción" : "Production cost"}</p>
+                        <p className="text-xs text-muted-foreground">{language === "es" ? "Costo prod. (min)" : "Prod. cost (min)"}</p>
                         <p className="font-semibold">${productionCost.toFixed(2)}</p>
                       </div>
                       <div className="space-y-0.5">
-                        <p className="text-xs text-muted-foreground">{language === "es" ? "Precio original" : "Original price"}</p>
+                        <p className="text-xs text-muted-foreground">{language === "es" ? "Precio orig. (prom)" : "Orig. price (avg)"}</p>
                         <p className="font-semibold">${originalPrice.toFixed(2)}</p>
                       </div>
                       <div className="space-y-0.5">
@@ -266,7 +427,7 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                         <p className="font-semibold">${Number(comboPrice).toFixed(2)}</p>
                       </div>
                     </div>
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-2 pt-1 flex-wrap">
                       <Badge variant={discount > 0 ? "default" : "secondary"}>
                         {language === "es" ? "Descuento" : "Discount"}: {discount.toFixed(1)}%
                       </Badge>
@@ -279,6 +440,13 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                         </Badge>
                       )}
                     </div>
+                    {choiceGroups.some((g) => g.options.length > 0) && (
+                      <p className="text-[10px] text-muted-foreground italic">
+                        {language === "es"
+                          ? "* Costo usa opción más barata, precio orig. usa promedio de opciones"
+                          : "* Cost uses cheapest option, orig. price uses avg of options"}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               )}
