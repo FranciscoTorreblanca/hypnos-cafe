@@ -21,8 +21,8 @@ export const ComboManager = () => {
   const [editing, setEditing] = useState<ComboWithItems | null>(null);
   const [isOpen, setIsOpen] = useState(true);
 
-  const handleSave = (combo: any, items: { menu_item_id: string; quantity: number }[]) => {
-    upsert.mutate({ combo, items }, {
+  const handleSave = (combo: any, items: { menu_item_id: string; quantity: number }[], choiceGroups?: any[]) => {
+    upsert.mutate({ combo, items, choiceGroups }, {
       onSuccess: () => toast({ title: t("common.success") }),
     });
   };
