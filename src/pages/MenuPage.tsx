@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { CategoryManager } from "@/components/menu/CategoryManager";
+import { ComboManager } from "@/components/menu/ComboManager";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,10 @@ const MenuPage = () => {
       {/* Section 1: Category Management (admin only, collapsible) */}
       {isAdmin && <CategoryManager />}
 
-      {/* Section 2: Menu Items */}
+      {/* Section 2: Combos (admin only) */}
+      {isAdmin && <ComboManager />}
+
+      {/* Section 3: Menu Items */}
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-medium text-foreground">
