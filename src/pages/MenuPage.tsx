@@ -62,7 +62,10 @@ const MenuPage = () => {
       {/* Section 1: Category Management (admin only, collapsible) */}
       {isAdmin && <CategoryManager />}
 
-      {/* Section 2: Menu Items */}
+      {/* Section 2: Combos (admin only) */}
+      {isAdmin && <ComboManager />}
+
+      {/* Section 3: Menu Items */}
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-medium text-foreground">
