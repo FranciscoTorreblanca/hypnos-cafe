@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      combo_items: {
+        Row: {
+          combo_id: string
+          id: string
+          menu_item_id: string
+          quantity: number
+        }
+        Insert: {
+          combo_id: string
+          id?: string
+          menu_item_id: string
+          quantity?: number
+        }
+        Update: {
+          combo_id?: string
+          id?: string
+          menu_item_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combo_items_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "combos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combo_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      combos: {
+        Row: {
+          created_at: string
+          description: string
+          description_en: string
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          name_en: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          name_en?: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          name_en?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           created_at: string
