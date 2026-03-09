@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      combo_choice_groups: {
+        Row: {
+          combo_id: string
+          display_order: number
+          id: string
+          label: string
+          label_en: string
+        }
+        Insert: {
+          combo_id: string
+          display_order?: number
+          id?: string
+          label: string
+          label_en?: string
+        }
+        Update: {
+          combo_id?: string
+          display_order?: number
+          id?: string
+          label?: string
+          label_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combo_choice_groups_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "combos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      combo_choice_options: {
+        Row: {
+          choice_group_id: string
+          id: string
+          menu_item_id: string
+        }
+        Insert: {
+          choice_group_id: string
+          id?: string
+          menu_item_id: string
+        }
+        Update: {
+          choice_group_id?: string
+          id?: string
+          menu_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combo_choice_options_choice_group_id_fkey"
+            columns: ["choice_group_id"]
+            isOneToOne: false
+            referencedRelation: "combo_choice_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combo_choice_options_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       combo_items: {
         Row: {
           combo_id: string
