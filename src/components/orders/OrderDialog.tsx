@@ -133,7 +133,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
           c.menuItem.id === menuItem.id ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
-      return [...prev, { menuItem, quantity: 1, notes: "" }];
+      return [...prev, { menuItem, quantity: 1, notes: "", discount: 0 }];
     });
   }, []);
 
