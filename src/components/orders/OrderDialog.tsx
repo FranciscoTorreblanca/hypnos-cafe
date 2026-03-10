@@ -89,8 +89,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       setMobileTab("menu");
       setEditingNotes(null);
       setEditingExistingNotes(null);
+      setEditingTableName(false);
+      setLocalTableName(tableName || "");
     }
-  }, [open]);
+  }, [open, tableName]);
 
   const availableItems = useMemo(
     () => items.filter((i) => i.is_available),
