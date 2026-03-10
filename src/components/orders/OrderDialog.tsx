@@ -42,6 +42,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tableNumber: number;
+  tableName?: string;
   order: Order | undefined;
 }
 
