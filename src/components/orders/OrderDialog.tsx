@@ -309,11 +309,44 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             {getName(c)}
           </Button>
         ))}
+        {availableCombos.length > 0 && (
+          <Button
+            variant={activeCategory === "combos" ? "default" : "outline"}
+            size="sm"
+            className="h-6 text-[11px] px-2 shrink-0 rounded-full"
+            onClick={() => setActiveCategory("combos")}
+          >
+            <Package className="h-3 w-3 mr-1" />
+            {language === "es" ? "Combos" : "Combos"}
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
         <div className="space-y-0.5 pr-1">
-          {filtered.map((item) => {
+          {/* Combos */}
+          {filteredCombos.map((combo) => (
+            <button
+              key={`combo-${combo.id}`}
+              onClick={() => addComboToCart(combo)}
+              className="w-full flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 p-2 hover:bg-primary/10 active:bg-primary/15 transition-colors text-left"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate flex items-center gap-1">
+                  <Package className="h-3 w-3 text-primary shrink-0" />
+                  {getName(combo)}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {combo.combo_items.map((ci) => ci.menu_items?.name).filter(Boolean).join(" + ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-sm font-semibold text-primary">${combo.price.toFixed(0)}</span>
+                <Plus className="h-4 w-4 text-primary" />
+              </div>
+            </button>
+          ))}
+          {/* Regular items */}
             const inCart = cart.find((c) => c.menuItem.id === item.id);
             return (
               <button
