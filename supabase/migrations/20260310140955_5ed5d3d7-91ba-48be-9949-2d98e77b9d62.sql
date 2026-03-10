@@ -1,0 +1,1 @@
+ALTER TABLE public.order_items ADD COLUMN discount numeric NOT NULL DEFAULT 0;

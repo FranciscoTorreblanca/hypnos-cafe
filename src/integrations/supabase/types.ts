@@ -325,6 +325,7 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string
+          discount: number
           id: string
           menu_item_id: string
           notes: string
@@ -335,6 +336,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          discount?: number
           id?: string
           menu_item_id: string
           notes?: string
@@ -345,6 +347,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          discount?: number
           id?: string
           menu_item_id?: string
           notes?: string
