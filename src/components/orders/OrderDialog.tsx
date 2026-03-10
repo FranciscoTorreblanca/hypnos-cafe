@@ -407,6 +407,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </Button>
             </div>
             <span className="flex-1 truncate text-xs">{getName(c.menuItem)}</span>
+            {c.discount > 0 && (
+              <span className="text-[10px] text-emerald-600 font-medium">-{c.discount}%</span>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -415,6 +418,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             >
               <MessageSquare className={`h-3 w-3 ${c.notes ? "text-primary" : "text-muted-foreground"}`} />
             </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => setEditingNotes(editingNotes === `disc-${c.menuItem.id}` ? null : `disc-${c.menuItem.id}`)}
+              >
+                <Percent className={`h-3 w-3 ${c.discount > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -424,6 +437,21 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
+          {editingNotes === `disc-${c.menuItem.id}` && isAdmin && (
+            <div className="flex items-center gap-1.5 ml-1">
+              <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={c.discount || ""}
+                placeholder="0"
+                onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
+                className="h-7 w-20 text-xs"
+              />
+              <span className="text-[10px] text-muted-foreground">%</span>
+            </div>
+          )}
           {editingNotes === c.menuItem.id && (
             <Textarea
               placeholder={t("orders.itemNotes")}
