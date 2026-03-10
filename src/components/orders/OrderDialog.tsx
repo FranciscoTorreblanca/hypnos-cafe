@@ -516,7 +516,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[92vh] flex flex-col">
+        <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
           <DrawerHeader className="pb-2">
             <DrawerTitle className="flex items-center gap-2 text-base">
               {title}
@@ -527,7 +527,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
           </DrawerHeader>
 
           {showPayment && order ? (
-            <div className="px-4 pb-4 overflow-y-auto">{paymentView}</div>
+            <ScrollArea className="flex-1 px-4 pb-4">{paymentView}</ScrollArea>
           ) : (
             <div className="flex flex-col flex-1 min-h-0 px-4 pb-4">
               {/* Mobile tab toggle */}
@@ -558,12 +558,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               )}
 
               {mobileTab === "menu" && canAddItems ? (
-                <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                   {menuPicker}
-                  {cartSection}
+                  <div className="overflow-y-auto shrink-0 max-h-[40%]">
+                    {cartSection}
+                  </div>
                 </div>
               ) : (
-                orderSection
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  {orderSection}
+                </div>
               )}
             </div>
           )}
@@ -588,7 +592,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {title}
