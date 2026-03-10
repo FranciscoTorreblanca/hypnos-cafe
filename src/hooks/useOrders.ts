@@ -96,6 +96,7 @@ export const useOrders = () => {
       quantity,
       unit_price,
       notes,
+      discount,
     }: {
       order_id: string;
       menu_item_id: string;
