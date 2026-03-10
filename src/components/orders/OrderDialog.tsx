@@ -346,7 +346,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </div>
             </button>
           ))}
-          {/* Regular items */}
+          {filtered.map((item) => {
             const inCart = cart.find((c) => c.menuItem.id === item.id);
             return (
               <button
