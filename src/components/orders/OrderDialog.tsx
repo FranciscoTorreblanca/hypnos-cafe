@@ -42,6 +42,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tableNumber: number;
+  tableName?: string;
   order: Order | undefined;
 }
 
@@ -52,7 +53,7 @@ interface CartItem {
   discount: number;
 }
 
-export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) => {
+export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order }: Props) => {
   const { t, language } = useLanguage();
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
@@ -672,7 +673,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   );
 
   // ─── Title ───
-  const title = `${t("tables.title")} ${tableNumber} — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
+  const displayName = tableName || `${t("tables.title")} ${tableNumber}`;
+  const title = `${displayName} — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
 
   // ─── MOBILE: Drawer ───
   if (isMobile) {
