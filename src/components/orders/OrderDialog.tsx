@@ -49,6 +49,7 @@ interface CartItem {
   menuItem: MenuItem;
   quantity: number;
   notes: string;
+  discount: number;
 }
 
 export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) => {
