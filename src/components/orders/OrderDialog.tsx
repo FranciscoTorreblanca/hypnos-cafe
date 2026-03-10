@@ -53,7 +53,7 @@ interface CartItem {
   discount: number;
 }
 
-export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) => {
+export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order }: Props) => {
   const { t, language } = useLanguage();
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
