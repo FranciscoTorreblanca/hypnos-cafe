@@ -177,6 +177,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     );
   }, []);
 
+  const updateCartDiscount = useCallback((menuItemId: string, discount: number) => {
+    setCart((prev) =>
+      prev.map((c) => (c.menuItem.id === menuItemId ? { ...c, discount: Math.min(100, Math.max(0, discount)) } : c))
+    );
+  }, []);
+
   const removeFromCart = useCallback((menuItemId: string) => {
     setCart((prev) => prev.filter((c) => c.menuItem.id !== menuItemId));
   }, []);
