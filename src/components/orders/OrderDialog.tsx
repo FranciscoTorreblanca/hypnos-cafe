@@ -136,6 +136,31 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     });
   }, []);
 
+  const addComboToCart = useCallback((combo: ComboWithItems) => {
+    // Add each fixed item from the combo to the cart
+    combo.combo_items.forEach((ci) => {
+      const menuItem = items.find((i) => i.id === ci.menu_item_id);
+      if (!menuItem) return;
+      // Use combo proportional price: combo.price split across items by their original price weight
+      const totalOriginalPrice = combo.combo_items.reduce((sum, item) => {
+        const mi = items.find((i) => i.id === item.menu_item_id);
+        return sum + (mi?.price ?? 0) * item.quantity;
+      }, 0);
+      const itemPrice = totalOriginalPrice > 0
+        ? Math.round((menuItem.price / totalOriginalPrice) * combo.price * 100) / 100
+        : combo.price / combo.combo_items.length;
+
+      const comboMenuItem: MenuItem = {
+        ...menuItem,
+        price: itemPrice,
+        name: `${menuItem.name} (${combo.name})`,
+        name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
+      };
+
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "" }]);
+    });
+  }, [items]);
+
   const updateCartQty = useCallback((menuItemId: string, delta: number) => {
     setCart((prev) => {
       const updated = prev.map((c) =>
