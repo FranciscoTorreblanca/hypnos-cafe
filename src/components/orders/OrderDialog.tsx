@@ -91,7 +91,13 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     [items]
   );
 
+  const availableCombos = useMemo(
+    () => combos.filter((c) => c.is_available),
+    [combos]
+  );
+
   const filtered = useMemo(() => {
+    if (activeCategory === "combos") return [];
     const q = search.toLowerCase();
     return availableItems.filter((i) => {
       const matchesSearch = !q || i.name.toLowerCase().includes(q) || i.name_en.toLowerCase().includes(q);
@@ -99,6 +105,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       return matchesSearch && matchesCat;
     });
   }, [availableItems, search, activeCategory]);
+
+  const filteredCombos = useMemo(() => {
+    if (activeCategory !== "combos" && activeCategory !== "all") return [];
+    const q = search.toLowerCase();
+    return availableCombos.filter((c) => {
+      return !q || c.name.toLowerCase().includes(q) || c.name_en.toLowerCase().includes(q);
+    });
+  }, [availableCombos, search, activeCategory]);
 
   const cartTotal = useMemo(
     () => cart.reduce((s, c) => s + c.menuItem.price * c.quantity, 0),
