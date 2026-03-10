@@ -369,7 +369,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </button>
             );
           })}
-          {filtered.length === 0 && (
+          {filtered.length === 0 && filteredCombos.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">{t("common.noResults")}</p>
           )}
         </div>
