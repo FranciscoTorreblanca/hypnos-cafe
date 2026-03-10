@@ -248,11 +248,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         />
       </div>
 
-      <div className="flex gap-1.5 flex-wrap mb-2">
+      <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-2 shrink-0" data-vaul-no-drag>
         <Button
           variant={activeCategory === "all" ? "default" : "outline"}
           size="sm"
-          className="h-7 text-xs px-2.5"
+          className="h-6 text-[11px] px-2 shrink-0 rounded-full"
           onClick={() => setActiveCategory("all")}
         >
           {language === "es" ? "Todos" : "All"}
@@ -262,7 +262,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             key={c.id}
             variant={activeCategory === c.id ? "default" : "outline"}
             size="sm"
-            className="h-7 text-xs px-2.5"
+            className="h-6 text-[11px] px-2 shrink-0 rounded-full"
             onClick={() => setActiveCategory(c.id)}
           >
             {getName(c)}
