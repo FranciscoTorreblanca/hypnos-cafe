@@ -800,7 +800,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {title}
+            {titleElement}
             {order && <Badge variant="outline" className="text-xs">{statusLabel[order.status] ?? order.status}</Badge>}
           </DialogTitle>
         </DialogHeader>
