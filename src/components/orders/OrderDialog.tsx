@@ -201,6 +201,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         quantity: c.quantity,
         unit_price: c.menuItem.price,
         notes: c.notes || undefined,
+        discount: c.discount || 0,
       });
     }
     toast({ title: t("common.success"), description: `${cartCount} ${t("orders.itemsAdded")}` });
