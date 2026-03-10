@@ -158,7 +158,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "" }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "", discount: 0 }]);
     });
   }, [items]);
 
