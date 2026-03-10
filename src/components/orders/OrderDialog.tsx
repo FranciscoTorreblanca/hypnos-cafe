@@ -527,7 +527,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
           </DrawerHeader>
 
           {showPayment && order ? (
-            <ScrollArea className="flex-1 px-4 pb-4">{paymentView}</ScrollArea>
+            <div className="flex-1 overflow-y-auto px-4 pb-4" data-vaul-no-drag>{paymentView}</div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0 px-4 pb-4">
               {/* Mobile tab toggle */}
