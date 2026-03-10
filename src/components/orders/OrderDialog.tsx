@@ -618,12 +618,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const paymentView = (
     <div className="space-y-4 p-1">
       <div className="space-y-1">
-        {orderItems.map((oi) => (
-          <div key={oi.id} className="flex justify-between text-sm">
-            <span>{oi.quantity}x {getName(oi.menu_item)}</span>
-            <span className="text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</span>
-          </div>
-        ))}
+        {orderItems.map((oi) => {
+          const disc = (oi as any).discount ?? 0;
+          const lineTotal = oi.quantity * oi.unit_price * (1 - disc / 100);
+          return (
+            <div key={oi.id} className="flex justify-between text-sm">
+              <span>{oi.quantity}x {getName(oi.menu_item)} {disc > 0 && <span className="text-emerald-600 text-xs">(-{disc}%)</span>}</span>
+              <span className="text-muted-foreground">${lineTotal.toFixed(0)}</span>
+            </div>
+          );
+        })}
       </div>
       <div className="flex justify-between text-sm border-t pt-2">
         <span>{t("billing.subtotal")}</span>
