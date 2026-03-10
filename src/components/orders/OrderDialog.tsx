@@ -558,12 +558,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               )}
 
               {mobileTab === "menu" && canAddItems ? (
-                <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                   {menuPicker}
-                  {cartSection}
+                  <div className="overflow-y-auto shrink-0 max-h-[40%]">
+                    {cartSection}
+                  </div>
                 </div>
               ) : (
-                orderSection
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  {orderSection}
+                </div>
               )}
             </div>
           )}
