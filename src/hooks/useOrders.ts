@@ -8,6 +8,7 @@ export interface OrderItem {
   menu_item_id: string;
   quantity: number;
   unit_price: number;
+  discount: number;
   notes: string;
   status: string;
   created_at: string;
@@ -95,22 +96,24 @@ export const useOrders = () => {
       quantity,
       unit_price,
       notes,
+      discount,
     }: {
       order_id: string;
       menu_item_id: string;
       quantity: number;
       unit_price: number;
       notes?: string;
+      discount?: number;
     }) => {
       const { error } = await supabase
         .from("order_items")
-        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "" });
+        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "", discount: discount ?? 0 } as any);
       if (error) throw error;
       const { data: items } = await supabase
         .from("order_items")
-        .select("quantity, unit_price")
+        .select("quantity, unit_price, discount")
         .eq("order_id", order_id);
-      const total = (items ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0);
+      const total = (items ?? []).reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
       await supabase.from("orders").update({ total }).eq("id", order_id);
       // If order was already sent to kitchen, keep it in_progress
       const { data: order } = await supabase.from("orders").select("status").eq("id", order_id).single();
@@ -128,15 +131,30 @@ export const useOrders = () => {
       // Check remaining items
       const { data: items } = await supabase
         .from("order_items")
-        .select("quantity, unit_price")
+        .select("quantity, unit_price, discount")
         .eq("order_id", order_id);
       if (!items || items.length === 0) {
         // No items left — cancel the order
         await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", order_id);
       } else {
-        const total = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+        const total = items.reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
         await supabase.from("orders").update({ total }).eq("id", order_id);
       }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
+  const updateItemDiscount = useMutation({
+    mutationFn: async ({ id, discount, order_id }: { id: string; discount: number; order_id: string }) => {
+      const { error } = await supabase.from("order_items").update({ discount } as any).eq("id", id);
+      if (error) throw error;
+      // Recalculate total
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("quantity, unit_price, discount")
+        .eq("order_id", order_id);
+      const total = (items ?? []).reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
+      await supabase.from("orders").update({ total }).eq("id", order_id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
@@ -157,5 +175,5 @@ export const useOrders = () => {
       (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
     );
 
-  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, cancelOrder, getActiveOrderForTable };
+  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, cancelOrder, updateItemDiscount, getActiveOrderForTable };
 };

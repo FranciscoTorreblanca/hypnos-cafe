@@ -29,7 +29,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -49,6 +49,7 @@ interface CartItem {
   menuItem: MenuItem;
   quantity: number;
   notes: string;
+  discount: number;
 }
 
 export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) => {
@@ -56,7 +57,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { data: combos = [] } = useCombos();
-  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder } = useOrders();
+  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount } = useOrders();
   const { createPayment } = usePayments();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -115,7 +116,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   }, [availableCombos, search, activeCategory]);
 
   const cartTotal = useMemo(
-    () => cart.reduce((s, c) => s + c.menuItem.price * c.quantity, 0),
+    () => cart.reduce((s, c) => s + c.menuItem.price * c.quantity * (1 - (c.discount ?? 0) / 100), 0),
     [cart]
   );
 
@@ -132,7 +133,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
           c.menuItem.id === menuItem.id ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
-      return [...prev, { menuItem, quantity: 1, notes: "" }];
+      return [...prev, { menuItem, quantity: 1, notes: "", discount: 0 }];
     });
   }, []);
 
@@ -157,7 +158,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "" }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "", discount: 0 }]);
     });
   }, [items]);
 
@@ -173,6 +174,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const updateCartNotes = useCallback((menuItemId: string, notes: string) => {
     setCart((prev) =>
       prev.map((c) => (c.menuItem.id === menuItemId ? { ...c, notes } : c))
+    );
+  }, []);
+
+  const updateCartDiscount = useCallback((menuItemId: string, discount: number) => {
+    setCart((prev) =>
+      prev.map((c) => (c.menuItem.id === menuItemId ? { ...c, discount: Math.min(100, Math.max(0, discount)) } : c))
     );
   }, []);
 
@@ -194,6 +201,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         quantity: c.quantity,
         unit_price: c.menuItem.price,
         notes: c.notes || undefined,
+        discount: c.discount || 0,
       });
     }
     toast({ title: t("common.success"), description: `${cartCount} ${t("orders.itemsAdded")}` });
@@ -399,6 +407,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </Button>
             </div>
             <span className="flex-1 truncate text-xs">{getName(c.menuItem)}</span>
+            {c.discount > 0 && (
+              <span className="text-[10px] text-emerald-600 font-medium">-{c.discount}%</span>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -407,6 +418,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             >
               <MessageSquare className={`h-3 w-3 ${c.notes ? "text-primary" : "text-muted-foreground"}`} />
             </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => setEditingNotes(editingNotes === `disc-${c.menuItem.id}` ? null : `disc-${c.menuItem.id}`)}
+              >
+                <Percent className={`h-3 w-3 ${c.discount > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -416,6 +437,21 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
+          {editingNotes === `disc-${c.menuItem.id}` && isAdmin && (
+            <div className="flex items-center gap-1.5 ml-1">
+              <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={c.discount || ""}
+                placeholder="0"
+                onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
+                className="h-7 w-20 text-xs"
+              />
+              <span className="text-[10px] text-muted-foreground">%</span>
+            </div>
+          )}
           {editingNotes === c.menuItem.id && (
             <Textarea
               placeholder={t("orders.itemNotes")}
@@ -448,7 +484,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       ) : (
         <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
           <div className="space-y-1.5 pr-1">
-            {orderItems.map((oi) => (
+            {orderItems.map((oi) => {
+              const discountPct = (oi as any).discount ?? 0;
+              const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
+              return (
               <div key={oi.id} className="space-y-0.5">
                 <div className="flex items-center justify-between text-sm gap-1">
                   <div className="flex-1 min-w-0">
@@ -456,26 +495,71 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                       <p className="truncate text-xs">
                         {oi.quantity}x {getName(oi.menu_item)}
                       </p>
+                      {discountPct > 0 && (
+                        <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
+                      )}
                       {order && order.status !== "pending" && itemStatusBadge(oi.status)}
                     </div>
-                    <p className="text-[10px] text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {discountPct > 0 ? (
+                        <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
+                      ) : (
+                        <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
+                      )}
+                    </p>
                   </div>
-                  {canDeleteItem(oi.status) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
-                      onClick={() => handleRemoveItem(oi.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
+                      >
+                        <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                      </Button>
+                    )}
+                    {canDeleteItem(oi.status) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveItem(oi.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {editingExistingNotes === `disc-${oi.id}` && isAdmin && order && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue={discountPct || ""}
+                      placeholder="0"
+                      onBlur={(e) => {
+                        const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                        updateItemDiscount.mutate({ id: oi.id, discount: val, order_id: order.id });
+                        setEditingExistingNotes(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                      className="h-7 w-20 text-xs"
+                      autoFocus
+                    />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
+                )}
                 {oi.notes && (
                   <p className="text-[10px] text-muted-foreground italic ml-1">📝 {oi.notes}</p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -534,12 +618,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const paymentView = (
     <div className="space-y-4 p-1">
       <div className="space-y-1">
-        {orderItems.map((oi) => (
-          <div key={oi.id} className="flex justify-between text-sm">
-            <span>{oi.quantity}x {getName(oi.menu_item)}</span>
-            <span className="text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</span>
-          </div>
-        ))}
+        {orderItems.map((oi) => {
+          const disc = (oi as any).discount ?? 0;
+          const lineTotal = oi.quantity * oi.unit_price * (1 - disc / 100);
+          return (
+            <div key={oi.id} className="flex justify-between text-sm">
+              <span>{oi.quantity}x {getName(oi.menu_item)} {disc > 0 && <span className="text-emerald-600 text-xs">(-{disc}%)</span>}</span>
+              <span className="text-muted-foreground">${lineTotal.toFixed(0)}</span>
+            </div>
+          );
+        })}
       </div>
       <div className="flex justify-between text-sm border-t pt-2">
         <span>{t("billing.subtotal")}</span>
