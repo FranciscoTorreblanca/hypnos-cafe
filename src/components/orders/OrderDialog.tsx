@@ -299,7 +299,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             <p className="text-sm text-muted-foreground text-center py-4">{t("common.noResults")}</p>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 
