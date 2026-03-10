@@ -7,6 +7,7 @@ import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTableNames } from "@/hooks/useTableNames";
 import {
   Dialog,
   DialogContent,
