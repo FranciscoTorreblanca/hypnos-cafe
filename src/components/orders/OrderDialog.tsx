@@ -270,7 +270,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         ))}
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
         <div className="space-y-0.5 pr-1">
           {filtered.map((item) => {
             const inCart = cart.find((c) => c.menuItem.id === item.id);
