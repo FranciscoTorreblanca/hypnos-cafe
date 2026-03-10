@@ -7,6 +7,7 @@ import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTableNames } from "@/hooks/useTableNames";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -64,6 +65,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const searchRef = useRef<HTMLInputElement>(null);
+  const { tableNames, updateNames } = useTableNames();
 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -71,9 +73,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [tipAmount, setTipAmount] = useState("0");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [editingNotes, setEditingNotes] = useState<string | null>(null); // cart menuItem.id
-  const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null); // order item id
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
+  const [editingTableName, setEditingTableName] = useState(false);
+  const [localTableName, setLocalTableName] = useState("");
 
   // Reset cart when dialog opens/closes
   useEffect(() => {
@@ -85,8 +89,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       setMobileTab("menu");
       setEditingNotes(null);
       setEditingExistingNotes(null);
+      setEditingTableName(false);
+      setLocalTableName(tableName || "");
     }
-  }, [open]);
+  }, [open, tableName]);
 
   const availableItems = useMemo(
     () => items.filter((i) => i.is_available),
@@ -672,9 +678,44 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     </div>
   );
 
+  // ─── Table name save ───
+  const saveTableName = useCallback((name: string) => {
+    const trimmed = name.trim();
+    const updated = { ...tableNames, [String(tableNumber)]: trimmed };
+    if (!trimmed) delete updated[String(tableNumber)];
+    updateNames.mutate(updated);
+    setEditingTableName(false);
+  }, [tableNames, tableNumber, updateNames]);
+
   // ─── Title ───
-  const displayName = tableName || `${t("tables.title")} ${tableNumber}`;
-  const title = `${displayName} — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
+  const currentDisplayName = localTableName || `${t("tables.title")} ${tableNumber}`;
+  const titleSuffix = ` — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
+
+  const titleElement = (
+    <span className="flex items-center gap-1.5 min-w-0">
+      {editingTableName ? (
+        <Input
+          value={localTableName}
+          onChange={(e) => setLocalTableName(e.target.value)}
+          onBlur={() => saveTableName(localTableName)}
+          onKeyDown={(e) => { if (e.key === "Enter") saveTableName(localTableName); if (e.key === "Escape") { setLocalTableName(tableName || ""); setEditingTableName(false); } }}
+          className="h-7 w-28 text-sm"
+          placeholder={`${t("tables.title")} ${tableNumber}`}
+          autoFocus
+        />
+      ) : (
+        <span
+          className="cursor-pointer hover:underline decoration-dashed underline-offset-2 flex items-center gap-1"
+          onClick={(e) => { e.stopPropagation(); setEditingTableName(true); }}
+          title={language === "es" ? "Editar nombre" : "Edit name"}
+        >
+          {currentDisplayName}
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </span>
+      )}
+      <span className="shrink-0">{titleSuffix}</span>
+    </span>
+  );
 
   // ─── MOBILE: Drawer ───
   if (isMobile) {
@@ -683,7 +724,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
           <DrawerHeader className="pb-2">
             <DrawerTitle className="flex items-center gap-2 text-base">
-              {title}
+              {titleElement}
               {order && !showPayment && (
                 <Badge variant="outline" className="text-[10px]">{statusLabel[order.status] ?? order.status}</Badge>
               )}
@@ -746,7 +787,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       <Dialog open={open} onOpenChange={(v) => { if (!v) setShowPayment(false); onOpenChange(v); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle>{titleElement}</DialogTitle>
           </DialogHeader>
           {paymentView}
         </DialogContent>
@@ -759,7 +800,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {title}
+            {titleElement}
             {order && <Badge variant="outline" className="text-xs">{statusLabel[order.status] ?? order.status}</Badge>}
           </DialogTitle>
         </DialogHeader>
