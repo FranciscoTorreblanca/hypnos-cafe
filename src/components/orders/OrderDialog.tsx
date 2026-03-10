@@ -678,9 +678,44 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     </div>
   );
 
+  // ─── Table name save ───
+  const saveTableName = useCallback((name: string) => {
+    const trimmed = name.trim();
+    const updated = { ...tableNames, [String(tableNumber)]: trimmed };
+    if (!trimmed) delete updated[String(tableNumber)];
+    updateNames.mutate(updated);
+    setEditingTableName(false);
+  }, [tableNames, tableNumber, updateNames]);
+
   // ─── Title ───
-  const displayName = tableName || `${t("tables.title")} ${tableNumber}`;
-  const title = `${displayName} — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
+  const currentDisplayName = localTableName || `${t("tables.title")} ${tableNumber}`;
+  const titleSuffix = ` — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
+
+  const titleElement = (
+    <span className="flex items-center gap-1.5 min-w-0">
+      {editingTableName ? (
+        <Input
+          value={localTableName}
+          onChange={(e) => setLocalTableName(e.target.value)}
+          onBlur={() => saveTableName(localTableName)}
+          onKeyDown={(e) => { if (e.key === "Enter") saveTableName(localTableName); if (e.key === "Escape") { setLocalTableName(tableName || ""); setEditingTableName(false); } }}
+          className="h-7 w-28 text-sm"
+          placeholder={`${t("tables.title")} ${tableNumber}`}
+          autoFocus
+        />
+      ) : (
+        <span
+          className="cursor-pointer hover:underline decoration-dashed underline-offset-2 flex items-center gap-1"
+          onClick={(e) => { e.stopPropagation(); setEditingTableName(true); }}
+          title={language === "es" ? "Editar nombre" : "Edit name"}
+        >
+          {currentDisplayName}
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </span>
+      )}
+      <span className="shrink-0">{titleSuffix}</span>
+    </span>
+  );
 
   // ─── MOBILE: Drawer ───
   if (isMobile) {
