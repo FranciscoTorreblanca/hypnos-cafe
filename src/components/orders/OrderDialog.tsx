@@ -403,7 +403,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {orderItems.length > 0 && (
