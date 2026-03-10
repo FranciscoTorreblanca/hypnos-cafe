@@ -787,7 +787,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       <Dialog open={open} onOpenChange={(v) => { if (!v) setShowPayment(false); onOpenChange(v); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle>{titleElement}</DialogTitle>
           </DialogHeader>
           {paymentView}
         </DialogContent>
