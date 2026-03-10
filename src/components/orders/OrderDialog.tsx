@@ -65,6 +65,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const searchRef = useRef<HTMLInputElement>(null);
+  const { tableNames, updateNames } = useTableNames();
 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -72,9 +73,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [tipAmount, setTipAmount] = useState("0");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [editingNotes, setEditingNotes] = useState<string | null>(null); // cart menuItem.id
-  const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null); // order item id
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
+  const [editingTableName, setEditingTableName] = useState(false);
+  const [localTableName, setLocalTableName] = useState("");
 
   // Reset cart when dialog opens/closes
   useEffect(() => {
