@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
+import { useCombos, ComboWithItems } from "@/hooks/useCombos";
 import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,7 +29,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -54,6 +55,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   const { t, language } = useLanguage();
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
+  const { data: combos = [] } = useCombos();
   const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder } = useOrders();
   const { createPayment } = usePayments();
   const { user, isAdmin } = useAuth();
@@ -89,7 +91,13 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
     [items]
   );
 
+  const availableCombos = useMemo(
+    () => combos.filter((c) => c.is_available),
+    [combos]
+  );
+
   const filtered = useMemo(() => {
+    if (activeCategory === "combos") return [];
     const q = search.toLowerCase();
     return availableItems.filter((i) => {
       const matchesSearch = !q || i.name.toLowerCase().includes(q) || i.name_en.toLowerCase().includes(q);
@@ -97,6 +105,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       return matchesSearch && matchesCat;
     });
   }, [availableItems, search, activeCategory]);
+
+  const filteredCombos = useMemo(() => {
+    if (activeCategory !== "combos" && activeCategory !== "all") return [];
+    const q = search.toLowerCase();
+    return availableCombos.filter((c) => {
+      return !q || c.name.toLowerCase().includes(q) || c.name_en.toLowerCase().includes(q);
+    });
+  }, [availableCombos, search, activeCategory]);
 
   const cartTotal = useMemo(
     () => cart.reduce((s, c) => s + c.menuItem.price * c.quantity, 0),
@@ -119,6 +135,31 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       return [...prev, { menuItem, quantity: 1, notes: "" }];
     });
   }, []);
+
+  const addComboToCart = useCallback((combo: ComboWithItems) => {
+    // Add each fixed item from the combo to the cart
+    combo.combo_items.forEach((ci) => {
+      const menuItem = items.find((i) => i.id === ci.menu_item_id);
+      if (!menuItem) return;
+      // Use combo proportional price: combo.price split across items by their original price weight
+      const totalOriginalPrice = combo.combo_items.reduce((sum, item) => {
+        const mi = items.find((i) => i.id === item.menu_item_id);
+        return sum + (mi?.price ?? 0) * item.quantity;
+      }, 0);
+      const itemPrice = totalOriginalPrice > 0
+        ? Math.round((menuItem.price / totalOriginalPrice) * combo.price * 100) / 100
+        : combo.price / combo.combo_items.length;
+
+      const comboMenuItem: MenuItem = {
+        ...menuItem,
+        price: itemPrice,
+        name: `${menuItem.name} (${combo.name})`,
+        name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
+      };
+
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "" }]);
+    });
+  }, [items]);
 
   const updateCartQty = useCallback((menuItemId: string, delta: number) => {
     setCart((prev) => {
@@ -268,10 +309,43 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             {getName(c)}
           </Button>
         ))}
+        {availableCombos.length > 0 && (
+          <Button
+            variant={activeCategory === "combos" ? "default" : "outline"}
+            size="sm"
+            className="h-6 text-[11px] px-2 shrink-0 rounded-full"
+            onClick={() => setActiveCategory("combos")}
+          >
+            <Package className="h-3 w-3 mr-1" />
+            {language === "es" ? "Combos" : "Combos"}
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
         <div className="space-y-0.5 pr-1">
+          {/* Combos */}
+          {filteredCombos.map((combo) => (
+            <button
+              key={`combo-${combo.id}`}
+              onClick={() => addComboToCart(combo)}
+              className="w-full flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 p-2 hover:bg-primary/10 active:bg-primary/15 transition-colors text-left"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate flex items-center gap-1">
+                  <Package className="h-3 w-3 text-primary shrink-0" />
+                  {getName(combo)}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {combo.combo_items.map((ci) => ci.menu_items?.name).filter(Boolean).join(" + ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-sm font-semibold text-primary">${combo.price.toFixed(0)}</span>
+                <Plus className="h-4 w-4 text-primary" />
+              </div>
+            </button>
+          ))}
           {filtered.map((item) => {
             const inCart = cart.find((c) => c.menuItem.id === item.id);
             return (
@@ -295,7 +369,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </button>
             );
           })}
-          {filtered.length === 0 && (
+          {filtered.length === 0 && filteredCombos.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">{t("common.noResults")}</p>
           )}
         </div>
