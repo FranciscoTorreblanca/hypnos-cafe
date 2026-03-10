@@ -673,7 +673,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   // ─── Title ───
-  const title = `${t("tables.title")} ${tableNumber} — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
+  const displayName = tableName || `${t("tables.title")} ${tableNumber}`;
+  const title = `${displayName} — ${showPayment ? t("billing.confirmPayment") : t("orders.order")}`;
 
   // ─── MOBILE: Drawer ───
   if (isMobile) {
