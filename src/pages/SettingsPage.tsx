@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useTableNames, TableNamesMap } from "@/hooks/useTableNames";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ const SettingsPage = () => {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
   const { toast } = useToast();
+  const { tableNames, updateNames } = useTableNames();
   const [settings, setSettings] = useState<SettingsMap>({
     restaurant_name: "",
     tax_rate: "16",
@@ -27,6 +29,7 @@ const SettingsPage = () => {
     language: "es",
     tables_count: "12",
   });
+  const [localTableNames, setLocalTableNames] = useState<TableNamesMap>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -41,6 +44,10 @@ const SettingsPage = () => {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    setLocalTableNames(tableNames);
+  }, [tableNames]);
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -50,6 +57,7 @@ const SettingsPage = () => {
           .update({ value })
           .eq("key", key);
       }
+      await updateNames.mutateAsync(localTableNames);
       toast({ title: t("settings.saved") });
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
@@ -66,6 +74,8 @@ const SettingsPage = () => {
     { key: "tax_rate", label: t("settings.taxRate"), type: "number" },
     { key: "tables_count", label: t("settings.tablesCount"), type: "number" },
   ];
+
+  const tablesCount = parseInt(settings.tables_count) || 12;
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -87,6 +97,30 @@ const SettingsPage = () => {
               />
             </div>
           ))}
+
+          {/* Table Names */}
+          <div className="space-y-2">
+            <Label>{t("settings.tableNames")}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {Array.from({ length: tablesCount }, (_, i) => i + 1).map((num) => (
+                <div key={num} className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">{num}</span>
+                  <Input
+                    placeholder={t("settings.tableNamePlaceholder")}
+                    value={localTableNames[String(num)] || ""}
+                    onChange={(e) =>
+                      setLocalTableNames((prev) => ({
+                        ...prev,
+                        [String(num)]: e.target.value,
+                      }))
+                    }
+                    className="h-8 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <Button onClick={handleSave} disabled={loading}>
             {loading ? t("common.loading") : t("settings.save")}
           </Button>

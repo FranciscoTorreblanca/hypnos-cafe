@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
+import { useTableNames } from "@/hooks/useTableNames";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Plus, Eye } from "lucide-react";
 const TablesPage = () => {
   const { t } = useLanguage();
   const { data: orders = [] } = useOrders();
+  const { getTableLabel } = useTableNames();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
 
@@ -51,6 +53,7 @@ const TablesPage = () => {
       <div className="grid gap-2 sm:gap-4 grid-cols-3 sm:grid-cols-3 lg:grid-cols-4">
         {tables.map((table) => {
           const status = getStatus(table);
+          const label = getTableLabel(table.number);
           return (
             <Card
               key={table.number}
@@ -59,8 +62,8 @@ const TablesPage = () => {
             >
               <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm sm:text-lg">
-                    <span className="hidden sm:inline">{t("tables.title")} </span>{table.number}
+                  <CardTitle className="text-sm sm:text-lg truncate">
+                    {label}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -95,6 +98,7 @@ const TablesPage = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         tableNumber={selectedTable}
+        tableName={getTableLabel(selectedTable)}
         order={activeOrder}
       />
     </div>

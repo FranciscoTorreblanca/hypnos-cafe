@@ -75,6 +75,8 @@ export const translations = {
   "settings.currency": { es: "Moneda", en: "Currency" },
   "settings.language": { es: "Idioma", en: "Language" },
   "settings.tablesCount": { es: "Número de mesas", en: "Number of tables" },
+  "settings.tableNames": { es: "Nombres de mesas", en: "Table names" },
+  "settings.tableNamePlaceholder": { es: "Nombre personalizado", en: "Custom name" },
   "settings.save": { es: "Guardar", en: "Save" },
   "settings.saved": { es: "Guardado", en: "Saved" },
 
