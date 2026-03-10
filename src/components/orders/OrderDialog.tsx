@@ -724,7 +724,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
           <DrawerHeader className="pb-2">
             <DrawerTitle className="flex items-center gap-2 text-base">
-              {title}
+              {titleElement}
               {order && !showPayment && (
                 <Badge variant="outline" className="text-[10px]">{statusLabel[order.status] ?? order.status}</Badge>
               )}
