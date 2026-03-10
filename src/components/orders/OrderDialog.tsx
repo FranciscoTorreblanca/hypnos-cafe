@@ -484,7 +484,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       ) : (
         <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
           <div className="space-y-1.5 pr-1">
-            {orderItems.map((oi) => (
+            {orderItems.map((oi) => {
+              const discountPct = (oi as any).discount ?? 0;
+              const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
+              return (
               <div key={oi.id} className="space-y-0.5">
                 <div className="flex items-center justify-between text-sm gap-1">
                   <div className="flex-1 min-w-0">
@@ -492,26 +495,71 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
                       <p className="truncate text-xs">
                         {oi.quantity}x {getName(oi.menu_item)}
                       </p>
+                      {discountPct > 0 && (
+                        <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
+                      )}
                       {order && order.status !== "pending" && itemStatusBadge(oi.status)}
                     </div>
-                    <p className="text-[10px] text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {discountPct > 0 ? (
+                        <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
+                      ) : (
+                        <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
+                      )}
+                    </p>
                   </div>
-                  {canDeleteItem(oi.status) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
-                      onClick={() => handleRemoveItem(oi.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
+                      >
+                        <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                      </Button>
+                    )}
+                    {canDeleteItem(oi.status) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveItem(oi.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {editingExistingNotes === `disc-${oi.id}` && isAdmin && order && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue={discountPct || ""}
+                      placeholder="0"
+                      onBlur={(e) => {
+                        const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                        updateItemDiscount.mutate({ id: oi.id, discount: val, order_id: order.id });
+                        setEditingExistingNotes(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                      className="h-7 w-20 text-xs"
+                      autoFocus
+                    />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
+                )}
                 {oi.notes && (
                   <p className="text-[10px] text-muted-foreground italic ml-1">📝 {oi.notes}</p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
