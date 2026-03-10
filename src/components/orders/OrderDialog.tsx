@@ -516,7 +516,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[92vh] flex flex-col">
+        <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
           <DrawerHeader className="pb-2">
             <DrawerTitle className="flex items-center gap-2 text-base">
               {title}
