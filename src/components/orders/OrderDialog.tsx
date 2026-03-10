@@ -372,7 +372,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       {orderItems.length === 0 ? (
         <p className="text-xs text-muted-foreground">{t("orders.empty")}</p>
       ) : (
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
           <div className="space-y-1.5 pr-1">
             {orderItems.map((oi) => (
               <div key={oi.id} className="space-y-0.5">
