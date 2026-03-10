@@ -270,7 +270,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
         ))}
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
         <div className="space-y-0.5 pr-1">
           {filtered.map((item) => {
             const inCart = cart.find((c) => c.menuItem.id === item.id);
@@ -299,7 +299,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
             <p className="text-sm text-muted-foreground text-center py-4">{t("common.noResults")}</p>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 
@@ -372,7 +372,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
       {orderItems.length === 0 ? (
         <p className="text-xs text-muted-foreground">{t("orders.empty")}</p>
       ) : (
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
           <div className="space-y-1.5 pr-1">
             {orderItems.map((oi) => (
               <div key={oi.id} className="space-y-0.5">
@@ -403,7 +403,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {orderItems.length > 0 && (
@@ -527,7 +527,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
           </DrawerHeader>
 
           {showPayment && order ? (
-            <ScrollArea className="flex-1 px-4 pb-4">{paymentView}</ScrollArea>
+            <div className="flex-1 overflow-y-auto px-4 pb-4" data-vaul-no-drag>{paymentView}</div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0 px-4 pb-4">
               {/* Mobile tab toggle */}
@@ -560,7 +560,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, order }: Props) =
               {mobileTab === "menu" && canAddItems ? (
                 <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                   {menuPicker}
-                  <div className="overflow-y-auto shrink-0 max-h-[40%]">
+                  <div className="overflow-y-auto shrink-0 max-h-[40%]" data-vaul-no-drag>
                     {cartSection}
                   </div>
                 </div>
