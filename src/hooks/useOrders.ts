@@ -102,6 +102,7 @@ export const useOrders = () => {
       quantity: number;
       unit_price: number;
       notes?: string;
+      discount?: number;
     }) => {
       const { error } = await supabase
         .from("order_items")
