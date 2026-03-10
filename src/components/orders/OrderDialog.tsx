@@ -29,7 +29,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
