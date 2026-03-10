@@ -105,13 +105,13 @@ export const useOrders = () => {
     }) => {
       const { error } = await supabase
         .from("order_items")
-        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "" });
+        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "", discount: discount ?? 0 } as any);
       if (error) throw error;
       const { data: items } = await supabase
         .from("order_items")
-        .select("quantity, unit_price")
+        .select("quantity, unit_price, discount")
         .eq("order_id", order_id);
-      const total = (items ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0);
+      const total = (items ?? []).reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
       await supabase.from("orders").update({ total }).eq("id", order_id);
       // If order was already sent to kitchen, keep it in_progress
       const { data: order } = await supabase.from("orders").select("status").eq("id", order_id).single();
