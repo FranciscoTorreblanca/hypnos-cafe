@@ -362,7 +362,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           {filteredCombos.map((combo) => (
             <button
               key={`combo-${combo.id}`}
-              onClick={() => addComboToCart(combo)}
+              onClick={() => handleComboClick(combo)}
               className="w-full flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 p-2 hover:bg-primary/10 active:bg-primary/15 transition-colors text-left"
             >
               <div className="min-w-0 flex-1">
