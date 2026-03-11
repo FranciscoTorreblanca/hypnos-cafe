@@ -102,7 +102,7 @@ const KitchenPage = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">
-                    {t("tables.title")} {order.table_number}
+                    {getTableLabel(order.table_number)}
                   </CardTitle>
                   <Badge
                     variant="outline"
