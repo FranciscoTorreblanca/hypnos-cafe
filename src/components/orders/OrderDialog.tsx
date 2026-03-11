@@ -827,6 +827,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   // ─── DESKTOP: Dialog ───
   if (showPayment && order) {
     return (
+      <>{comboChoiceDialogElement}
       <Dialog open={open} onOpenChange={(v) => { if (!v) setShowPayment(false); onOpenChange(v); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -835,6 +836,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           {paymentView}
         </DialogContent>
       </Dialog>
+      </>
     );
   }
 
