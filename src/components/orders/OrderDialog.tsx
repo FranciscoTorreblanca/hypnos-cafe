@@ -748,9 +748,20 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     </span>
   );
 
+  const comboChoiceDialogElement = selectedCombo && (
+    <ComboChoiceDialog
+      open={comboChoiceOpen}
+      onOpenChange={(v) => { setComboChoiceOpen(v); if (!v) setSelectedCombo(null); }}
+      combo={selectedCombo}
+      allItems={items}
+      onConfirm={(combo, choices) => addComboToCart(combo, choices)}
+    />
+  );
+
   // ─── MOBILE: Drawer ───
   if (isMobile) {
     return (
+      <>{comboChoiceDialogElement}
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
           <DrawerHeader className="pb-2">
