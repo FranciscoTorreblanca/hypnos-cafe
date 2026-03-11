@@ -147,19 +147,35 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     });
   }, []);
 
-  const addComboToCart = useCallback((combo: ComboWithItems) => {
-    // Add each fixed item from the combo to the cart
+  const handleComboClick = useCallback((combo: ComboWithItems) => {
+    if (combo.combo_choice_groups && combo.combo_choice_groups.length > 0) {
+      setSelectedCombo(combo);
+      setComboChoiceOpen(true);
+    } else {
+      addComboToCart(combo, []);
+    }
+  }, []);
+
+  const addComboToCart = useCallback((combo: ComboWithItems, selectedChoices: { groupLabel: string; menuItem: MenuItem }[]) => {
+    // All items in combo: fixed + selected choices
+    const allComboItems: { menuItem: MenuItem; quantity: number }[] = [];
+    
     combo.combo_items.forEach((ci) => {
       const menuItem = items.find((i) => i.id === ci.menu_item_id);
-      if (!menuItem) return;
-      // Use combo proportional price: combo.price split across items by their original price weight
-      const totalOriginalPrice = combo.combo_items.reduce((sum, item) => {
-        const mi = items.find((i) => i.id === item.menu_item_id);
-        return sum + (mi?.price ?? 0) * item.quantity;
-      }, 0);
+      if (menuItem) allComboItems.push({ menuItem, quantity: ci.quantity });
+    });
+    
+    selectedChoices.forEach((choice) => {
+      allComboItems.push({ menuItem: choice.menuItem, quantity: 1 });
+    });
+
+    // Calculate total original price for proportional pricing
+    const totalOriginalPrice = allComboItems.reduce((sum, { menuItem, quantity }) => sum + menuItem.price * quantity, 0);
+
+    allComboItems.forEach(({ menuItem, quantity }) => {
       const itemPrice = totalOriginalPrice > 0
-        ? Math.round((menuItem.price / totalOriginalPrice) * combo.price * 100) / 100
-        : combo.price / combo.combo_items.length;
+        ? Math.round((menuItem.price * quantity / totalOriginalPrice) * combo.price * 100) / 100 / quantity
+        : combo.price / allComboItems.length;
 
       const comboMenuItem: MenuItem = {
         ...menuItem,
@@ -168,7 +184,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "", discount: 0 }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0 }]);
     });
   }, [items]);
 
