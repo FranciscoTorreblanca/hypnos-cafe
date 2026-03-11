@@ -535,6 +535,18 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                     </p>
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
+                    {/* Mark item ready from tables view */}
+                    {order && (oi.status === "pending" || oi.status === "in_progress") && order.status !== "pending" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-emerald-600"
+                        onClick={() => updateItemStatus.mutate({ id: oi.id, status: "ready", order_id: order.id })}
+                        title={t("orders.markReady")}
+                      >
+                        <CheckCircle className="h-3 w-3" />
+                      </Button>
+                    )}
                     {isAdmin && (
                       <Button
                         variant="ghost"
