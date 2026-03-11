@@ -30,8 +30,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil, CheckCircle, Clock,
 } from "lucide-react";
+import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -59,7 +60,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { data: combos = [] } = useCombos();
-  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount } = useOrders();
+  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemStatus } = useOrders();
   const { createPayment } = usePayments();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -78,6 +79,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
   const [editingTableName, setEditingTableName] = useState(false);
   const [localTableName, setLocalTableName] = useState("");
+  const [comboChoiceOpen, setComboChoiceOpen] = useState(false);
+  const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
 
   // Reset cart when dialog opens/closes
   useEffect(() => {
@@ -144,19 +147,35 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     });
   }, []);
 
-  const addComboToCart = useCallback((combo: ComboWithItems) => {
-    // Add each fixed item from the combo to the cart
+  const handleComboClick = useCallback((combo: ComboWithItems) => {
+    if (combo.combo_choice_groups && combo.combo_choice_groups.length > 0) {
+      setSelectedCombo(combo);
+      setComboChoiceOpen(true);
+    } else {
+      addComboToCart(combo, []);
+    }
+  }, []);
+
+  const addComboToCart = useCallback((combo: ComboWithItems, selectedChoices: { groupLabel: string; menuItem: MenuItem }[]) => {
+    // All items in combo: fixed + selected choices
+    const allComboItems: { menuItem: MenuItem; quantity: number }[] = [];
+    
     combo.combo_items.forEach((ci) => {
       const menuItem = items.find((i) => i.id === ci.menu_item_id);
-      if (!menuItem) return;
-      // Use combo proportional price: combo.price split across items by their original price weight
-      const totalOriginalPrice = combo.combo_items.reduce((sum, item) => {
-        const mi = items.find((i) => i.id === item.menu_item_id);
-        return sum + (mi?.price ?? 0) * item.quantity;
-      }, 0);
+      if (menuItem) allComboItems.push({ menuItem, quantity: ci.quantity });
+    });
+    
+    selectedChoices.forEach((choice) => {
+      allComboItems.push({ menuItem: choice.menuItem, quantity: 1 });
+    });
+
+    // Calculate total original price for proportional pricing
+    const totalOriginalPrice = allComboItems.reduce((sum, { menuItem, quantity }) => sum + menuItem.price * quantity, 0);
+
+    allComboItems.forEach(({ menuItem, quantity }) => {
       const itemPrice = totalOriginalPrice > 0
-        ? Math.round((menuItem.price / totalOriginalPrice) * combo.price * 100) / 100
-        : combo.price / combo.combo_items.length;
+        ? Math.round((menuItem.price * quantity / totalOriginalPrice) * combo.price * 100) / 100 / quantity
+        : combo.price / allComboItems.length;
 
       const comboMenuItem: MenuItem = {
         ...menuItem,
@@ -165,7 +184,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity: ci.quantity, notes: "", discount: 0 }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0 }]);
     });
   }, [items]);
 
@@ -343,7 +362,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           {filteredCombos.map((combo) => (
             <button
               key={`combo-${combo.id}`}
-              onClick={() => addComboToCart(combo)}
+              onClick={() => handleComboClick(combo)}
               className="w-full flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 p-2 hover:bg-primary/10 active:bg-primary/15 transition-colors text-left"
             >
               <div className="min-w-0 flex-1">
@@ -516,6 +535,18 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                     </p>
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
+                    {/* Mark item ready from tables view */}
+                    {order && (oi.status === "pending" || oi.status === "in_progress") && order.status !== "pending" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-emerald-600"
+                        onClick={() => updateItemStatus.mutate({ id: oi.id, status: "ready", order_id: order.id })}
+                        title={t("orders.markReady")}
+                      >
+                        <CheckCircle className="h-3 w-3" />
+                      </Button>
+                    )}
                     {isAdmin && (
                       <Button
                         variant="ghost"
@@ -717,9 +748,20 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     </span>
   );
 
+  const comboChoiceDialogElement = selectedCombo && (
+    <ComboChoiceDialog
+      open={comboChoiceOpen}
+      onOpenChange={(v) => { setComboChoiceOpen(v); if (!v) setSelectedCombo(null); }}
+      combo={selectedCombo}
+      allItems={items}
+      onConfirm={(combo, choices) => addComboToCart(combo, choices)}
+    />
+  );
+
   // ─── MOBILE: Drawer ───
   if (isMobile) {
     return (
+      <>{comboChoiceDialogElement}
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
           <DrawerHeader className="pb-2">
@@ -778,12 +820,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           )}
         </DrawerContent>
       </Drawer>
+      </>
     );
   }
 
   // ─── DESKTOP: Dialog ───
   if (showPayment && order) {
     return (
+      <>{comboChoiceDialogElement}
       <Dialog open={open} onOpenChange={(v) => { if (!v) setShowPayment(false); onOpenChange(v); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -792,10 +836,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           {paymentView}
         </DialogContent>
       </Dialog>
+      </>
     );
   }
 
   return (
+    <>{comboChoiceDialogElement}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
@@ -818,5 +864,6 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 };

@@ -2,6 +2,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
+import { useTableNames } from "@/hooks/useTableNames";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ const KitchenPage = () => {
   const { data: orders = [], updateOrderStatus, updateItemStatus } = useOrders();
   const { data: ingredients = [] } = useIngredients();
   const { data: menuItems = [] } = useMenuItems();
+  const { getTableLabel } = useTableNames();
 
   const { data: allRecipes = [] } = useQuery({
     queryKey: ["all_menu_item_ingredients"],
@@ -100,7 +102,7 @@ const KitchenPage = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">
-                    {t("tables.title")} {order.table_number}
+                    {getTableLabel(order.table_number)}
                   </CardTitle>
                   <Badge
                     variant="outline"
