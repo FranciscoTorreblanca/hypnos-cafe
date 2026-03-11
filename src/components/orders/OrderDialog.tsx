@@ -79,6 +79,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
   const [editingTableName, setEditingTableName] = useState(false);
   const [localTableName, setLocalTableName] = useState("");
+  const [comboChoiceOpen, setComboChoiceOpen] = useState(false);
+  const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
 
   // Reset cart when dialog opens/closes
   useEffect(() => {
