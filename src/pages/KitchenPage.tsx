@@ -16,6 +16,7 @@ const KitchenPage = () => {
   const { data: orders = [], updateOrderStatus, updateItemStatus } = useOrders();
   const { data: ingredients = [] } = useIngredients();
   const { data: menuItems = [] } = useMenuItems();
+  const { getTableLabel } = useTableNames();
 
   const { data: allRecipes = [] } = useQuery({
     queryKey: ["all_menu_item_ingredients"],
