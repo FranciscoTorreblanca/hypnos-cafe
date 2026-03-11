@@ -820,6 +820,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           )}
         </DrawerContent>
       </Drawer>
+      </>
     );
   }
 
