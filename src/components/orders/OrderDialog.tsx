@@ -841,6 +841,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   }
 
   return (
+    <>{comboChoiceDialogElement}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
@@ -863,5 +864,6 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 };
