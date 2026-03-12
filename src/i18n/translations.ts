@@ -163,6 +163,11 @@ export const translations = {
   "common.back": { es: "Volver", en: "Back" },
   "common.error": { es: "Error", en: "Error" },
   "common.success": { es: "Éxito", en: "Success" },
+
+  // Kitchen
+  "kitchen.recipeBook": { es: "Recetario", en: "Recipe Book" },
+  "kitchen.searchItems": { es: "Buscar platillo...", en: "Search item..." },
+  "kitchen.noIngredients": { es: "Sin receta registrada", en: "No recipe registered" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
