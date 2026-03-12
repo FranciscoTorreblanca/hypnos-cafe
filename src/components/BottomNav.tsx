@@ -82,7 +82,7 @@ export const BottomNav = () => {
             }`}
           >
             <Menu className="h-5 w-5" />
-            <span>{t("common.more") ?? "Más"}</span>
+            <span>{t("common.more")}</span>
           </button>
         )}
       </nav>

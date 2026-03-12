@@ -159,6 +159,7 @@ export const translations = {
   "common.search": { es: "Buscar", en: "Search" },
   "common.loading": { es: "Cargando...", en: "Loading..." },
   "common.noResults": { es: "Sin resultados", en: "No results" },
+  "common.more": { es: "Más", en: "More" },
   "common.confirm": { es: "Confirmar", en: "Confirm" },
   "common.back": { es: "Volver", en: "Back" },
   "common.error": { es: "Error", en: "Error" },
