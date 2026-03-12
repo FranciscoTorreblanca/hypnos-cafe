@@ -158,9 +158,9 @@ const KitchenPage = () => {
                     <div className="space-y-2">
                       {(order.order_items ?? []).map((oi) => (
                         <Collapsible key={oi.id}>
-                          <div className="flex items-center justify-between text-sm gap-1">
-                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                              <span className="truncate">
+                          <div className="flex items-start justify-between text-sm gap-1">
+                            <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                              <span className="break-words">
                                 {oi.quantity}x{" "}
                                 {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
                               </span>
