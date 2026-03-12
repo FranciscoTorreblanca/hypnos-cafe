@@ -1,8 +1,23 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { BottomNav } from "@/components/BottomNav";
 import { Outlet } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const AppLayout = () => {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 p-4 pb-20">
+          <Outlet />
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />
