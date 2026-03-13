@@ -498,6 +498,44 @@ export type Database = {
         }
         Relationships: []
       }
+      till_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          note: string
+          payment_id: string | null
+          type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          note?: string
+          payment_id?: string | null
+          type?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string
+          payment_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "till_transactions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
