@@ -159,6 +159,16 @@ export const translations = {
   "billing.cardMethod": { es: "Tarjeta", en: "Card" },
   "billing.transactions": { es: "Transacciones", en: "Transactions" },
   "billing.noData": { es: "Sin datos para este período", en: "No data for this period" },
+  "billing.till": { es: "Caja", en: "Till" },
+  "billing.tillBalance": { es: "Saldo en caja", en: "Till Balance" },
+  "billing.addCash": { es: "Agregar efectivo", en: "Add Cash" },
+  "billing.removeCash": { es: "Retirar efectivo", en: "Remove Cash" },
+  "billing.adjustmentNote": { es: "Nota del ajuste", en: "Adjustment note" },
+  "billing.adjustmentIn": { es: "Entrada", en: "Deposit" },
+  "billing.adjustmentOut": { es: "Retiro", en: "Withdrawal" },
+  "billing.paymentEntry": { es: "Pago en efectivo", en: "Cash payment" },
+  "billing.tillSuccess": { es: "Movimiento registrado", en: "Transaction recorded" },
+  "billing.noTillData": { es: "Sin movimientos en caja", en: "No till transactions" },
 
   // Common
   "common.save": { es: "Guardar", en: "Save" },

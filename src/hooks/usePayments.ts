@@ -87,6 +87,7 @@ export const usePayments = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
     },
   });
 
