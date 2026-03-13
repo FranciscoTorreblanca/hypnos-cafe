@@ -229,8 +229,9 @@ const BillingPage = () => {
       </div>
 
       <Tabs defaultValue="pending">
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="pending">{t("billing.pendingBills")}</TabsTrigger>
+          <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
           <TabsTrigger value="history">{t("billing.history")}</TabsTrigger>
           <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
         </TabsList>
