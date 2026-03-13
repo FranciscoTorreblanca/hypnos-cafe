@@ -35,7 +35,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
+import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp, Pencil, Trash2, BarChart3 } from "lucide-react";
+import { startOfDay, startOfWeek, startOfMonth, format, isAfter, subDays, subWeeks, subMonths } from "date-fns";
+import { es, enUS } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const BillingPage = () => {
   const { t, language } = useLanguage();
@@ -57,6 +60,9 @@ const BillingPage = () => {
   const [editMethod, setEditMethod] = useState("cash");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
+
+  // Cash flow state
+  const [cashFlowPeriod, setCashFlowPeriod] = useState<"day" | "week" | "month">("day");
 
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
@@ -125,8 +131,68 @@ const BillingPage = () => {
     tipsByWaiter[key].count += 1;
   });
 
+  // Cash flow calculations
+  const dateFnsLocale = language === "es" ? es : enUS;
+  const now = new Date();
+
+  const getCashFlowData = () => {
+    let periods: { label: string; start: Date; end: Date }[] = [];
+
+    if (cashFlowPeriod === "day") {
+      for (let i = 6; i >= 0; i--) {
+        const day = subDays(now, i);
+        const start = startOfDay(day);
+        const end = i === 0 ? now : startOfDay(subDays(now, i - 1));
+        periods.push({
+          label: format(day, "EEE dd", { locale: dateFnsLocale }),
+          start,
+          end,
+        });
+      }
+    } else if (cashFlowPeriod === "week") {
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekEnd = i === 0 ? now : startOfWeek(subWeeks(now, i - 1), { weekStartsOn: 1 });
+        periods.push({
+          label: format(weekStart, "dd MMM", { locale: dateFnsLocale }),
+          start: weekStart,
+          end: weekEnd,
+        });
+      }
+    } else {
+      for (let i = 5; i >= 0; i--) {
+        const monthStart = startOfMonth(subMonths(now, i));
+        const monthEnd = i === 0 ? now : startOfMonth(subMonths(now, i - 1));
+        periods.push({
+          label: format(monthStart, "MMM yy", { locale: dateFnsLocale }),
+          start: monthStart,
+          end: monthEnd,
+        });
+      }
+    }
+
+    return periods.map((period) => {
+      const periodPayments = payments.filter((p) => {
+        const d = new Date(p.created_at);
+        return d >= period.start && d < period.end;
+      });
+      const income = periodPayments.reduce((s, p) => s + p.amount, 0);
+      const tips = periodPayments.reduce((s, p) => s + p.tip, 0);
+      const cash = periodPayments.filter((p) => p.payment_method === "cash").reduce((s, p) => s + p.amount, 0);
+      const card = periodPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount, 0);
+      return { ...period, income, tips, cash, card, count: periodPayments.length };
+    });
+  };
+
+  const cashFlowData = getCashFlowData();
+  const cfTotal = cashFlowData.reduce((s, d) => s + d.income, 0);
+  const cfTips = cashFlowData.reduce((s, d) => s + d.tips, 0);
+  const cfCash = cashFlowData.reduce((s, d) => s + d.cash, 0);
+  const cfCard = cashFlowData.reduce((s, d) => s + d.card, 0);
+
   return (
     <div className="space-y-6">
+
       <h1 className="text-2xl font-semibold tracking-tight">{t("billing.title")}</h1>
 
       {/* Summary cards */}
@@ -164,8 +230,9 @@ const BillingPage = () => {
       </div>
 
       <Tabs defaultValue="pending">
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="pending">{t("billing.pendingBills")}</TabsTrigger>
+          <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
           <TabsTrigger value="history">{t("billing.history")}</TabsTrigger>
           <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
         </TabsList>
@@ -289,6 +356,95 @@ const BillingPage = () => {
                 </TableBody>
               </Table>
             </div>
+          )}
+        </TabsContent>
+
+        {/* Cash Flow */}
+        <TabsContent value="cashflow" className="mt-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Select value={cashFlowPeriod} onValueChange={(v) => setCashFlowPeriod(v as any)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">{t("billing.daily")}</SelectItem>
+                <SelectItem value="week">{t("billing.weekly")}</SelectItem>
+                <SelectItem value="month">{t("billing.monthly")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Totals summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">{t("billing.income")}</p>
+                <p className="text-lg font-bold">${cfTotal.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">{t("billing.tipsLabel")}</p>
+                <p className="text-lg font-bold">${cfTips.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><Banknote className="h-3 w-3" />{t("billing.cashMethod")}</p>
+                <p className="text-lg font-bold">${cfCash.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><CreditCard className="h-3 w-3" />{t("billing.cardMethod")}</p>
+                <p className="text-lg font-bold">${cfCard.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Period breakdown table */}
+          {cashFlowData.some((d) => d.count > 0) ? (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("billing.date")}</TableHead>
+                    <TableHead>{t("billing.income")}</TableHead>
+                    <TableHead>{t("billing.tipsLabel")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cashMethod")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cardMethod")}</TableHead>
+                    <TableHead>{t("billing.transactions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cashFlowData.map((d) => (
+                    <TableRow key={d.label}>
+                      <TableCell className="font-medium text-xs">{d.label}</TableCell>
+                      <TableCell className="font-semibold">${d.income.toFixed(0)}</TableCell>
+                      <TableCell>${d.tips.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${d.cash.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${d.card.toFixed(0)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{d.count}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Totals row */}
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell>${cfTotal.toFixed(0)}</TableCell>
+                    <TableCell>${cfTips.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">${cfCash.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">${cfCard.toFixed(0)}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{cashFlowData.reduce((s, d) => s + d.count, 0)}</Badge>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">{t("billing.noData")}</p>
           )}
         </TabsContent>
       </Tabs>
