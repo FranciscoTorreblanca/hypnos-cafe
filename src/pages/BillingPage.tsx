@@ -47,6 +47,7 @@ const BillingPage = () => {
   const { data: payments = [], createPayment, updatePayment, deletePayment } = usePayments();
   const { isAdmin } = useAuth();
   const { toast } = useToast();
+  const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
