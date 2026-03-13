@@ -66,6 +66,11 @@ const BillingPage = () => {
   // Cash flow state
   const [cashFlowPeriod, setCashFlowPeriod] = useState<"day" | "week" | "month">("day");
 
+  // Till adjustment state
+  const [tillAdjustType, setTillAdjustType] = useState<"in" | "out">("in");
+  const [tillAdjustAmount, setTillAdjustAmount] = useState("");
+  const [tillAdjustNote, setTillAdjustNote] = useState("");
+
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
 
