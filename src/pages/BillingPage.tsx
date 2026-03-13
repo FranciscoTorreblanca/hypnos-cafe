@@ -260,6 +260,7 @@ const BillingPage = () => {
           <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
           <TabsTrigger value="history">{t("billing.history")}</TabsTrigger>
           <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
+          <TabsTrigger value="till" className="gap-1"><Vault className="h-3.5 w-3.5" />{t("billing.till")}</TabsTrigger>
         </TabsList>
 
         {/* Pending bills */}
