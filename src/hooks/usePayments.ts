@@ -62,17 +62,27 @@ export const usePayments = () => {
       tip: number;
       payment_method: string;
     }) => {
-      const { error } = await supabase.from("payments").insert({
+      const { data: paymentData, error } = await supabase.from("payments").insert({
         order_id,
         amount,
         tip,
         payment_method,
         created_by: user!.id,
-      });
+      }).select("id").single();
       if (error) throw error;
       // Mark order as paid
       const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any }).eq("id", order_id);
       if (upErr) throw upErr;
+      // Auto-add cash payments to till
+      if (payment_method === "cash" && paymentData) {
+        await (supabase.from("till_transactions" as any) as any).insert({
+          type: "payment",
+          amount: amount + tip,
+          note: "",
+          payment_id: paymentData.id,
+          created_by: user!.id,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
