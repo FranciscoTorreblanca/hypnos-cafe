@@ -357,6 +357,95 @@ const BillingPage = () => {
             </div>
           )}
         </TabsContent>
+
+        {/* Cash Flow */}
+        <TabsContent value="cashflow" className="mt-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Select value={cashFlowPeriod} onValueChange={(v) => setCashFlowPeriod(v as any)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">{t("billing.daily")}</SelectItem>
+                <SelectItem value="week">{t("billing.weekly")}</SelectItem>
+                <SelectItem value="month">{t("billing.monthly")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Totals summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">{t("billing.income")}</p>
+                <p className="text-lg font-bold">${cfTotal.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">{t("billing.tipsLabel")}</p>
+                <p className="text-lg font-bold">${cfTips.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><Banknote className="h-3 w-3" />{t("billing.cashMethod")}</p>
+                <p className="text-lg font-bold">${cfCash.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><CreditCard className="h-3 w-3" />{t("billing.cardMethod")}</p>
+                <p className="text-lg font-bold">${cfCard.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Period breakdown table */}
+          {cashFlowData.some((d) => d.count > 0) ? (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("billing.date")}</TableHead>
+                    <TableHead>{t("billing.income")}</TableHead>
+                    <TableHead>{t("billing.tipsLabel")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cashMethod")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cardMethod")}</TableHead>
+                    <TableHead>{t("billing.transactions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cashFlowData.map((d) => (
+                    <TableRow key={d.label}>
+                      <TableCell className="font-medium text-xs">{d.label}</TableCell>
+                      <TableCell className="font-semibold">${d.income.toFixed(0)}</TableCell>
+                      <TableCell>${d.tips.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${d.cash.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${d.card.toFixed(0)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{d.count}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Totals row */}
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell>${cfTotal.toFixed(0)}</TableCell>
+                    <TableCell>${cfTips.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">${cfCash.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">${cfCard.toFixed(0)}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{cashFlowData.reduce((s, d) => s + d.count, 0)}</Badge>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">{t("billing.noData")}</p>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Payment dialog */}
