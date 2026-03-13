@@ -473,6 +473,126 @@ const BillingPage = () => {
             <p className="text-muted-foreground">{t("billing.noData")}</p>
           )}
         </TabsContent>
+
+        {/* Till Manager */}
+        <TabsContent value="till" className="mt-4 space-y-4">
+          {/* Till Balance Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Vault className="h-4 w-4" /> {t("billing.tillBalance")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-3xl font-bold ${tillBalance < 0 ? "text-destructive" : ""}`}>
+                ${tillBalance.toFixed(0)} MXN
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Admin adjustment form */}
+          {isAdmin && (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex gap-2">
+                  <Button
+                    variant={tillAdjustType === "in" ? "default" : "outline"}
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setTillAdjustType("in")}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> {t("billing.addCash")}
+                  </Button>
+                  <Button
+                    variant={tillAdjustType === "out" ? "default" : "outline"}
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setTillAdjustType("out")}
+                  >
+                    <Minus className="h-3.5 w-3.5" /> {t("billing.removeCash")}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="$0"
+                    value={tillAdjustAmount}
+                    onChange={(e) => setTillAdjustAmount(e.target.value)}
+                    className="w-32"
+                  />
+                  <Input
+                    placeholder={t("billing.adjustmentNote")}
+                    value={tillAdjustNote}
+                    onChange={(e) => setTillAdjustNote(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleTillAdjust} disabled={addTillTransaction.isPending || !tillAdjustAmount}>
+                    {t("common.confirm")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Till transactions list */}
+          {tillTransactions.length === 0 ? (
+            <p className="text-muted-foreground">{t("billing.noTillData")}</p>
+          ) : (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("billing.date")}</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>{t("billing.amount")}</TableHead>
+                    <TableHead>Nota</TableHead>
+                    <TableHead>{t("billing.waiter")}</TableHead>
+                    {isAdmin && <TableHead />}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tillTransactions.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="text-xs">{new Date(tx.created_at).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={tx.type === "adjustment_out" ? "destructive" : tx.type === "adjustment_in" ? "secondary" : "outline"} className="text-xs">
+                          {tx.type === "payment" ? t("billing.paymentEntry") : tx.type === "adjustment_in" ? t("billing.adjustmentIn") : t("billing.adjustmentOut")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={`font-semibold ${tx.type === "adjustment_out" ? "text-destructive" : ""}`}>
+                        {tx.type === "adjustment_out" ? "-" : "+"}${tx.amount.toFixed(0)}
+                      </TableCell>
+                      <TableCell className="text-xs max-w-[150px] truncate">{tx.note || "-"}</TableCell>
+                      <TableCell className="text-xs">{tx.profile?.full_name || "-"}</TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          {tx.type !== "payment" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={async () => {
+                                try {
+                                  await deleteTillTransaction.mutateAsync(tx.id);
+                                  toast({ title: t("common.success") });
+                                } catch {
+                                  toast({ title: t("common.error"), variant: "destructive" });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Payment dialog */}
