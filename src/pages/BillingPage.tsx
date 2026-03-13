@@ -131,7 +131,64 @@ const BillingPage = () => {
     tipsByWaiter[key].count += 1;
   });
 
-  return (
+  // Cash flow calculations
+  const dateFnsLocale = language === "es" ? es : enUS;
+  const now = new Date();
+
+  const getCashFlowData = () => {
+    let periods: { label: string; start: Date; end: Date }[] = [];
+
+    if (cashFlowPeriod === "day") {
+      for (let i = 6; i >= 0; i--) {
+        const day = subDays(now, i);
+        const start = startOfDay(day);
+        const end = i === 0 ? now : startOfDay(subDays(now, i - 1));
+        periods.push({
+          label: format(day, "EEE dd", { locale: dateFnsLocale }),
+          start,
+          end,
+        });
+      }
+    } else if (cashFlowPeriod === "week") {
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekEnd = i === 0 ? now : startOfWeek(subWeeks(now, i - 1), { weekStartsOn: 1 });
+        periods.push({
+          label: format(weekStart, "dd MMM", { locale: dateFnsLocale }),
+          start: weekStart,
+          end: weekEnd,
+        });
+      }
+    } else {
+      for (let i = 5; i >= 0; i--) {
+        const monthStart = startOfMonth(subMonths(now, i));
+        const monthEnd = i === 0 ? now : startOfMonth(subMonths(now, i - 1));
+        periods.push({
+          label: format(monthStart, "MMM yy", { locale: dateFnsLocale }),
+          start: monthStart,
+          end: monthEnd,
+        });
+      }
+    }
+
+    return periods.map((period) => {
+      const periodPayments = payments.filter((p) => {
+        const d = new Date(p.created_at);
+        return d >= period.start && d < period.end;
+      });
+      const income = periodPayments.reduce((s, p) => s + p.amount, 0);
+      const tips = periodPayments.reduce((s, p) => s + p.tip, 0);
+      const cash = periodPayments.filter((p) => p.payment_method === "cash").reduce((s, p) => s + p.amount, 0);
+      const card = periodPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount, 0);
+      return { ...period, income, tips, cash, card, count: periodPayments.length };
+    });
+  };
+
+  const cashFlowData = getCashFlowData();
+  const cfTotal = cashFlowData.reduce((s, d) => s + d.income, 0);
+  const cfTips = cashFlowData.reduce((s, d) => s + d.tips, 0);
+  const cfCash = cashFlowData.reduce((s, d) => s + d.cash, 0);
+  const cfCard = cashFlowData.reduce((s, d) => s + d.card, 0);
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("billing.title")}</h1>
 
