@@ -149,6 +149,16 @@ export const translations = {
   "billing.deleteCompletely": { es: "Eliminar completamente", en: "Delete completely" },
   "billing.paymentUpdated": { es: "Pago actualizado", en: "Payment updated" },
   "billing.paymentDeleted": { es: "Pago eliminado", en: "Payment deleted" },
+  "billing.cashFlow": { es: "Flujo de caja", en: "Cash Flow" },
+  "billing.daily": { es: "Día", en: "Day" },
+  "billing.weekly": { es: "Semana", en: "Week" },
+  "billing.monthly": { es: "Mes", en: "Month" },
+  "billing.income": { es: "Ingresos", en: "Income" },
+  "billing.tipsLabel": { es: "Propinas", en: "Tips" },
+  "billing.cashMethod": { es: "Efectivo", en: "Cash" },
+  "billing.cardMethod": { es: "Tarjeta", en: "Card" },
+  "billing.transactions": { es: "Transacciones", en: "Transactions" },
+  "billing.noData": { es: "Sin datos para este período", en: "No data for this period" },
 
   // Common
   "common.save": { es: "Guardar", en: "Save" },
