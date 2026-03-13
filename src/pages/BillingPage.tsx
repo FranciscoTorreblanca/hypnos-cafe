@@ -138,6 +138,24 @@ const BillingPage = () => {
     tipsByWaiter[key].count += 1;
   });
 
+  // Till adjustment handler
+  const handleTillAdjust = async () => {
+    const amt = parseFloat(tillAdjustAmount);
+    if (!amt || amt <= 0) return;
+    try {
+      await addTillTransaction.mutateAsync({
+        type: tillAdjustType === "in" ? "adjustment_in" : "adjustment_out",
+        amount: amt,
+        note: tillAdjustNote,
+      });
+      toast({ title: t("common.success"), description: t("billing.tillSuccess") });
+      setTillAdjustAmount("");
+      setTillAdjustNote("");
+    } catch {
+      toast({ title: t("common.error"), variant: "destructive" });
+    }
+  };
+
   // Cash flow calculations
   const dateFnsLocale = language === "es" ? es : enUS;
   const now = new Date();
