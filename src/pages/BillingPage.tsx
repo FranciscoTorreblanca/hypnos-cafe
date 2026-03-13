@@ -61,6 +61,9 @@ const BillingPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
+  // Cash flow state
+  const [cashFlowPeriod, setCashFlowPeriod] = useState<"day" | "week" | "month">("day");
+
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
 
