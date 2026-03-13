@@ -188,8 +188,10 @@ const BillingPage = () => {
   const cfTotal = cashFlowData.reduce((s, d) => s + d.income, 0);
   const cfTips = cashFlowData.reduce((s, d) => s + d.tips, 0);
   const cfCash = cashFlowData.reduce((s, d) => s + d.cash, 0);
-  const cfCard = cashFlowData.reduce((s, d) => s + d.card, 0);
+
+  return (
     <div className="space-y-6">
+
       <h1 className="text-2xl font-semibold tracking-tight">{t("billing.title")}</h1>
 
       {/* Summary cards */}
