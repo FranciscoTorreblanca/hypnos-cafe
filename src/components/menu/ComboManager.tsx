@@ -111,7 +111,10 @@ export const ComboManager = () => {
                           {combo.combo_items.map((ci) => (
                             <div key={ci.id} className="flex justify-between">
                               <span>{ci.quantity}× {language === "es" ? ci.menu_items.name : ci.menu_items.name_en || ci.menu_items.name}</span>
-                              <span>${(ci.menu_items.price * ci.quantity).toFixed(2)}</span>
+                              <span className="flex gap-2">
+                                <span className="opacity-60">${(ci.menu_items.cost * ci.quantity).toFixed(2)}</span>
+                                <span>${(ci.menu_items.price * ci.quantity).toFixed(2)}</span>
+                              </span>
                             </div>
                           ))}
                         </div>
