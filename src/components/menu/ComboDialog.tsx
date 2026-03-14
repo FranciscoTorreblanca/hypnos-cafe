@@ -443,8 +443,8 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                     {choiceGroups.some((g) => g.options.length > 0) && (
                       <p className="text-[10px] text-muted-foreground italic">
                         {language === "es"
-                          ? "* Costo usa opción más barata, precio orig. usa promedio de opciones"
-                          : "* Cost uses cheapest option, orig. price uses avg of options"}
+                          ? "* Costo y precio orig. usan la opción más cara de cada grupo"
+                          : "* Cost and orig. price use the most expensive option per group"}
                       </p>
                     )}
                   </CardContent>
