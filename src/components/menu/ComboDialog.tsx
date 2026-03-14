@@ -158,18 +158,18 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
     );
   };
 
-  // Calculations — use cheapest option per choice group for conservative cost estimate
-  const choiceGroupMinCost = choiceGroups.reduce((sum, g) => {
+  // Calculations — use most expensive option per choice group for worst-case cost/price
+  const choiceGroupMaxCost = choiceGroups.reduce((sum, g) => {
     if (g.options.length === 0) return sum;
-    return sum + Math.min(...g.options.map((o) => o.cost));
+    return sum + Math.max(...g.options.map((o) => o.cost));
   }, 0);
-  const choiceGroupAvgPrice = choiceGroups.reduce((sum, g) => {
+  const choiceGroupMaxPrice = choiceGroups.reduce((sum, g) => {
     if (g.options.length === 0) return sum;
-    return sum + g.options.reduce((s, o) => s + o.price, 0) / g.options.length;
+    return sum + Math.max(...g.options.map((o) => o.price));
   }, 0);
 
-  const originalPrice = comboItems.reduce((sum, ci) => sum + ci.price * ci.quantity, 0) + choiceGroupAvgPrice;
-  const productionCost = comboItems.reduce((sum, ci) => sum + ci.cost * ci.quantity, 0) + choiceGroupMinCost;
+  const originalPrice = comboItems.reduce((sum, ci) => sum + ci.price * ci.quantity, 0) + choiceGroupMaxPrice;
+  const productionCost = comboItems.reduce((sum, ci) => sum + ci.cost * ci.quantity, 0) + choiceGroupMaxCost;
   const comboPrice = form.watch("price");
   const discount = originalPrice > 0 ? ((originalPrice - comboPrice) / originalPrice) * 100 : 0;
   const margin = comboPrice > 0 ? ((comboPrice - productionCost) / comboPrice) * 100 : 0;
