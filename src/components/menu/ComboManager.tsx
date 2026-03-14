@@ -62,12 +62,23 @@ export const ComboManager = () => {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
                 {combos.map((combo) => {
-                  const originalPrice = combo.combo_items.reduce(
+                  const fixedOrigPrice = combo.combo_items.reduce(
                     (sum, ci) => sum + ci.menu_items.price * ci.quantity, 0
                   );
-                  const productionCost = combo.combo_items.reduce(
+                  const fixedCost = combo.combo_items.reduce(
                     (sum, ci) => sum + ci.menu_items.cost * ci.quantity, 0
                   );
+                  // Use most expensive option per choice group for cost/price
+                  const choiceGroupsCost = (combo.combo_choice_groups ?? []).reduce((sum, cg) => {
+                    const maxCost = cg.combo_choice_options.reduce((m, o) => Math.max(m, Number(o.menu_items.cost)), 0);
+                    return sum + maxCost;
+                  }, 0);
+                  const choiceGroupsPrice = (combo.combo_choice_groups ?? []).reduce((sum, cg) => {
+                    const maxPrice = cg.combo_choice_options.reduce((m, o) => Math.max(m, Number(o.menu_items.price)), 0);
+                    return sum + maxPrice;
+                  }, 0);
+                  const originalPrice = fixedOrigPrice + choiceGroupsPrice;
+                  const productionCost = fixedCost + choiceGroupsCost;
                   const discount = originalPrice > 0
                     ? ((originalPrice - combo.price) / originalPrice * 100)
                     : 0;
