@@ -102,7 +102,7 @@ export const ComboManager = () => {
                             </p>
                           </div>
                           <Badge variant="outline" className="shrink-0">
-                            {combo.combo_items.length} {language === "es" ? "items" : "items"}
+                            {combo.combo_items.length + (combo.combo_choice_groups?.length ?? 0)} {language === "es" ? "items" : "items"}
                           </Badge>
                         </div>
 
