@@ -128,12 +128,22 @@ export const ComboManager = () => {
                                     <span>{language === "es" ? cg.label : cg.label_en || cg.label}</span>
                                   </div>
                                   <div className="pl-4 space-y-0.5 text-muted-foreground">
-                                    {cg.combo_choice_options.map((co) => (
-                                      <div key={co.id} className="flex justify-between">
-                                        <span>• {language === "es" ? co.menu_items.name : co.menu_items.name_en || co.menu_items.name}</span>
-                                        <span>${Number(co.menu_items.price).toFixed(2)}</span>
-                                      </div>
-                                    ))}
+                                    {(() => {
+                                      const maxCost = Math.max(...cg.combo_choice_options.map(o => Number(o.menu_items.cost)));
+                                      return cg.combo_choice_options.map((co) => {
+                                        const cost = Number(co.menu_items.cost);
+                                        const isMax = cost === maxCost && cg.combo_choice_options.length > 1;
+                                        return (
+                                          <div key={co.id} className={`flex justify-between ${isMax ? "text-destructive font-medium" : ""}`}>
+                                            <span>• {language === "es" ? co.menu_items.name : co.menu_items.name_en || co.menu_items.name}</span>
+                                            <span className="flex gap-2">
+                                              <span className="opacity-60">${cost.toFixed(2)}</span>
+                                              <span>${Number(co.menu_items.price).toFixed(2)}</span>
+                                            </span>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
                               ))}
