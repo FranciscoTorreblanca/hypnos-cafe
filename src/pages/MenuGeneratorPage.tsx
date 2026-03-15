@@ -253,13 +253,22 @@ const MenuGeneratorPage = () => {
                         <Undo2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
-                    {/* Preview */}
-                    {menu.status === "published" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => window.open(getPublicUrl(menu.id), "_blank")}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                    {/* Preview (any status) */}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title={language === "es" ? "Vista previa" : "Preview"}
+                      onClick={() => window.open(getPreviewUrl(menu.id), "_blank")}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    {/* Print */}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title={language === "es" ? "Imprimir" : "Print"}
+                      onClick={() => {
+                        const printWin = window.open(getPreviewUrl(menu.id), "_blank");
+                        if (printWin) {
+                          printWin.addEventListener("afterprint", () => {});
+                          setTimeout(() => printWin.print(), 1500);
+                        }
+                      }}>
+                      <Printer className="h-3.5 w-3.5" />
+                    </Button>
                     {/* Duplicate */}
                     <Button size="icon" variant="ghost" className="h-7 w-7"
                       onClick={() => duplicateMenu.mutate(menu, { onSuccess: () => toast({ title: t("common.success") }) })}>
