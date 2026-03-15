@@ -79,6 +79,15 @@ export const translations = {
   "settings.tableNamePlaceholder": { es: "Nombre personalizado", en: "Custom name" },
   "settings.save": { es: "Guardar", en: "Save" },
   "settings.saved": { es: "Guardado", en: "Saved" },
+  "settings.mercadoPago": { es: "Mercado Pago", en: "Mercado Pago" },
+  "settings.mpEnabled": { es: "Habilitar Mercado Pago Point", en: "Enable Mercado Pago Point" },
+  "settings.mpDeviceId": { es: "Device ID del Point Mini", en: "Point Mini Device ID" },
+  "settings.mpAccessToken": { es: "Access Token", en: "Access Token" },
+  "settings.mpAccessTokenSet": { es: "Token configurado ✓", en: "Token configured ✓" },
+  "settings.mpAccessTokenPlaceholder": { es: "Pegar access token de Mercado Pago", en: "Paste Mercado Pago access token" },
+  "settings.mpSavingToken": { es: "Guardando token...", en: "Saving token..." },
+  "settings.mpTokenSaved": { es: "Token guardado correctamente", en: "Token saved successfully" },
+  "settings.mpDescription": { es: "Conecta tu terminal Point Mini para cobrar con tarjeta", en: "Connect your Point Mini terminal for card payments" },
 
   // Roles
   "role.admin": { es: "Administrador", en: "Admin" },
@@ -168,6 +177,9 @@ export const translations = {
   "billing.adjustmentOut": { es: "Retiro", en: "Withdrawal" },
   "billing.paymentEntry": { es: "Pago en efectivo", en: "Cash payment" },
   "billing.tillSuccess": { es: "Movimiento registrado", en: "Transaction recorded" },
+  "billing.mpSending": { es: "Enviando a terminal...", en: "Sending to terminal..." },
+  "billing.mpSent": { es: "Pago enviado al Point Mini", en: "Payment sent to Point Mini" },
+  "billing.mpError": { es: "Error al enviar al Point Mini", en: "Error sending to Point Mini" },
   "billing.noTillData": { es: "Sin movimientos en caja", en: "No till transactions" },
 
   // Common
