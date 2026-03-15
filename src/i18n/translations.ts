@@ -177,6 +177,9 @@ export const translations = {
   "billing.adjustmentOut": { es: "Retiro", en: "Withdrawal" },
   "billing.paymentEntry": { es: "Pago en efectivo", en: "Cash payment" },
   "billing.tillSuccess": { es: "Movimiento registrado", en: "Transaction recorded" },
+  "billing.mpSending": { es: "Enviando a terminal...", en: "Sending to terminal..." },
+  "billing.mpSent": { es: "Pago enviado al Point Mini", en: "Payment sent to Point Mini" },
+  "billing.mpError": { es: "Error al enviar al Point Mini", en: "Error sending to Point Mini" },
   "billing.noTillData": { es: "Sin movimientos en caja", en: "No till transactions" },
 
   // Common
