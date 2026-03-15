@@ -204,8 +204,11 @@ const BillingPage = () => {
       const income = periodPayments.reduce((s, p) => s + p.amount, 0);
       const tips = periodPayments.reduce((s, p) => s + p.tip, 0);
       const cash = periodPayments.filter((p) => p.payment_method === "cash").reduce((s, p) => s + p.amount, 0);
-      const card = periodPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount, 0);
-      return { ...period, income, tips, cash, card, count: periodPayments.length };
+      const cardGross = periodPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount, 0);
+      const cardCommission = cardGross * 0.05;
+      const cardNet = cardGross - cardCommission;
+      const netIncome = cash + cardNet;
+      return { ...period, income, tips, cash, cardGross, cardCommission, cardNet, netIncome, count: periodPayments.length };
     });
   };
 
