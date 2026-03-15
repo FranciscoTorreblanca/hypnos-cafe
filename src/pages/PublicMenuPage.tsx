@@ -135,7 +135,7 @@ const PublicMenuPage = () => {
   const entries = [...menu.menu_entries].sort((a, b) => a.display_order - b.display_order);
 
   const sections: { label: string; entries: PublicEntry[] }[] = [];
-  let currentSection = "";
+  let currentSection: string | null = null;
   entries.forEach((entry) => {
     const sectionLabel = lang === "es" ? entry.section_label : entry.section_label_en || entry.section_label;
     if (sectionLabel !== currentSection) {
