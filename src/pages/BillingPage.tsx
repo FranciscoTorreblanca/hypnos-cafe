@@ -407,7 +407,7 @@ const BillingPage = () => {
           </div>
 
           {/* Totals summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <Card>
               <CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">{t("billing.income")}</p>
@@ -428,8 +428,16 @@ const BillingPage = () => {
             </Card>
             <Card>
               <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground flex items-center gap-1"><CreditCard className="h-3 w-3" />{t("billing.cardMethod")}</p>
-                <p className="text-lg font-bold">${cfCard.toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><CreditCard className="h-3 w-3" />{t("billing.cardGross")}</p>
+                <p className="text-lg font-bold">${cfCardGross.toFixed(0)}</p>
+                <p className="text-xs text-destructive">-${cfCardCommission.toFixed(0)} {t("billing.cardCommission")}</p>
+                <p className="text-xs text-muted-foreground">{t("billing.cardNet")}: ${cfCardNet.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">{t("billing.netIncome")}</p>
+                <p className="text-lg font-bold">${cfNetIncome.toFixed(0)}</p>
               </CardContent>
             </Card>
           </div>
@@ -444,7 +452,10 @@ const BillingPage = () => {
                     <TableHead>{t("billing.income")}</TableHead>
                     <TableHead>{t("billing.tipsLabel")}</TableHead>
                     <TableHead className="hidden sm:table-cell">{t("billing.cashMethod")}</TableHead>
-                    <TableHead className="hidden sm:table-cell">{t("billing.cardMethod")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cardGross")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cardCommission")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("billing.cardNet")}</TableHead>
+                    <TableHead className="hidden lg:table-cell">{t("billing.netIncome")}</TableHead>
                     <TableHead>{t("billing.transactions")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -455,7 +466,10 @@ const BillingPage = () => {
                       <TableCell className="font-semibold">${d.income.toFixed(0)}</TableCell>
                       <TableCell>${d.tips.toFixed(0)}</TableCell>
                       <TableCell className="hidden sm:table-cell">${d.cash.toFixed(0)}</TableCell>
-                      <TableCell className="hidden sm:table-cell">${d.card.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${d.cardGross.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-destructive">-${d.cardCommission.toFixed(0)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${d.cardNet.toFixed(0)}</TableCell>
+                      <TableCell className="hidden lg:table-cell font-semibold">${d.netIncome.toFixed(0)}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{d.count}</Badge>
                       </TableCell>
@@ -467,7 +481,10 @@ const BillingPage = () => {
                     <TableCell>${cfTotal.toFixed(0)}</TableCell>
                     <TableCell>${cfTips.toFixed(0)}</TableCell>
                     <TableCell className="hidden sm:table-cell">${cfCash.toFixed(0)}</TableCell>
-                    <TableCell className="hidden sm:table-cell">${cfCard.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">${cfCardGross.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-destructive">-${cfCardCommission.toFixed(0)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">${cfCardNet.toFixed(0)}</TableCell>
+                    <TableCell className="hidden lg:table-cell">${cfNetIncome.toFixed(0)}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{cashFlowData.reduce((s, d) => s + d.count, 0)}</Badge>
                     </TableCell>
