@@ -220,6 +220,61 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_entries: {
+        Row: {
+          combo_id: string | null
+          created_at: string
+          display_order: number
+          id: string
+          menu_id: string
+          menu_item_id: string | null
+          section_label: string
+          section_label_en: string
+        }
+        Insert: {
+          combo_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          menu_id: string
+          menu_item_id?: string | null
+          section_label?: string
+          section_label_en?: string
+        }
+        Update: {
+          combo_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          menu_id?: string
+          menu_item_id?: string | null
+          section_label?: string
+          section_label_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_entries_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "combos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_entries_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_entries_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_item_ingredients: {
         Row: {
           id: string
@@ -318,6 +373,59 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menus: {
+        Row: {
+          created_at: string
+          description: string
+          description_en: string
+          id: string
+          is_online: boolean
+          name: string
+          name_en: string
+          parent_menu_id: string | null
+          status: Database["public"]["Enums"]["menu_status"]
+          type: Database["public"]["Enums"]["menu_type"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          is_online?: boolean
+          name: string
+          name_en?: string
+          parent_menu_id?: string | null
+          status?: Database["public"]["Enums"]["menu_status"]
+          type?: Database["public"]["Enums"]["menu_type"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          is_online?: boolean
+          name?: string
+          name_en?: string
+          parent_menu_id?: string | null
+          status?: Database["public"]["Enums"]["menu_status"]
+          type?: Database["public"]["Enums"]["menu_type"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menus_parent_menu_id_fkey"
+            columns: ["parent_menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
             referencedColumns: ["id"]
           },
         ]
@@ -581,6 +689,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "waiter" | "billing" | "kitchen"
+      menu_status: "draft" | "published" | "archived"
+      menu_type: "main" | "seasonal" | "event"
       order_status:
         | "pending"
         | "in_progress"
@@ -717,6 +827,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "waiter", "billing", "kitchen"],
+      menu_status: ["draft", "published", "archived"],
+      menu_type: ["main", "seasonal", "event"],
       order_status: [
         "pending",
         "in_progress",
