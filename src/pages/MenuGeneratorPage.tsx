@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus, Pencil, Trash2, Copy, Globe, FileText, Eye,
-  Archive, Send, Undo2, ExternalLink,
+  Archive, Send, Undo2, ExternalLink, Printer,
 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
@@ -70,6 +70,10 @@ const MenuGeneratorPage = () => {
 
   const getPublicUrl = (menuId: string) => {
     return `${window.location.origin}/public-menu/${menuId}`;
+  };
+
+  const getPreviewUrl = (menuId: string) => {
+    return `${window.location.origin}/public-menu/${menuId}?preview=true`;
   };
 
   const onlineMenus = menus.filter((m) => m.is_online && m.status === "published");
@@ -249,13 +253,22 @@ const MenuGeneratorPage = () => {
                         <Undo2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
-                    {/* Preview */}
-                    {menu.status === "published" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => window.open(getPublicUrl(menu.id), "_blank")}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                    {/* Preview (any status) */}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title={language === "es" ? "Vista previa" : "Preview"}
+                      onClick={() => window.open(getPreviewUrl(menu.id), "_blank")}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    {/* Print */}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title={language === "es" ? "Imprimir" : "Print"}
+                      onClick={() => {
+                        const printWin = window.open(getPreviewUrl(menu.id), "_blank");
+                        if (printWin) {
+                          printWin.addEventListener("afterprint", () => {});
+                          setTimeout(() => printWin.print(), 1500);
+                        }
+                      }}>
+                      <Printer className="h-3.5 w-3.5" />
+                    </Button>
                     {/* Duplicate */}
                     <Button size="icon" variant="ghost" className="h-7 w-7"
                       onClick={() => duplicateMenu.mutate(menu, { onSuccess: () => toast({ title: t("common.success") }) })}>
