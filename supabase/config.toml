@@ -1,1 +1,4 @@
 project_id = "bspwykvhgqlathaovgbb"
+
+[functions.mercadopago-payment]
+verify_jwt = false
