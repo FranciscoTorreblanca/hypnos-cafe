@@ -220,7 +220,7 @@ const SettingsPage = () => {
               <div className="space-y-2">
                 <Label>{t("settings.mpAccessToken")}</Label>
                 {settings.mp_token_set === "true" && (
-                  <p className="text-xs text-green-600">{t("settings.mpAccessTokenSet")}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">{t("settings.mpAccessTokenSet")}</p>
                 )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
