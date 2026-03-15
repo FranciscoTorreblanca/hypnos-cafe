@@ -1,0 +1,1 @@
+ALTER TABLE public.restaurant_settings ADD CONSTRAINT restaurant_settings_key_unique UNIQUE (key);
