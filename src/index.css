@@ -113,3 +113,19 @@ All colors MUST be HSL.
     scrollbar-width: none;
   }
 }
+
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  .print\:static {
+    position: static !important;
+  }
+  .print\:border-none {
+    border: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
