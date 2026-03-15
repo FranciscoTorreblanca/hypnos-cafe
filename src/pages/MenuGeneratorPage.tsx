@@ -72,6 +72,10 @@ const MenuGeneratorPage = () => {
     return `${window.location.origin}/public-menu/${menuId}`;
   };
 
+  const getPreviewUrl = (menuId: string) => {
+    return `${window.location.origin}/public-menu/${menuId}?preview=true`;
+  };
+
   const onlineMenus = menus.filter((m) => m.is_online && m.status === "published");
 
   return (
