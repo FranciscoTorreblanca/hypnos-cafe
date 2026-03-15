@@ -50,8 +50,9 @@ const App = () => (
                 <Route path="/kitchen" element={<KitchenPage />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/users" element={<UsersPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               </Route>
+              <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
