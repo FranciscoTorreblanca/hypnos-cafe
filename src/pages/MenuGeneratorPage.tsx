@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus, Pencil, Trash2, Copy, Globe, FileText, Eye,
-  Archive, Send, Undo2, ExternalLink,
+  Archive, Send, Undo2, ExternalLink, Printer,
 } from "lucide-react";
 
 const statusColors: Record<string, string> = {

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Printer, ArrowLeft } from "lucide-react";
 
 interface PublicMenuItem {
   id: string;
@@ -42,15 +44,20 @@ interface PublicMenu {
   description: string;
   description_en: string;
   type: string;
+  status: string;
+  is_online: boolean;
   menu_entries: PublicEntry[];
 }
 
 const PublicMenuPage = () => {
   const { menuId } = useParams<{ menuId: string }>();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get("preview") === "true";
   const [menu, setMenu] = useState<PublicMenu | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lang, setLang] = useState<"es" | "en">("es");
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const browserLang = navigator.language.startsWith("en") ? "en" : "es";
@@ -61,24 +68,46 @@ const PublicMenuPage = () => {
     if (!menuId) return;
     const load = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("menus")
-        .select(`*, menu_entries(*, menu_items(*), combos(*))`)
-        .eq("id", menuId)
-        .eq("is_online", true)
-        .eq("status", "published")
-        .single();
 
-      if (error || !data) {
-        setError(true);
-        setLoading(false);
-        return;
+      if (isPreview) {
+        // Authenticated preview — no status/online filter
+        const { data, error: err } = await supabase
+          .from("menus")
+          .select(`*, menu_entries(*, menu_items(*), combos(*))`)
+          .eq("id", menuId)
+          .single();
+
+        if (err || !data) {
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        setMenu(data as unknown as PublicMenu);
+      } else {
+        // Public access — only published + online
+        const { data, error: err } = await supabase
+          .from("menus")
+          .select(`*, menu_entries(*, menu_items(*), combos(*))`)
+          .eq("id", menuId)
+          .eq("is_online", true)
+          .eq("status", "published")
+          .single();
+
+        if (err || !data) {
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        setMenu(data as unknown as PublicMenu);
       }
-      setMenu(data as unknown as PublicMenu);
       setLoading(false);
     };
     load();
-  }, [menuId]);
+  }, [menuId, isPreview]);
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   if (loading) {
     return (
@@ -105,7 +134,6 @@ const PublicMenuPage = () => {
 
   const entries = [...menu.menu_entries].sort((a, b) => a.display_order - b.display_order);
 
-  // Group entries by section
   const sections: { label: string; entries: PublicEntry[] }[] = [];
   let currentSection = "";
   entries.forEach((entry) => {
@@ -118,7 +146,6 @@ const PublicMenuPage = () => {
     }
   });
 
-  // If no sections, put all in one
   if (sections.length === 0 && entries.length > 0) {
     sections.push({ label: "", entries });
   }
@@ -131,8 +158,20 @@ const PublicMenuPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Preview banner */}
+      {isPreview && (
+        <div className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-center text-xs py-1.5 font-medium print:hidden">
+          {lang === "es" ? "Vista previa — Este menú aún no está publicado" : "Preview — This menu is not published yet"}
+          {menu.status !== "published" && (
+            <Badge variant="outline" className="ml-2 text-[10px]">
+              {menu.status === "draft" ? (lang === "es" ? "Borrador" : "Draft") : (lang === "es" ? "Archivado" : "Archived")}
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b print:static print:border-none">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-tight">{getName(menu)}</h1>
@@ -140,17 +179,29 @@ const PublicMenuPage = () => {
               <p className="text-sm text-muted-foreground">{getDesc(menu)}</p>
             )}
           </div>
-          <button
-            onClick={() => setLang((l) => (l === "es" ? "en" : "es"))}
-            className="text-xs border rounded px-2 py-1 text-muted-foreground hover:bg-accent"
-          >
-            {lang === "es" ? "EN" : "ES"}
-          </button>
+          <div className="flex items-center gap-2 print:hidden">
+            {isPreview && (
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => window.history.back()}>
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                {lang === "es" ? "Volver" : "Back"}
+              </Button>
+            )}
+            <Button size="sm" variant="outline" className="h-8" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-1" />
+              {lang === "es" ? "Imprimir" : "Print"}
+            </Button>
+            <button
+              onClick={() => setLang((l) => (l === "es" ? "en" : "es"))}
+              className="text-xs border rounded px-2 py-1 text-muted-foreground hover:bg-accent"
+            >
+              {lang === "es" ? "EN" : "ES"}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Menu content */}
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div ref={printRef} className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {sections.map((section, sIdx) => (
           <div key={sIdx}>
             {section.label && (
