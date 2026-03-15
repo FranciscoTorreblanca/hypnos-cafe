@@ -1,4 +1,5 @@
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -6,10 +7,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Read access token from restaurant_settings
+    const { data: tokenSetting } = await supabase
+      .from("restaurant_settings")
+      .select("value")
+      .eq("key", "mp_access_token_encrypted")
+      .maybeSingle();
+
+    const accessToken = tokenSetting?.value;
     if (!accessToken) {
       return new Response(
-        JSON.stringify({ error: "Mercado Pago not configured" }),
+        JSON.stringify({ error: "Mercado Pago access token not configured" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

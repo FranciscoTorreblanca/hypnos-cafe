@@ -2,3 +2,6 @@ project_id = "bspwykvhgqlathaovgbb"
 
 [functions.mercadopago-payment]
 verify_jwt = false
+
+[functions.save-mp-token]
+verify_jwt = false

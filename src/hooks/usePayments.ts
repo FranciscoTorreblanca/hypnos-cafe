@@ -21,6 +21,44 @@ export interface Payment {
   };
 }
 
+/** Check if Mercado Pago is enabled and configured */
+async function getMpConfig(): Promise<{ enabled: boolean; deviceId: string } | null> {
+  const { data } = await supabase
+    .from("restaurant_settings")
+    .select("key, value")
+    .in("key", ["mp_enabled", "mp_device_id", "mp_token_set"]);
+
+  if (!data) return null;
+  const map: Record<string, string> = {};
+  data.forEach((s) => (map[s.key] = s.value));
+
+  if (map.mp_enabled === "true" && map.mp_device_id && map.mp_token_set === "true") {
+    return { enabled: true, deviceId: map.mp_device_id };
+  }
+  return null;
+}
+
+/** Send payment intent to Mercado Pago Point Mini */
+async function sendToPointMini(deviceId: string, amount: number, orderId: string) {
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const res = await fetch(
+    `https://${projectId}.supabase.co/functions/v1/mercadopago-payment`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        device_id: deviceId,
+        amount,
+        description: `Orden ${orderId.slice(0, 8)}`,
+        external_reference: orderId,
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "MP error");
+  return data;
+}
+
 export const usePayments = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -62,6 +100,15 @@ export const usePayments = () => {
       tip: number;
       payment_method: string;
     }) => {
+      // If card payment, check if MP is configured and send to Point Mini
+      let mpResult: any = null;
+      if (payment_method === "card") {
+        const mpConfig = await getMpConfig();
+        if (mpConfig?.enabled) {
+          mpResult = await sendToPointMini(mpConfig.deviceId, amount + tip, order_id);
+        }
+      }
+
       const { data: paymentData, error } = await supabase.from("payments").insert({
         order_id,
         amount,
@@ -70,9 +117,11 @@ export const usePayments = () => {
         created_by: user!.id,
       }).select("id").single();
       if (error) throw error;
+
       // Mark order as paid
       const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any }).eq("id", order_id);
       if (upErr) throw upErr;
+
       // Auto-add cash payments to till
       if (payment_method === "cash" && paymentData) {
         await (supabase.from("till_transactions" as any) as any).insert({
@@ -83,6 +132,8 @@ export const usePayments = () => {
           created_by: user!.id,
         });
       }
+
+      return { mpResult };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
