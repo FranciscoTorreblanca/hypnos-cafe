@@ -323,9 +323,11 @@ const BillingPage = () => {
                   <TableRow>
                     <TableHead>{t("billing.date")}</TableHead>
                     <TableHead>{t("billing.table")}</TableHead>
-                    <TableHead>{t("billing.amount")}</TableHead>
-                    <TableHead>{t("billing.tip")}</TableHead>
-                    <TableHead>{t("billing.method")}</TableHead>
+                     <TableHead>{t("billing.amount")}</TableHead>
+                     <TableHead>{t("billing.cardCommission")}</TableHead>
+                     <TableHead>{t("billing.cardNet")}</TableHead>
+                     <TableHead>{t("billing.tip")}</TableHead>
+                     <TableHead>{t("billing.method")}</TableHead>
                     <TableHead>{t("billing.waiter")}</TableHead>
                     {isAdmin && <TableHead>{t("billing.actions")}</TableHead>}
                   </TableRow>
