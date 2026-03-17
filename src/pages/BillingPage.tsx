@@ -323,9 +323,11 @@ const BillingPage = () => {
                   <TableRow>
                     <TableHead>{t("billing.date")}</TableHead>
                     <TableHead>{t("billing.table")}</TableHead>
-                    <TableHead>{t("billing.amount")}</TableHead>
-                    <TableHead>{t("billing.tip")}</TableHead>
-                    <TableHead>{t("billing.method")}</TableHead>
+                     <TableHead>{t("billing.amount")}</TableHead>
+                     <TableHead>{t("billing.cardCommission")}</TableHead>
+                     <TableHead>{t("billing.cardNet")}</TableHead>
+                     <TableHead>{t("billing.tip")}</TableHead>
+                     <TableHead>{t("billing.method")}</TableHead>
                     <TableHead>{t("billing.waiter")}</TableHead>
                     {isAdmin && <TableHead>{t("billing.actions")}</TableHead>}
                   </TableRow>
@@ -336,6 +338,12 @@ const BillingPage = () => {
                       <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
                       <TableCell>{p.order?.table_number ?? "-"}</TableCell>
                       <TableCell>${p.amount.toFixed(0)}</TableCell>
+                      <TableCell className={p.payment_method === "card" ? "text-destructive" : "text-muted-foreground"}>
+                        {p.payment_method === "card" ? `-$${(p.amount * 0.05).toFixed(0)}` : "-"}
+                      </TableCell>
+                      <TableCell className={p.payment_method === "card" ? "font-medium" : ""}>
+                        {p.payment_method === "card" ? `$${(p.amount * 0.95).toFixed(0)}` : `$${p.amount.toFixed(0)}`}
+                      </TableCell>
                       <TableCell>${p.tip.toFixed(0)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
