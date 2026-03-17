@@ -338,6 +338,12 @@ const BillingPage = () => {
                       <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
                       <TableCell>{p.order?.table_number ?? "-"}</TableCell>
                       <TableCell>${p.amount.toFixed(0)}</TableCell>
+                      <TableCell className={p.payment_method === "card" ? "text-destructive" : "text-muted-foreground"}>
+                        {p.payment_method === "card" ? `-$${(p.amount * 0.05).toFixed(0)}` : "-"}
+                      </TableCell>
+                      <TableCell className={p.payment_method === "card" ? "font-medium" : ""}>
+                        {p.payment_method === "card" ? `$${(p.amount * 0.95).toFixed(0)}` : `$${p.amount.toFixed(0)}`}
+                      </TableCell>
                       <TableCell>${p.tip.toFixed(0)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
