@@ -9,6 +9,7 @@ import {
   FileText,
   LogOut,
   ChefHat,
+  BarChart3,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
