@@ -380,7 +380,7 @@ const PerformancePage = () => {
                         );
                       })}
                     </div>
-                  )
+                  )}
                 </CardHeader>
                 <CardContent>
                   {topSellers.length === 0 ? (
