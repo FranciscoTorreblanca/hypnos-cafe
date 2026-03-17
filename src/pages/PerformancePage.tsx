@@ -318,10 +318,69 @@ const PerformancePage = () => {
             <TabsContent value="top-sellers">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    {t("performance.topSellers")} — {formatLabel(currentPeriod)}
-                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary" />
+                      {t("performance.topSellers")} — {formatLabel(currentPeriod)}
+                    </CardTitle>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Filter className="h-4 w-4" />
+                          {t("performance.filterByCategory")}
+                          {selectedCategories.length > 0 && (
+                            <Badge variant="secondary" className="ml-1">{selectedCategories.length}</Badge>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3" align="end">
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {categories.map((cat) => (
+                            <label key={cat.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <Checkbox
+                                checked={selectedCategories.includes(cat.id)}
+                                onCheckedChange={() => toggleCategory(cat.id)}
+                              />
+                              {language === "en" && cat.name_en ? cat.name_en : cat.name}
+                            </label>
+                          ))}
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
+                            <Checkbox
+                              checked={selectedCategories.includes("__none__")}
+                              onCheckedChange={() => toggleCategory("__none__")}
+                            />
+                            {t("performance.noCategory")}
+                          </label>
+                        </div>
+                        {selectedCategories.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2"
+                            onClick={() => setSelectedCategories([])}
+                          >
+                            {t("performance.allCategories")}
+                          </Button>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {selectedCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selectedCategories.map((catId) => {
+                        const cat = categories.find((c) => c.id === catId);
+                        const label = catId === "__none__"
+                          ? t("performance.noCategory")
+                          : (language === "en" && cat?.name_en ? cat.name_en : cat?.name ?? "?");
+                        return (
+                          <Badge key={catId} variant="outline" className="gap-1 cursor-pointer" onClick={() => toggleCategory(catId)}>
+                            {label}
+                            <X className="h-3 w-3" />
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )
                 </CardHeader>
                 <CardContent>
                   {topSellers.length === 0 ? (
