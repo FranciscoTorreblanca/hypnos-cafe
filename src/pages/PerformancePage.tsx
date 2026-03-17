@@ -46,6 +46,25 @@ const PerformancePage = () => {
   const loc = language === "es" ? es : enUS;
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [rangeCount, setRangeCount] = useState(4);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const menuItemsQuery = useMenuItems();
+  const categoriesQuery = useMenuCategories();
+  const menuItems = menuItemsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+
+  // Build a map: menu_item_id -> category_id
+  const itemCategoryMap = useMemo(() => {
+    const map = new Map<string, string | null>();
+    menuItems.forEach((mi) => map.set(mi.id, mi.category_id));
+    return map;
+  }, [menuItems]);
+
+  const toggleCategory = (catId: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(catId) ? prev.filter((c) => c !== catId) : [...prev, catId]
+    );
+  };
 
   const ordersQuery = useQuery({
     queryKey: ["performance-orders"],
