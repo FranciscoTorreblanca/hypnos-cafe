@@ -175,7 +175,7 @@ const PerformancePage = () => {
   const ordersChange = pctChange(totalOrders, prevTotalOrders);
   const ticketChange = pctChange(avgTicket, prevAvgTicket);
 
-  const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end);
+  const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories);
 
   // Revenue by period for trend
   const trendData = periods.map((p) => {
