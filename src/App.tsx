@@ -20,6 +20,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
+import PerformancePage from "@/pages/PerformancePage";
 
 const queryClient = new QueryClient();
 
