@@ -205,6 +205,22 @@ export const translations = {
   "kitchen.recipeBook": { es: "Recetario", en: "Recipe Book" },
   "kitchen.searchItems": { es: "Buscar platillo...", en: "Search item..." },
   "kitchen.noIngredients": { es: "Sin receta registrada", en: "No recipe registered" },
+
+  // Performance
+  "nav.performance": { es: "Rendimiento", en: "Performance" },
+  "performance.title": { es: "Rendimiento", en: "Performance" },
+  "performance.subtitle": { es: "Historial de órdenes y análisis de ventas", en: "Order history & sales analytics" },
+  "performance.totalOrders": { es: "Órdenes", en: "Orders" },
+  "performance.avgTicket": { es: "Ticket promedio", en: "Avg. Ticket" },
+  "performance.peakHour": { es: "Hora pico", en: "Peak Hour" },
+  "performance.topSellers": { es: "Más vendidos", en: "Top Sellers" },
+  "performance.trend": { es: "Tendencia", en: "Trend" },
+  "performance.paymentBreakdown": { es: "Desglose de pagos", en: "Payment Breakdown" },
+  "performance.hourlyDistribution": { es: "Distribución horaria", en: "Hourly Distribution" },
+  "performance.qtySold": { es: "Cant. vendida", en: "Qty Sold" },
+  "performance.period": { es: "Período", en: "Period" },
+  "performance.summary": { es: "Resumen del período", en: "Period Summary" },
+  "performance.itemsSold": { es: "Items vendidos", en: "Items Sold" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

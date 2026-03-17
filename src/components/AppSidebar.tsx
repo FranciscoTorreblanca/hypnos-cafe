@@ -9,6 +9,7 @@ import {
   FileText,
   LogOut,
   ChefHat,
+  BarChart3,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +43,7 @@ export const AppSidebar = () => {
     { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
     { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"] },
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
+    { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
     { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },
     { key: "nav.settings" as const, icon: Settings, path: "/settings", roles: ["admin"] },
   ];
