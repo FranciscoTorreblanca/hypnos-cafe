@@ -128,12 +128,18 @@ const PerformancePage = () => {
       return d >= start && d <= end;
     });
 
-  // Top sellers for a range
-  const getTopSellers = (start: Date, end: Date, limit = 10) => {
+  // Top sellers for a range, optionally filtered by categories
+  const getTopSellers = (start: Date, end: Date, categoryFilter: string[] = [], limit = 10) => {
     const rangeOrders = getOrdersInRange(start, end);
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
     rangeOrders.forEach((o) =>
       o.order_items.forEach((item) => {
+        // Filter by category if any selected
+        if (categoryFilter.length > 0) {
+          const catId = itemCategoryMap.get(item.menu_item_id);
+          const matchesFilter = categoryFilter.includes(catId ?? "__none__");
+          if (!matchesFilter) return;
+        }
         const name = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
         const key = item.menu_item_id;
         const existing = map.get(key) ?? { name, qty: 0, revenue: 0 };
