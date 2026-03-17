@@ -10,7 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, BarChart3, Clock, Award } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, BarChart3, Clock, Award, X, Filter } from "lucide-react";
+import { useMenuItems } from "@/hooks/useMenuItems";
+import { useMenuCategories } from "@/hooks/useMenuCategories";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 interface PaidOrder {
   id: string;
@@ -41,6 +46,25 @@ const PerformancePage = () => {
   const loc = language === "es" ? es : enUS;
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [rangeCount, setRangeCount] = useState(4);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const menuItemsQuery = useMenuItems();
+  const categoriesQuery = useMenuCategories();
+  const menuItems = menuItemsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+
+  // Build a map: menu_item_id -> category_id
+  const itemCategoryMap = useMemo(() => {
+    const map = new Map<string, string | null>();
+    menuItems.forEach((mi) => map.set(mi.id, mi.category_id));
+    return map;
+  }, [menuItems]);
+
+  const toggleCategory = (catId: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(catId) ? prev.filter((c) => c !== catId) : [...prev, catId]
+    );
+  };
 
   const ordersQuery = useQuery({
     queryKey: ["performance-orders"],
@@ -104,12 +128,18 @@ const PerformancePage = () => {
       return d >= start && d <= end;
     });
 
-  // Top sellers for a range
-  const getTopSellers = (start: Date, end: Date, limit = 10) => {
+  // Top sellers for a range, optionally filtered by categories
+  const getTopSellers = (start: Date, end: Date, categoryFilter: string[] = [], limit = 10) => {
     const rangeOrders = getOrdersInRange(start, end);
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
     rangeOrders.forEach((o) =>
       o.order_items.forEach((item) => {
+        // Filter by category if any selected
+        if (categoryFilter.length > 0) {
+          const catId = itemCategoryMap.get(item.menu_item_id);
+          const matchesFilter = categoryFilter.includes(catId ?? "__none__");
+          if (!matchesFilter) return;
+        }
         const name = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
         const key = item.menu_item_id;
         const existing = map.get(key) ?? { name, qty: 0, revenue: 0 };
@@ -145,7 +175,7 @@ const PerformancePage = () => {
   const ordersChange = pctChange(totalOrders, prevTotalOrders);
   const ticketChange = pctChange(avgTicket, prevAvgTicket);
 
-  const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end);
+  const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories);
 
   // Revenue by period for trend
   const trendData = periods.map((p) => {
@@ -288,10 +318,69 @@ const PerformancePage = () => {
             <TabsContent value="top-sellers">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    {t("performance.topSellers")} — {formatLabel(currentPeriod)}
-                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary" />
+                      {t("performance.topSellers")} — {formatLabel(currentPeriod)}
+                    </CardTitle>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Filter className="h-4 w-4" />
+                          {t("performance.filterByCategory")}
+                          {selectedCategories.length > 0 && (
+                            <Badge variant="secondary" className="ml-1">{selectedCategories.length}</Badge>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3" align="end">
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {categories.map((cat) => (
+                            <label key={cat.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <Checkbox
+                                checked={selectedCategories.includes(cat.id)}
+                                onCheckedChange={() => toggleCategory(cat.id)}
+                              />
+                              {language === "en" && cat.name_en ? cat.name_en : cat.name}
+                            </label>
+                          ))}
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
+                            <Checkbox
+                              checked={selectedCategories.includes("__none__")}
+                              onCheckedChange={() => toggleCategory("__none__")}
+                            />
+                            {t("performance.noCategory")}
+                          </label>
+                        </div>
+                        {selectedCategories.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2"
+                            onClick={() => setSelectedCategories([])}
+                          >
+                            {t("performance.allCategories")}
+                          </Button>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {selectedCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selectedCategories.map((catId) => {
+                        const cat = categories.find((c) => c.id === catId);
+                        const label = catId === "__none__"
+                          ? t("performance.noCategory")
+                          : (language === "en" && cat?.name_en ? cat.name_en : cat?.name ?? "?");
+                        return (
+                          <Badge key={catId} variant="outline" className="gap-1 cursor-pointer" onClick={() => toggleCategory(catId)}>
+                            {label}
+                            <X className="h-3 w-3" />
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {topSellers.length === 0 ? (

@@ -221,6 +221,9 @@ export const translations = {
   "performance.period": { es: "Período", en: "Period" },
   "performance.summary": { es: "Resumen del período", en: "Period Summary" },
   "performance.itemsSold": { es: "Items vendidos", en: "Items Sold" },
+  "performance.filterByCategory": { es: "Filtrar por categoría", en: "Filter by category" },
+  "performance.allCategories": { es: "Todas las categorías", en: "All categories" },
+  "performance.noCategory": { es: "Sin categoría", en: "No category" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
