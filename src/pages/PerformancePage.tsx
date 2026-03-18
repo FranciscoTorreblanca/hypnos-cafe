@@ -327,6 +327,20 @@ const PerformancePage = () => {
               <SelectItem value="12">{language === "es" ? "Últ. 12" : "Last 12"}</SelectItem>
             </SelectContent>
           </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" title={language === "es" ? "Exportar CSV" : "Export CSV"}>
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportTopSellers}>{t("performance.topSellers")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportTrend}>{t("performance.trend")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPayments}>{t("performance.paymentBreakdown")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportHourly}>{t("performance.hourlyDistribution")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportRawOrders}>{language === "es" ? "Detalle de órdenes" : "Order details"}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
