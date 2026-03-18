@@ -185,6 +185,8 @@ export const translations = {
   "billing.mpSent": { es: "Pago enviado al Point Mini", en: "Payment sent to Point Mini" },
   "billing.mpError": { es: "Error al enviar al Point Mini", en: "Error sending to Point Mini" },
   "billing.noTillData": { es: "Sin movimientos en caja", en: "No till transactions" },
+  "billing.tipsCash": { es: "Propinas en efectivo", en: "Tips (Cash)" },
+  "billing.tipsCard": { es: "Propinas con tarjeta", en: "Tips (Card)" },
 
   // Common
   "common.save": { es: "Guardar", en: "Save" },

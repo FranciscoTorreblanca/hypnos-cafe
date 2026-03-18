@@ -376,7 +376,41 @@ const BillingPage = () => {
         </TabsContent>
 
         {/* Tips by waiter */}
-        <TabsContent value="tips" className="mt-4">
+        <TabsContent value="tips" className="mt-4 space-y-4">
+          {/* Tips summary cards */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" /> {t("billing.tipsTotal")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">${totalTips.toFixed(0)} MXN</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Banknote className="h-4 w-4" /> {t("billing.tipsCash")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">${totalTipsCash.toFixed(0)} MXN</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" /> {t("billing.tipsCard")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">${totalTipsCard.toFixed(0)} MXN</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {Object.keys(tipsByWaiter).length === 0 ? (
             <p className="text-muted-foreground">{t("billing.noHistory")}</p>
           ) : (
@@ -386,6 +420,8 @@ const BillingPage = () => {
                   <TableRow>
                     <TableHead>{t("billing.waiter")}</TableHead>
                     <TableHead>{t("billing.tipsTotal")}</TableHead>
+                    <TableHead className="flex items-center gap-1"><Banknote className="h-3.5 w-3.5" /> {t("billing.cash")}</TableHead>
+                    <TableHead><span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> {t("billing.card")}</span></TableHead>
                     <TableHead>#</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -393,10 +429,19 @@ const BillingPage = () => {
                   {Object.values(tipsByWaiter).map((w) => (
                     <TableRow key={w.name}>
                       <TableCell>{w.name}</TableCell>
-                      <TableCell className="font-semibold">${w.tips.toFixed(0)} MXN</TableCell>
+                      <TableCell className="font-semibold">${w.tips.toFixed(0)}</TableCell>
+                      <TableCell>${w.tipsCash.toFixed(0)}</TableCell>
+                      <TableCell>${w.tipsCard.toFixed(0)}</TableCell>
                       <TableCell>{w.count}</TableCell>
                     </TableRow>
                   ))}
+                  <TableRow className="bg-muted/50 font-semibold">
+                    <TableCell>Total</TableCell>
+                    <TableCell>${totalTips.toFixed(0)}</TableCell>
+                    <TableCell>${totalTipsCash.toFixed(0)}</TableCell>
+                    <TableCell>${totalTipsCard.toFixed(0)}</TableCell>
+                    <TableCell>{payments.length}</TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </div>
