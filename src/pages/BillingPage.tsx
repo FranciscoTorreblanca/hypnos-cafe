@@ -129,14 +129,18 @@ const BillingPage = () => {
     setDeletingPaymentId(null);
   };
 
-  // Group tips by waiter
-  const tipsByWaiter: Record<string, { name: string; tips: number; count: number }> = {};
+  // Group tips by waiter with payment method split
+  const tipsByWaiter: Record<string, { name: string; tips: number; tipsCash: number; tipsCard: number; count: number }> = {};
   payments.forEach((p) => {
     const key = p.waiter?.email ?? "unknown";
-    if (!tipsByWaiter[key]) tipsByWaiter[key] = { name: p.waiter?.full_name || key, tips: 0, count: 0 };
+    if (!tipsByWaiter[key]) tipsByWaiter[key] = { name: p.waiter?.full_name || key, tips: 0, tipsCash: 0, tipsCard: 0, count: 0 };
     tipsByWaiter[key].tips += p.tip;
+    if (p.payment_method === "cash") tipsByWaiter[key].tipsCash += p.tip;
+    else tipsByWaiter[key].tipsCard += p.tip;
     tipsByWaiter[key].count += 1;
   });
+  const totalTipsCash = payments.filter(p => p.payment_method === "cash").reduce((s, p) => s + p.tip, 0);
+  const totalTipsCard = payments.filter(p => p.payment_method === "card").reduce((s, p) => s + p.tip, 0);
 
   // Till adjustment handler
   const handleTillAdjust = async () => {
