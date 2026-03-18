@@ -219,6 +219,74 @@ const PerformancePage = () => {
       ? `${format(p.start, "dd MMM", { locale: loc })} – ${format(p.end, "dd MMM", { locale: loc })}`
       : format(p.start, "MMMM yyyy", { locale: loc });
 
+  // CSV export helpers
+  const downloadCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
+    const csvContent = [headers.join(","), ...rows.map((r) => r.map((v) => `"${v}"`).join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTopSellers = () => {
+    const sellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories, 999);
+    downloadCsv(
+      `top-sellers-${format(currentPeriod.start, "yyyy-MM-dd")}`,
+      [t("menu.name"), t("performance.qtySold"), t("billing.income")],
+      sellers.map((s) => [s.name, s.qty, s.revenue.toFixed(2)])
+    );
+  };
+
+  const exportTrend = () => {
+    downloadCsv(
+      `trend-${period}`,
+      [t("performance.period"), t("billing.income"), t("performance.totalOrders"), t("billing.tipsLabel")],
+      trendData.map((r) => [r.label, r.revenue.toFixed(2), r.orders, r.tips.toFixed(2)])
+    );
+  };
+
+  const exportPayments = () => {
+    downloadCsv(
+      `payments-${format(currentPeriod.start, "yyyy-MM-dd")}`,
+      [t("performance.period"), t("billing.cash"), t("billing.card"), t("billing.cardCommission"), t("billing.tipsLabel")],
+      [[formatLabel(currentPeriod), cashTotal.toFixed(2), cardGross.toFixed(2), cardCommission.toFixed(2), totalTips.toFixed(2)]]
+    );
+  };
+
+  const exportHourly = () => {
+    downloadCsv(
+      `hourly-${format(currentPeriod.start, "yyyy-MM-dd")}`,
+      [language === "es" ? "Hora" : "Hour", t("performance.totalOrders")],
+      hourCounts.map((count, h) => [`${h}:00`, count])
+    );
+  };
+
+  const exportRawOrders = () => {
+    const rows: (string | number)[][] = [];
+    currentOrders.forEach((o) =>
+      o.order_items.forEach((item) => {
+        const name = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
+        rows.push([
+          format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
+          o.table_number,
+          name,
+          item.quantity,
+          item.unit_price,
+          item.discount,
+          (item.quantity * item.unit_price * (1 - item.discount / 100)).toFixed(2),
+        ]);
+      })
+    );
+    downloadCsv(
+      `orders-detail-${format(currentPeriod.start, "yyyy-MM-dd")}`,
+      [t("billing.date"), t("billing.table"), t("menu.name"), language === "es" ? "Cant." : "Qty", t("menu.price"), "Desc. %", t("billing.amount")],
+      rows
+    );
+  };
+
   if (!isAdmin) {
     return <div className="p-8 text-center text-muted-foreground">{t("common.error")}</div>;
   }
