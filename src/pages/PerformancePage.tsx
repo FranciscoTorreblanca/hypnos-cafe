@@ -307,9 +307,9 @@ const PerformancePage = () => {
           <h1 className="text-2xl font-bold">{t("performance.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("performance.subtitle")}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-            <SelectTrigger className="w-[130px]">
+            <SelectTrigger className="w-[110px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -318,7 +318,7 @@ const PerformancePage = () => {
             </SelectContent>
           </Select>
           <Select value={String(rangeCount)} onValueChange={(v) => setRangeCount(Number(v))}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-[90px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
