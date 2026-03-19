@@ -15,7 +15,18 @@ const LoyaltyMemberPage = () => {
   const { data: coupons } = useMemberCoupons(member?.id);
 
   const qrUrl = memberCode ? `${window.location.origin}/loyalty/${memberCode}` : "";
-  const activeCoupons = (coupons ?? []).filter((c) => !c.is_redeemed);
+  const activeCoupons = (coupons ?? []).filter((c: any) => !c.is_redeemed);
+
+  const freeItemCouponIds = activeCoupons
+    .filter((c: any) => c.loyalty_coupons?.discount_type === "free_item")
+    .map((c: any) => c.loyalty_coupons?.id)
+    .filter(Boolean);
+  const { data: couponItemsData = [] } = useCouponItemsByCoupons(freeItemCouponIds);
+  const couponItemsMap: Record<string, string[]> = {};
+  for (const ci of couponItemsData) {
+    if (!couponItemsMap[ci.coupon_id]) couponItemsMap[ci.coupon_id] = [];
+    couponItemsMap[ci.coupon_id].push((ci.menu_items as any)?.name ?? "");
+  }
 
   if (authLoading) {
     return (
