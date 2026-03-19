@@ -27,6 +27,17 @@ const LoyaltyScanPage = () => {
 
   const activeCoupons = (coupons ?? []).filter((c: any) => !c.is_redeemed);
 
+  const freeItemCouponIds = activeCoupons
+    .filter((c: any) => c.loyalty_coupons?.discount_type === "free_item")
+    .map((c: any) => c.loyalty_coupons?.id)
+    .filter(Boolean);
+  const { data: couponItemsData = [] } = useCouponItemsByCoupons(freeItemCouponIds);
+  const couponItemsMap: Record<string, string[]> = {};
+  for (const ci of couponItemsData) {
+    if (!couponItemsMap[ci.coupon_id]) couponItemsMap[ci.coupon_id] = [];
+    couponItemsMap[ci.coupon_id].push((ci.menu_items as any)?.name ?? "");
+  }
+
   const extractCode = (text: string): string => {
     try {
       const url = new URL(text);
