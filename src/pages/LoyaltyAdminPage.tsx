@@ -228,6 +228,35 @@ const LoyaltyAdminPage = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("loyalty.confirmAction")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.action === "reset_password"
+                ? t("loyalty.confirmResetPassword")
+                : confirmAction?.member?.is_active
+                  ? t("loyalty.confirmDeactivate")
+                  : t("loyalty.confirmActivate")}
+              {" "}<strong>{confirmAction?.member?.name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmAction) {
+                  handleAdminAction(confirmAction.action, confirmAction.member);
+                  setConfirmAction(null);
+                }
+              }}
+            >
+              {t("common.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
