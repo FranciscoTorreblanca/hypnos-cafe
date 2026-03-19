@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useLoyaltyMemberByCode, useRegisterVisit, useMemberCoupons, useRedeemCoupon } from "@/hooks/useLoyalty";
+import { useLoyaltyMemberByCode, useRegisterVisit, useMemberCoupons, useRedeemCoupon, useCouponItemsByCoupons } from "@/hooks/useLoyalty";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,17 @@ const LoyaltyScanPage = () => {
   const redeemCoupon = useRedeemCoupon();
 
   const activeCoupons = (coupons ?? []).filter((c: any) => !c.is_redeemed);
+
+  const freeItemCouponIds = activeCoupons
+    .filter((c: any) => c.loyalty_coupons?.discount_type === "free_item")
+    .map((c: any) => c.loyalty_coupons?.id)
+    .filter(Boolean);
+  const { data: couponItemsData = [] } = useCouponItemsByCoupons(freeItemCouponIds);
+  const couponItemsMap: Record<string, string[]> = {};
+  for (const ci of couponItemsData) {
+    if (!couponItemsMap[ci.coupon_id]) couponItemsMap[ci.coupon_id] = [];
+    couponItemsMap[ci.coupon_id].push((ci.menu_items as any)?.name ?? "");
+  }
 
   const extractCode = (text: string): string => {
     try {
@@ -156,7 +167,7 @@ const LoyaltyScanPage = () => {
                     <div>
                       <p className="font-medium text-sm">{mc.loyalty_coupons?.title}</p>
                       <Badge variant="secondary" className="mt-1">
-                        {mc.loyalty_coupons?.discount_type === "percentage" ? `${mc.loyalty_coupons?.discount_value}%` : mc.loyalty_coupons?.discount_type === "fixed" ? `$${mc.loyalty_coupons?.discount_value}` : "🎁"}
+                        {mc.loyalty_coupons?.discount_type === "percentage" ? `${mc.loyalty_coupons?.discount_value}%` : mc.loyalty_coupons?.discount_type === "fixed" ? `$${mc.loyalty_coupons?.discount_value}` : `🎁 ${(couponItemsMap[mc.loyalty_coupons?.id] ?? []).join(", ") || "Gratis"}`}
                       </Badge>
                     </div>
                     <Button size="sm" variant="outline" onClick={() => handleRedeem(mc.id)} disabled={redeemCoupon.isPending}>

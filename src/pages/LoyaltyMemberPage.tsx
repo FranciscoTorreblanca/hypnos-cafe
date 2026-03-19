@@ -1,6 +1,6 @@
 import { useParams, Navigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { useLoyaltyMemberByCode, useMemberCoupons } from "@/hooks/useLoyalty";
+import { useLoyaltyMemberByCode, useMemberCoupons, useCouponItemsByCoupons } from "@/hooks/useLoyalty";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,18 @@ const LoyaltyMemberPage = () => {
   const { data: coupons } = useMemberCoupons(member?.id);
 
   const qrUrl = memberCode ? `${window.location.origin}/loyalty/${memberCode}` : "";
-  const activeCoupons = (coupons ?? []).filter((c) => !c.is_redeemed);
+  const activeCoupons = (coupons ?? []).filter((c: any) => !c.is_redeemed);
+
+  const freeItemCouponIds = activeCoupons
+    .filter((c: any) => c.loyalty_coupons?.discount_type === "free_item")
+    .map((c: any) => c.loyalty_coupons?.id)
+    .filter(Boolean);
+  const { data: couponItemsData = [] } = useCouponItemsByCoupons(freeItemCouponIds);
+  const couponItemsMap: Record<string, string[]> = {};
+  for (const ci of couponItemsData) {
+    if (!couponItemsMap[ci.coupon_id]) couponItemsMap[ci.coupon_id] = [];
+    couponItemsMap[ci.coupon_id].push((ci.menu_items as any)?.name ?? "");
+  }
 
   if (authLoading) {
     return (
@@ -98,12 +109,12 @@ const LoyaltyMemberPage = () => {
                 <div key={mc.id} className="border rounded-md p-3">
                   <p className="font-medium text-sm">{mc.loyalty_coupons?.title}</p>
                   <p className="text-xs text-muted-foreground">{mc.loyalty_coupons?.description}</p>
-                  <Badge variant="secondary" className="mt-1">
+                   <Badge variant="secondary" className="mt-1">
                     {mc.loyalty_coupons?.discount_type === "percentage"
                       ? `${mc.loyalty_coupons?.discount_value}% desc.`
                       : mc.loyalty_coupons?.discount_type === "fixed"
                       ? `$${mc.loyalty_coupons?.discount_value} desc.`
-                      : "Artículo gratis"}
+                      : `🎁 ${(couponItemsMap[mc.loyalty_coupons?.id] ?? []).join(", ") || "Artículo gratis"}`}
                   </Badge>
                 </div>
               ))}
