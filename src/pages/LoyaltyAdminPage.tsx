@@ -139,11 +139,11 @@ const LoyaltyAdminPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleAdminAction("reset_password", m)}>
+                          <DropdownMenuItem onClick={() => setConfirmAction({ action: "reset_password", member: m })}>
                             <KeyRound className="h-4 w-4 mr-2" />
                             {t("loyalty.resetPassword")}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAdminAction("toggle_active", m)}>
+                          <DropdownMenuItem onClick={() => setConfirmAction({ action: "toggle_active", member: m })}>
                             {m.is_active ? (
                               <><Ban className="h-4 w-4 mr-2" />{t("loyalty.deactivate")}</>
                             ) : (
