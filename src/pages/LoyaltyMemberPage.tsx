@@ -109,12 +109,12 @@ const LoyaltyMemberPage = () => {
                 <div key={mc.id} className="border rounded-md p-3">
                   <p className="font-medium text-sm">{mc.loyalty_coupons?.title}</p>
                   <p className="text-xs text-muted-foreground">{mc.loyalty_coupons?.description}</p>
-                  <Badge variant="secondary" className="mt-1">
+                   <Badge variant="secondary" className="mt-1">
                     {mc.loyalty_coupons?.discount_type === "percentage"
                       ? `${mc.loyalty_coupons?.discount_value}% desc.`
                       : mc.loyalty_coupons?.discount_type === "fixed"
                       ? `$${mc.loyalty_coupons?.discount_value} desc.`
-                      : "Artículo gratis"}
+                      : `🎁 ${(couponItemsMap[mc.loyalty_coupons?.id] ?? []).join(", ") || "Artículo gratis"}`}
                   </Badge>
                 </div>
               ))}

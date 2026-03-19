@@ -167,7 +167,7 @@ const LoyaltyScanPage = () => {
                     <div>
                       <p className="font-medium text-sm">{mc.loyalty_coupons?.title}</p>
                       <Badge variant="secondary" className="mt-1">
-                        {mc.loyalty_coupons?.discount_type === "percentage" ? `${mc.loyalty_coupons?.discount_value}%` : mc.loyalty_coupons?.discount_type === "fixed" ? `$${mc.loyalty_coupons?.discount_value}` : "🎁"}
+                        {mc.loyalty_coupons?.discount_type === "percentage" ? `${mc.loyalty_coupons?.discount_value}%` : mc.loyalty_coupons?.discount_type === "fixed" ? `$${mc.loyalty_coupons?.discount_value}` : `🎁 ${(couponItemsMap[mc.loyalty_coupons?.id] ?? []).join(", ") || "Gratis"}`}
                       </Badge>
                     </div>
                     <Button size="sm" variant="outline" onClick={() => handleRedeem(mc.id)} disabled={redeemCoupon.isPending}>

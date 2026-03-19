@@ -204,3 +204,56 @@ export function useRedeemCoupon() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["loyalty-member-coupons"] }),
   });
 }
+
+// --- Coupon Items (free items linked to a coupon) ---
+export function useCouponItems(couponId: string | undefined) {
+  return useQuery({
+    queryKey: ["loyalty-coupon-items", couponId],
+    enabled: !!couponId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("loyalty_coupon_items")
+        .select("*, menu_items(id, name, name_en)")
+        .eq("coupon_id", couponId!);
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCouponItemsByCoupons(couponIds: string[]) {
+  return useQuery({
+    queryKey: ["loyalty-coupon-items-batch", couponIds],
+    enabled: couponIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("loyalty_coupon_items")
+        .select("*, menu_items(id, name, name_en)")
+        .in("coupon_id", couponIds);
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSaveCouponItems() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ couponId, menuItemIds }: { couponId: string; menuItemIds: string[] }) => {
+      // Delete existing
+      const { error: delErr } = await supabase
+        .from("loyalty_coupon_items")
+        .delete()
+        .eq("coupon_id", couponId);
+      if (delErr) throw delErr;
+      // Insert new
+      if (menuItemIds.length > 0) {
+        const { error: insErr } = await supabase
+          .from("loyalty_coupon_items")
+          .insert(menuItemIds.map((mid) => ({ coupon_id: couponId, menu_item_id: mid })));
+        if (insErr) throw insErr;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["loyalty-coupon-items"] }),
+  });
+}

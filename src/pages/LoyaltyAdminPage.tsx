@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useLoyaltyMembers, useLoyaltyCoupons, useCreateCoupon, useUpdateCoupon } from "@/hooks/useLoyalty";
+import { useLoyaltyMembers, useLoyaltyCoupons, useCreateCoupon, useUpdateCoupon, useSaveCouponItems, useCouponItemsByCoupons } from "@/hooks/useLoyalty";
+import { useMenuItems } from "@/hooks/useMenuItems";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -19,11 +21,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Users, Gift, Plus, Search, MoreHorizontal, KeyRound, Ban, CheckCircle } from "lucide-react";
 
 const LoyaltyAdminPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data: members = [], isLoading: membersLoading } = useLoyaltyMembers();
   const { data: coupons = [], isLoading: couponsLoading } = useLoyaltyCoupons();
+  const { data: menuItems = [] } = useMenuItems();
   const createCoupon = useCreateCoupon();
   const updateCoupon = useUpdateCoupon();
+  const saveCouponItems = useSaveCouponItems();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -34,17 +38,56 @@ const LoyaltyAdminPage = () => {
     title: "", title_en: "", description: "", description_en: "",
     discount_type: "percentage", discount_value: 0, min_visits: 0,
   });
+  const [selectedFreeItems, setSelectedFreeItems] = useState<string[]>([]);
+  const [itemSearch, setItemSearch] = useState("");
+
+  // Fetch coupon items for all coupons to display in table
+  const couponIds = useMemo(() => coupons.map((c) => c.id), [coupons]);
+  const { data: allCouponItems = [] } = useCouponItemsByCoupons(couponIds);
+
+  const couponItemsMap = useMemo(() => {
+    const map: Record<string, { id: string; name: string; name_en: string }[]> = {};
+    for (const ci of allCouponItems) {
+      if (!map[ci.coupon_id]) map[ci.coupon_id] = [];
+      if (ci.menu_items) map[ci.coupon_id].push(ci.menu_items as any);
+    }
+    return map;
+  }, [allCouponItems]);
 
   const filteredMembers = members.filter(
     (m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (!itemSearch.trim()) return true;
+    const q = itemSearch.toLowerCase();
+    return item.name.toLowerCase().includes(q) || item.name_en.toLowerCase().includes(q);
+  });
+
+  const toggleFreeItem = (itemId: string) => {
+    setSelectedFreeItems((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    );
+  };
+
   const handleCreateCoupon = async () => {
     if (!newCoupon.title.trim()) return;
+    if (newCoupon.discount_type === "free_item" && selectedFreeItems.length === 0) {
+      toast({ title: "Selecciona al menos un producto", variant: "destructive" });
+      return;
+    }
     try {
-      await createCoupon.mutateAsync(newCoupon);
+      const created = await createCoupon.mutateAsync({
+        ...newCoupon,
+        discount_value: newCoupon.discount_type === "free_item" ? 0 : newCoupon.discount_value,
+      });
+      if (newCoupon.discount_type === "free_item" && created?.id) {
+        await saveCouponItems.mutateAsync({ couponId: created.id, menuItemIds: selectedFreeItems });
+      }
       setCouponOpen(false);
       setNewCoupon({ title: "", title_en: "", description: "", description_en: "", discount_type: "percentage", discount_value: 0, min_visits: 0 });
+      setSelectedFreeItems([]);
+      setItemSearch("");
       toast({ title: t("loyalty.couponCreated") });
     } catch {
       toast({ title: "Error", variant: "destructive" });
@@ -75,6 +118,15 @@ const LoyaltyAdminPage = () => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const renderCouponValue = (coupon: any) => {
+    if (coupon.discount_type === "free_item") {
+      const items = couponItemsMap[coupon.id] ?? [];
+      if (items.length === 0) return "🎁";
+      return items.map((i) => language === "en" ? (i.name_en || i.name) : i.name).join(", ");
+    }
+    return coupon.discount_value;
   };
 
   return (
@@ -161,11 +213,14 @@ const LoyaltyAdminPage = () => {
         </TabsContent>
 
         <TabsContent value="coupons" className="space-y-4">
-          <Dialog open={couponOpen} onOpenChange={setCouponOpen}>
+          <Dialog open={couponOpen} onOpenChange={(open) => {
+            setCouponOpen(open);
+            if (!open) { setSelectedFreeItems([]); setItemSearch(""); }
+          }}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="h-4 w-4 mr-1" />{t("loyalty.newCoupon")}</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{t("loyalty.newCoupon")}</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -176,7 +231,7 @@ const LoyaltyAdminPage = () => {
                   <div><Label>Descripción (ES)</Label><Input value={newCoupon.description} onChange={(e) => setNewCoupon((p) => ({ ...p, description: e.target.value }))} maxLength={200} /></div>
                   <div><Label>Description (EN)</Label><Input value={newCoupon.description_en} onChange={(e) => setNewCoupon((p) => ({ ...p, description_en: e.target.value }))} maxLength={200} /></div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className={`grid gap-3 ${newCoupon.discount_type === "free_item" ? "grid-cols-2" : "grid-cols-3"}`}>
                   <div>
                     <Label>{t("loyalty.discountType")}</Label>
                     <Select value={newCoupon.discount_type} onValueChange={(v) => setNewCoupon((p) => ({ ...p, discount_type: v }))}>
@@ -188,10 +243,52 @@ const LoyaltyAdminPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>{t("loyalty.value")}</Label><Input type="number" value={newCoupon.discount_value} onChange={(e) => setNewCoupon((p) => ({ ...p, discount_value: Number(e.target.value) }))} min={0} /></div>
+                  {newCoupon.discount_type !== "free_item" && (
+                    <div><Label>{t("loyalty.value")}</Label><Input type="number" value={newCoupon.discount_value} onChange={(e) => setNewCoupon((p) => ({ ...p, discount_value: Number(e.target.value) }))} min={0} /></div>
+                  )}
                   <div><Label>{t("loyalty.minVisits")}</Label><Input type="number" value={newCoupon.min_visits} onChange={(e) => setNewCoupon((p) => ({ ...p, min_visits: Number(e.target.value) }))} min={0} /></div>
                 </div>
-                <Button onClick={handleCreateCoupon} disabled={createCoupon.isPending} className="w-full">{t("common.save")}</Button>
+
+                {newCoupon.discount_type === "free_item" && (
+                  <div className="space-y-2">
+                    <Label>Productos gratis</Label>
+                    <Input
+                      placeholder="Buscar producto..."
+                      value={itemSearch}
+                      onChange={(e) => setItemSearch(e.target.value)}
+                      className="mb-1"
+                    />
+                    {selectedFreeItems.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {selectedFreeItems.map((id) => {
+                          const item = menuItems.find((mi) => mi.id === id);
+                          return item ? (
+                            <Badge key={id} variant="secondary" className="cursor-pointer" onClick={() => toggleFreeItem(id)}>
+                              {language === "en" ? (item.name_en || item.name) : item.name} ✕
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                    <div className="border rounded-md max-h-40 overflow-y-auto">
+                      {filteredMenuItems.map((item) => (
+                        <label
+                          key={item.id}
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={selectedFreeItems.includes(item.id)}
+                            onCheckedChange={() => toggleFreeItem(item.id)}
+                          />
+                          <span>{language === "en" ? (item.name_en || item.name) : item.name}</span>
+                          <span className="ml-auto text-muted-foreground">${item.price}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button onClick={handleCreateCoupon} disabled={createCoupon.isPending || saveCouponItems.isPending} className="w-full">{t("common.save")}</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -216,7 +313,7 @@ const LoyaltyAdminPage = () => {
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.title}</TableCell>
                     <TableCell>{c.discount_type === "percentage" ? "%" : c.discount_type === "fixed" ? "$" : "🎁"}</TableCell>
-                    <TableCell>{c.discount_value}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{renderCouponValue(c)}</TableCell>
                     <TableCell>{c.min_visits || "—"}</TableCell>
                     <TableCell>
                       <Switch checked={c.is_active} onCheckedChange={() => toggleCouponActive(c.id, c.is_active)} />
