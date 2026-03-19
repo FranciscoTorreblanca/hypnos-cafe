@@ -287,6 +287,7 @@ export type Database = {
           name: string
           phone: string
           total_visits: number
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -297,6 +298,7 @@ export type Database = {
           name: string
           phone?: string
           total_visits?: number
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -307,6 +309,7 @@ export type Database = {
           name?: string
           phone?: string
           total_visits?: number
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -837,7 +840,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "waiter" | "billing" | "kitchen"
+      app_role: "admin" | "waiter" | "billing" | "kitchen" | "loyalty_member"
       menu_status: "draft" | "published" | "archived"
       menu_type: "main" | "seasonal" | "event"
       order_status:
@@ -975,7 +978,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "waiter", "billing", "kitchen"],
+      app_role: ["admin", "waiter", "billing", "kitchen", "loyalty_member"],
       menu_status: ["draft", "published", "archived"],
       menu_type: ["main", "seasonal", "event"],
       order_status: [
