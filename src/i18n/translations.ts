@@ -257,10 +257,8 @@ export const translations = {
   "loyalty.availableCoupons": { es: "Cupones disponibles", en: "Available Coupons" },
   "loyalty.redeem": { es: "Canjear", en: "Redeem" },
   "loyalty.cameraError": { es: "Error al abrir cámara", en: "Camera error" },
-  "common.search": { es: "Buscar", en: "Search" },
   "common.active": { es: "Activo", en: "Active" },
   "common.inactive": { es: "Inactivo", en: "Inactive" },
-  "common.loading": { es: "Cargando...", en: "Loading..." },
   "common.status": { es: "Estado", en: "Status" },
 } as const;
 
