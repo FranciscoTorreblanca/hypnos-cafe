@@ -29,6 +29,7 @@ const LoyaltyAdminPage = () => {
   const [search, setSearch] = useState("");
   const [couponOpen, setCouponOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ action: string; member: any } | null>(null);
   const [newCoupon, setNewCoupon] = useState({
     title: "", title_en: "", description: "", description_en: "",
     discount_type: "percentage", discount_value: 0, min_visits: 0,
