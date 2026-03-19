@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -16,10 +16,30 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [memberCode, setMemberCode] = useState<string | null>(null);
   const { t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading: authLoading, isLoyaltyMember, roles } = useAuth();
+
+  useEffect(() => {
+    const loadMemberCode = async () => {
+      if (!user || !isLoyaltyMember) {
+        setMemberCode(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("loyalty_members")
+        .select("member_code")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setMemberCode(data?.member_code ?? null);
+    };
+
+    void loadMemberCode();
+  }, [user, isLoyaltyMember]);
 
   if (authLoading) {
     return (
@@ -29,8 +49,16 @@ const Auth = () => {
     );
   }
 
+  if (user && isLoyaltyMember && !memberCode) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   if (user && isLoyaltyMember) {
-    return <Navigate to="/loyalty-login" replace />;
+    return <Navigate to={`/loyalty/${memberCode}`} replace />;
   }
 
   if (user && roles.length > 0) return <Navigate to="/dashboard" replace />;
@@ -42,7 +70,6 @@ const Auth = () => {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
-      // Check if user is a loyalty member before navigating
       const { data: rolesData } = await supabase
         .from("user_roles")
         .select("role")

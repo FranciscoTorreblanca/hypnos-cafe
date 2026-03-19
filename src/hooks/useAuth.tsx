@@ -28,38 +28,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    setRoles((data ?? []).map((r) => r.role as AppRole));
+
+    const nextRoles = (data ?? []).map((r) => r.role as AppRole);
+    setRoles(nextRoles);
+    return nextRoles;
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setTimeout(() => fetchRoles(session.user.id), 0);
-        } else {
-          setRoles([]);
-        }
-        setLoading(false);
-      }
-    );
+    const syncAuthState = async (nextSession: Session | null) => {
+      setLoading(true);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRoles(session.user.id);
+      if (nextSession?.user) {
+        await fetchRoles(nextSession.user.id);
+      } else {
+        setRoles([]);
       }
+
       setLoading(false);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void syncAuthState(nextSession);
     });
+
+    void supabase.auth.getSession().then(({ data: { session } }) => syncAuthState(session));
 
     return () => subscription.unsubscribe();
   }, []);
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = hasRole("admin");
-  const isLoyaltyMember = roles.length > 0 && roles.every((r) => r === "loyalty_member");
+  const isLoyaltyMember = roles.length > 0 && roles.every((role) => role === "loyalty_member");
 
   const signOut = async () => {
     await supabase.auth.signOut();
