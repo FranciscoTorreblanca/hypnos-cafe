@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await fetchRoles(nextSession.user.id);
       } else {
         setRoles([]);
+        setLoyaltyMemberCode(null);
       }
 
       setLoading(false);
