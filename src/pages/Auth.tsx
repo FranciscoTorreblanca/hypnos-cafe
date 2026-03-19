@@ -39,9 +39,28 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate("/dashboard");
+
+      // Check if user is a loyalty member before navigating
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id);
+
+      const userRoles = (rolesData ?? []).map((r) => r.role);
+      const onlyLoyalty = userRoles.length > 0 && userRoles.every((r) => r === "loyalty_member");
+
+      if (onlyLoyalty) {
+        const { data: member } = await supabase
+          .from("loyalty_members")
+          .select("member_code")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        navigate(member ? `/loyalty/${member.member_code}` : "/loyalty-login");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     } finally {
