@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useLoyaltyMembers, useLoyaltyCoupons, useCreateCoupon, useUpdateCoupon } from "@/hooks/useLoyalty";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Gift, Plus, Search } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Users, Gift, Plus, Search, MoreHorizontal, KeyRound, Ban, CheckCircle } from "lucide-react";
 
 const LoyaltyAdminPage = () => {
   const { t } = useLanguage();
@@ -21,8 +24,10 @@ const LoyaltyAdminPage = () => {
   const createCoupon = useCreateCoupon();
   const updateCoupon = useUpdateCoupon();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [couponOpen, setCouponOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [newCoupon, setNewCoupon] = useState({
     title: "", title_en: "", description: "", description_en: "",
     discount_type: "percentage", discount_value: 0, min_visits: 0,
@@ -46,6 +51,28 @@ const LoyaltyAdminPage = () => {
 
   const toggleCouponActive = async (id: string, isActive: boolean) => {
     await updateCoupon.mutateAsync({ id, is_active: !isActive });
+  };
+
+  const handleAdminAction = async (action: string, member: any) => {
+    setActionLoading(member.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("loyalty-admin-action", {
+        body: { action, member_id: member.id, user_id: member.user_id, email: member.email },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (action === "reset_password") {
+        toast({ title: t("loyalty.resetPasswordSent") });
+      } else if (action === "toggle_active") {
+        queryClient.invalidateQueries({ queryKey: ["loyalty-members"] });
+        toast({ title: data.is_active ? t("loyalty.memberActivated") : t("loyalty.memberDeactivated") });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   return (
@@ -87,13 +114,14 @@ const LoyaltyAdminPage = () => {
                   <TableHead>{t("loyalty.code")}</TableHead>
                   <TableHead>{t("loyalty.visits")}</TableHead>
                   <TableHead>{t("common.status")}</TableHead>
+                  <TableHead className="w-10">{t("loyalty.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {membersLoading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
                 ) : filteredMembers.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{t("loyalty.noMembers")}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">{t("loyalty.noMembers")}</TableCell></TableRow>
                 ) : filteredMembers.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.name}</TableCell>
@@ -101,6 +129,28 @@ const LoyaltyAdminPage = () => {
                     <TableCell className="font-mono">{m.member_code}</TableCell>
                     <TableCell>{m.total_visits}</TableCell>
                     <TableCell><Badge variant={m.is_active ? "default" : "secondary"}>{m.is_active ? t("common.active") : t("common.inactive")}</Badge></TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" disabled={actionLoading === m.id}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleAdminAction("reset_password", m)}>
+                            <KeyRound className="h-4 w-4 mr-2" />
+                            {t("loyalty.resetPassword")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAdminAction("toggle_active", m)}>
+                            {m.is_active ? (
+                              <><Ban className="h-4 w-4 mr-2" />{t("loyalty.deactivate")}</>
+                            ) : (
+                              <><CheckCircle className="h-4 w-4 mr-2" />{t("loyalty.activate")}</>
+                            )}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
