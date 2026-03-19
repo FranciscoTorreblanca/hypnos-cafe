@@ -193,6 +193,155 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_coupons: {
+        Row: {
+          created_at: string
+          description: string
+          description_en: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          min_visits: number
+          title: string
+          title_en: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          min_visits?: number
+          title: string
+          title_en?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          min_visits?: number
+          title?: string
+          title_en?: string
+        }
+        Relationships: []
+      }
+      loyalty_member_coupons: {
+        Row: {
+          coupon_id: string
+          granted_at: string
+          id: string
+          is_redeemed: boolean
+          member_id: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          coupon_id: string
+          granted_at?: string
+          id?: string
+          is_redeemed?: boolean
+          member_id: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          granted_at?: string
+          id?: string
+          is_redeemed?: boolean
+          member_id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_member_coupons_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_member_coupons_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          member_code: string
+          name: string
+          phone: string
+          total_visits: number
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          member_code: string
+          name: string
+          phone?: string
+          total_visits?: number
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          member_code?: string
+          name?: string
+          phone?: string
+          total_visits?: number
+        }
+        Relationships: []
+      }
+      loyalty_visits: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          notes: string
+          registered_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string
+          registered_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string
+          registered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_visits_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_categories: {
         Row: {
           created_at: string

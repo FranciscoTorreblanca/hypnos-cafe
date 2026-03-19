@@ -20,6 +20,8 @@ import {
   Settings,
   LogOut,
   BarChart3,
+  Heart,
+  ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -41,6 +43,8 @@ export const BottomNav = () => {
     { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
+    { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"] },
+    { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"] },
     { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },
     { key: "nav.settings" as const, icon: Settings, path: "/settings", roles: ["admin"] },
   ];

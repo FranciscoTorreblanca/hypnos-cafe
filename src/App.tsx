@@ -21,6 +21,10 @@ import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
 import PerformancePage from "@/pages/PerformancePage";
+import LoyaltyPublicPage from "@/pages/LoyaltyPublicPage";
+import LoyaltyMemberPage from "@/pages/LoyaltyMemberPage";
+import LoyaltyAdminPage from "@/pages/LoyaltyAdminPage";
+import LoyaltyScanPage from "@/pages/LoyaltyScanPage";
 
 const queryClient = new QueryClient();
 
@@ -52,9 +56,13 @@ const App = () => (
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/performance" element={<PerformancePage />} />
                 <Route path="/users" element={<UsersPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/loyalty-admin" element={<LoyaltyAdminPage />} />
+                <Route path="/loyalty-scan" element={<LoyaltyScanPage />} />
               </Route>
               <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
+              <Route path="/loyalty" element={<LoyaltyPublicPage />} />
+              <Route path="/loyalty/:memberCode" element={<LoyaltyMemberPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
