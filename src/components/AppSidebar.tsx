@@ -10,6 +10,8 @@ import {
   LogOut,
   ChefHat,
   BarChart3,
+  Heart,
+  ScanLine,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
