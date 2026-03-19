@@ -19,7 +19,7 @@ const Auth = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isLoyaltyMember, roles } = useAuth();
 
   if (authLoading) {
     return (
@@ -29,7 +29,11 @@ const Auth = () => {
     );
   }
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user && isLoyaltyMember) {
+    return <Navigate to="/loyalty-login" replace />;
+  }
+
+  if (user && roles.length > 0) return <Navigate to="/dashboard" replace />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
