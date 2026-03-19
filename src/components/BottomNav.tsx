@@ -20,6 +20,8 @@ import {
   Settings,
   LogOut,
   BarChart3,
+  Heart,
+  ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
