@@ -193,6 +193,39 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_coupon_items: {
+        Row: {
+          coupon_id: string
+          id: string
+          menu_item_id: string
+        }
+        Insert: {
+          coupon_id: string
+          id?: string
+          menu_item_id: string
+        }
+        Update: {
+          coupon_id?: string
+          id?: string
+          menu_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_coupon_items_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_coupon_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_coupons: {
         Row: {
           created_at: string
