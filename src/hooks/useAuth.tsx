@@ -76,10 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     await supabase.auth.signOut();
     setRoles([]);
+    setLoyaltyMemberCode(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, roles, hasRole, isAdmin, isLoyaltyMember, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, roles, hasRole, isAdmin, isLoyaltyMember, loyaltyMemberCode, signOut }}>
       {children}
     </AuthContext.Provider>
   );
