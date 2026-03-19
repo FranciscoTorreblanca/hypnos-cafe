@@ -22,6 +22,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
 import PerformancePage from "@/pages/PerformancePage";
 import LoyaltyPublicPage from "@/pages/LoyaltyPublicPage";
+import LoyaltyLoginPage from "@/pages/LoyaltyLoginPage";
 import LoyaltyMemberPage from "@/pages/LoyaltyMemberPage";
 import LoyaltyAdminPage from "@/pages/LoyaltyAdminPage";
 import LoyaltyScanPage from "@/pages/LoyaltyScanPage";
@@ -62,6 +63,7 @@ const App = () => (
               </Route>
               <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
               <Route path="/loyalty" element={<LoyaltyPublicPage />} />
+              <Route path="/loyalty-login" element={<LoyaltyLoginPage />} />
               <Route path="/loyalty/:memberCode" element={<LoyaltyMemberPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
