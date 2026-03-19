@@ -22,6 +22,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
 import PerformancePage from "@/pages/PerformancePage";
 import LoyaltyPublicPage from "@/pages/LoyaltyPublicPage";
+import LoyaltyLoginPage from "@/pages/LoyaltyLoginPage";
 import LoyaltyMemberPage from "@/pages/LoyaltyMemberPage";
 import LoyaltyAdminPage from "@/pages/LoyaltyAdminPage";
 import LoyaltyScanPage from "@/pages/LoyaltyScanPage";
