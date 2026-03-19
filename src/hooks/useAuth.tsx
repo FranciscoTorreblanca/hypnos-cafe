@@ -2,7 +2,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "admin" | "waiter" | "billing" | "kitchen";
+type AppRole = "admin" | "waiter" | "billing" | "kitchen" | "loyalty_member";
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +11,7 @@ interface AuthContextType {
   roles: AppRole[];
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
+  isLoyaltyMember: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -58,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = hasRole("admin");
+  const isLoyaltyMember = roles.length > 0 && roles.every((r) => r === "loyalty_member");
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -65,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, roles, hasRole, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, roles, hasRole, isAdmin, isLoyaltyMember, signOut }}>
       {children}
     </AuthContext.Provider>
   );
