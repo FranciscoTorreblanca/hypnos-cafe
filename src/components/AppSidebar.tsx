@@ -38,7 +38,7 @@ export const AppSidebar = () => {
   const location = useLocation();
 
   const navItems = [
-    { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: [] },
+    { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: ["admin", "waiter", "billing", "kitchen"] },
     { key: "nav.tables" as const, icon: Grid3X3, path: "/tables", roles: ["admin", "waiter", "kitchen"] },
     { key: "nav.menu" as const, icon: UtensilsCrossed, path: "/menu", roles: ["admin"] },
     { key: "nav.costCalculator" as const, icon: Calculator, path: "/cost-calculator", roles: ["admin"] },
