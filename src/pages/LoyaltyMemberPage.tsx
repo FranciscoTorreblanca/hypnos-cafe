@@ -1,6 +1,6 @@
 import { useParams, Navigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { useLoyaltyMemberByCode, useMemberCoupons } from "@/hooks/useLoyalty";
+import { useLoyaltyMemberByCode, useMemberCoupons, useCouponItemsByCoupons } from "@/hooks/useLoyalty";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
