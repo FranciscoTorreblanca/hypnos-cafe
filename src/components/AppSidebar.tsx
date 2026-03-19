@@ -46,6 +46,8 @@ export const AppSidebar = () => {
     { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"] },
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
+    { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"] },
+    { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"] },
     { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },
     { key: "nav.settings" as const, icon: Settings, path: "/settings", roles: ["admin"] },
   ];

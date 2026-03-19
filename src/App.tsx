@@ -56,9 +56,13 @@ const App = () => (
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/performance" element={<PerformancePage />} />
                 <Route path="/users" element={<UsersPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/loyalty-admin" element={<LoyaltyAdminPage />} />
+                <Route path="/loyalty-scan" element={<LoyaltyScanPage />} />
               </Route>
               <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
+              <Route path="/loyalty" element={<LoyaltyPublicPage />} />
+              <Route path="/loyalty/:memberCode" element={<LoyaltyMemberPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
