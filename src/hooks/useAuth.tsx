@@ -23,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [loyaltyMemberCode, setLoyaltyMemberCode] = useState<string | null>(null);
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase
