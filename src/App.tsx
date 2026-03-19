@@ -21,6 +21,10 @@ import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
 import PerformancePage from "@/pages/PerformancePage";
+import LoyaltyPublicPage from "@/pages/LoyaltyPublicPage";
+import LoyaltyMemberPage from "@/pages/LoyaltyMemberPage";
+import LoyaltyAdminPage from "@/pages/LoyaltyAdminPage";
+import LoyaltyScanPage from "@/pages/LoyaltyScanPage";
 
 const queryClient = new QueryClient();
 
