@@ -59,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = hasRole("admin");
+  const isLoyaltyMember = roles.length > 0 && roles.every((r) => r === "loyalty_member");
 
   const signOut = async () => {
     await supabase.auth.signOut();
