@@ -39,6 +39,8 @@ export function useLoyaltyMemberByCode(code: string | undefined) {
   });
 }
 
+// Registration is now handled by the loyalty-signup edge function
+// This mutation is kept for admin use only
 export function useRegisterLoyaltyMember() {
   const qc = useQueryClient();
   return useMutation({
