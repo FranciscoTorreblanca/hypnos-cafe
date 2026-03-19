@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ const LoyaltyAdminPage = () => {
   const [search, setSearch] = useState("");
   const [couponOpen, setCouponOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ action: string; member: any } | null>(null);
   const [newCoupon, setNewCoupon] = useState({
     title: "", title_en: "", description: "", description_en: "",
     discount_type: "percentage", discount_value: 0, min_visits: 0,
@@ -137,11 +139,11 @@ const LoyaltyAdminPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleAdminAction("reset_password", m)}>
+                          <DropdownMenuItem onClick={() => setConfirmAction({ action: "reset_password", member: m })}>
                             <KeyRound className="h-4 w-4 mr-2" />
                             {t("loyalty.resetPassword")}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAdminAction("toggle_active", m)}>
+                          <DropdownMenuItem onClick={() => setConfirmAction({ action: "toggle_active", member: m })}>
                             {m.is_active ? (
                               <><Ban className="h-4 w-4 mr-2" />{t("loyalty.deactivate")}</>
                             ) : (
@@ -226,6 +228,35 @@ const LoyaltyAdminPage = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("loyalty.confirmAction")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.action === "reset_password"
+                ? t("loyalty.confirmResetPassword")
+                : confirmAction?.member?.is_active
+                  ? t("loyalty.confirmDeactivate")
+                  : t("loyalty.confirmActivate")}
+              {" "}<strong>{confirmAction?.member?.name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmAction) {
+                  handleAdminAction(confirmAction.action, confirmAction.member);
+                  setConfirmAction(null);
+                }
+              }}
+            >
+              {t("common.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
