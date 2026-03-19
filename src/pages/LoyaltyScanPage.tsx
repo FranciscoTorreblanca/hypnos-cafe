@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useLoyaltyMemberByCode, useRegisterVisit, useMemberCoupons, useRedeemCoupon } from "@/hooks/useLoyalty";
+import { useLoyaltyMemberByCode, useRegisterVisit, useMemberCoupons, useRedeemCoupon, useCouponItemsByCoupons } from "@/hooks/useLoyalty";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
