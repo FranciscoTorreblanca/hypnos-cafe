@@ -1,17 +1,33 @@
-import { useParams } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useLoyaltyMemberByCode, useMemberCoupons } from "@/hooks/useLoyalty";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Star, Gift } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Heart, Star, Gift, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoyaltyMemberPage = () => {
   const { memberCode } = useParams<{ memberCode: string }>();
+  const { user, loading: authLoading } = useAuth();
   const { data: member, isLoading } = useLoyaltyMemberByCode(memberCode);
   const { data: coupons } = useMemberCoupons(member?.id);
 
   const qrUrl = memberCode ? `${window.location.origin}/loyalty/${memberCode}` : "";
   const activeCoupons = (coupons ?? []).filter((c) => !c.is_redeemed);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/loyalty-login" replace />;
+  }
 
   if (isLoading) {
     return (
@@ -32,6 +48,27 @@ const LoyaltyMemberPage = () => {
       </div>
     );
   }
+
+  // Security: only allow the owner or staff to view
+  const isOwner = member.user_id === user.id;
+  const isStaff = user.app_metadata?.role !== "loyalty_member"; // staff users can view any member
+
+  if (!isOwner && !isStaff) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm text-center">
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">No tienes permiso para ver esta tarjeta.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/loyalty-login";
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -72,6 +109,10 @@ const LoyaltyMemberPage = () => {
               ))}
             </div>
           )}
+
+          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-1" /> Cerrar sesión
+          </Button>
         </CardContent>
       </Card>
     </div>
