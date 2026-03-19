@@ -26,14 +26,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loyaltyMemberCode, setLoyaltyMemberCode] = useState<string | null>(null);
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const [{ data: roleRows }, { data: loyaltyMember }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("loyalty_members").select("member_code").eq("user_id", userId).maybeSingle(),
+    ]);
 
-    const nextRoles = (data ?? []).map((r) => r.role as AppRole);
-    setRoles(nextRoles);
-    return nextRoles;
+    const nextRoles = (roleRows ?? []).map((r) => r.role as AppRole);
+    const hasLinkedLoyaltyMember = Boolean(loyaltyMember?.member_code);
+    const normalizedRoles = hasLinkedLoyaltyMember && !nextRoles.includes("loyalty_member")
+      ? [...nextRoles, "loyalty_member"]
+      : nextRoles;
+
+    setRoles(normalizedRoles);
+    setLoyaltyMemberCode(loyaltyMember?.member_code ?? null);
+    return normalizedRoles;
   };
 
   useEffect(() => {
