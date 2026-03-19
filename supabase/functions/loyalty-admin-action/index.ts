@@ -27,7 +27,9 @@ Deno.serve(async (req) => {
 
     if (action === "reset_password") {
       if (!email) throw new Error("Email required");
-      const { error } = await adminClient.auth.admin.generateLink({ type: "recovery", email });
+      const { error } = await adminClient.auth.resetPasswordForEmail(email, {
+        redirectTo: `${req.headers.get("origin") || Deno.env.get("SITE_URL") || ""}/reset-password`,
+      });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
