@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const nextRoles = (roleRows ?? []).map((r) => r.role as AppRole);
     const hasLinkedLoyaltyMember = Boolean(loyaltyMember?.member_code);
-    const normalizedRoles = hasLinkedLoyaltyMember && !nextRoles.includes("loyalty_member")
+    const normalizedRoles: AppRole[] = hasLinkedLoyaltyMember && !nextRoles.includes("loyalty_member")
       ? [...nextRoles, "loyalty_member"]
       : nextRoles;
 
