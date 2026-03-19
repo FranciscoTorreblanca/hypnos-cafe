@@ -271,8 +271,6 @@ export const translations = {
   "common.active": { es: "Activo", en: "Active" },
   "common.inactive": { es: "Inactivo", en: "Inactive" },
   "common.status": { es: "Estado", en: "Status" },
-  "common.cancel": { es: "Cancelar", en: "Cancel" },
-  "common.confirm": { es: "Confirmar", en: "Confirm" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
