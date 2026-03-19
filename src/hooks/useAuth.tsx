@@ -12,6 +12,7 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
   isLoyaltyMember: boolean;
+  loyaltyMemberCode: string | null;
   signOut: () => Promise<void>;
 }
 
