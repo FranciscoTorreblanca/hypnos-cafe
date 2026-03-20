@@ -123,6 +123,12 @@ const MenuPage = () => {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">{t("menu.title")}</h1>
+        {isAdmin && (
+          <Button size="sm" variant="outline" onClick={exportToCsv}>
+            <Download className="h-4 w-4 mr-1" />
+            {language === "es" ? "Exportar CSV" : "Export CSV"}
+          </Button>
+        )}
       </div>
 
       {/* Section 1: Category Management (admin only, collapsible) */}
