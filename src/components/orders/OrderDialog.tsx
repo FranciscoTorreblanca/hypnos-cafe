@@ -281,7 +281,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     language === "es" ? item.name : item.name_en;
 
   const orderItems = order?.order_items ?? [];
-  const canAddItems = !order || order.status === "pending" || order.status === "in_progress";
+  const canAddItems = !order || ["pending", "in_progress", "served"].includes(order.status);
   const canSendToKitchen = order?.status === "pending" && orderItems.length > 0;
   const canMarkServed = order?.status === "ready";
   const canPay = order?.status === "served";

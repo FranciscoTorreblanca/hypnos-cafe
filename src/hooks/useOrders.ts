@@ -117,7 +117,7 @@ export const useOrders = () => {
       await supabase.from("orders").update({ total }).eq("id", order_id);
       // If order was already sent to kitchen, keep it in_progress
       const { data: order } = await supabase.from("orders").select("status").eq("id", order_id).single();
-      if (order && order.status === "ready") {
+      if (order && (order.status === "ready" || order.status === "served")) {
         await supabase.from("orders").update({ status: "in_progress" as any }).eq("id", order_id);
       }
     },
