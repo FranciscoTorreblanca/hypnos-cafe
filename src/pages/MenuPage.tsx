@@ -12,9 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Pencil, Trash2, Calculator } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Calculator, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useCombos } from "@/hooks/useCombos";
 
 const MenuPage = () => {
   const { t, language } = useLanguage();
