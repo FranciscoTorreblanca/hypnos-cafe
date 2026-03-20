@@ -2,25 +2,58 @@ import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useTableNames } from "@/hooks/useTableNames";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { OrderDialog } from "@/components/orders/OrderDialog";
-import { Plus, Eye } from "lucide-react";
+import {
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  UtensilsCrossed,
+  Clock,
+  CheckCircle2,
+  CircleDollarSign,
+  Trash2,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const TablesPage = () => {
   const { t } = useLanguage();
-  const { data: orders = [] } = useOrders();
-  const { getTableLabel } = useTableNames();
+  const { data: orders = [], cancelOrder } = useOrders();
+  const { tableNames, getTableLabel, updateNames } = useTableNames();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
+  const [expandedTable, setExpandedTable] = useState<number | null>(null);
+  const [showNewTable, setShowNewTable] = useState(false);
+  const [newTableName, setNewTableName] = useState("");
+  const [deleteTableNum, setDeleteTableNum] = useState<number | null>(null);
 
-  const tableCount = 12;
-  const tables = Array.from({ length: tableCount }, (_, i) => {
-    const num = i + 1;
-    const activeOrder = (orders ?? []).find(
-      (o) => o.table_number === num && !["paid", "cancelled"].includes(o.status)
-    );
+  // Build list of active tables: tables with orders + tables with names configured
+  const activeOrders = (orders ?? []).filter(
+    (o) => !["paid", "cancelled"].includes(o.status)
+  );
+
+  // Collect all table numbers that should be visible
+  const tableNumbersSet = new Set<number>();
+  activeOrders.forEach((o) => tableNumbersSet.add(o.table_number));
+  Object.keys(tableNames).forEach((k) => {
+    if (tableNames[k]) tableNumbersSet.add(Number(k));
+  });
+
+  const tableNumbers = Array.from(tableNumbersSet).sort((a, b) => a - b);
+
+  const tables = tableNumbers.map((num) => {
+    const activeOrder = activeOrders.find((o) => o.table_number === num);
     return { number: num, order: activeOrder };
   });
 
@@ -31,11 +64,23 @@ const TablesPage = () => {
     return "occupied";
   };
 
-  const statusColors: Record<string, string> = {
-    available: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    occupied: "bg-amber-100 text-amber-800 border-amber-200",
-    ready: "bg-blue-100 text-blue-800 border-blue-200",
-    served: "bg-purple-100 text-purple-800 border-purple-200",
+  const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
+    available: {
+      color: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
+      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    },
+    occupied: {
+      color: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
+      icon: <Clock className="h-3.5 w-3.5" />,
+    },
+    ready: {
+      color: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
+      icon: <UtensilsCrossed className="h-3.5 w-3.5" />,
+    },
+    served: {
+      color: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700",
+      icon: <CircleDollarSign className="h-3.5 w-3.5" />,
+    },
   };
 
   const openTable = (num: number) => {
@@ -43,57 +88,243 @@ const TablesPage = () => {
     setDialogOpen(true);
   };
 
+  const toggleExpand = (num: number) => {
+    setExpandedTable((prev) => (prev === num ? null : num));
+  };
+
+  const handleAddTable = () => {
+    if (!newTableName.trim()) return;
+    // Find next available table number
+    const allNums = [...tableNumbers, 0];
+    const nextNum = Math.max(...allNums) + 1;
+    const updated = { ...tableNames, [String(nextNum)]: newTableName.trim() };
+    updateNames.mutate(updated);
+    setNewTableName("");
+    setShowNewTable(false);
+  };
+
+  const handleDeleteTable = (num: number) => {
+    const updated = { ...tableNames };
+    delete updated[String(num)];
+    updateNames.mutate(updated);
+    setDeleteTableNum(null);
+  };
+
   const activeOrder = (orders ?? []).find(
-    (o) => o.table_number === selectedTable && !["paid", "cancelled"].includes(o.status)
+    (o) =>
+      o.table_number === selectedTable &&
+      !["paid", "cancelled"].includes(o.status)
   );
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t("tables.title")}</h1>
-      <div className="grid gap-2 sm:gap-4 grid-cols-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold tracking-tight">
+          {t("tables.title")}
+        </h1>
+        <Button
+          size="sm"
+          onClick={() => setShowNewTable(!showNewTable)}
+          className="gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          <span>{t("tables.addTable")}</span>
+        </Button>
+      </div>
+
+      {/* New table input */}
+      {showNewTable && (
+        <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+          <Input
+            autoFocus
+            placeholder={t("tables.newTablePlaceholder")}
+            value={newTableName}
+            onChange={(e) => setNewTableName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddTable()}
+            className="h-9"
+          />
+          <Button size="sm" onClick={handleAddTable} disabled={!newTableName.trim()}>
+            {t("common.add")}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { setShowNewTable(false); setNewTableName(""); }}>
+            {t("common.cancel")}
+          </Button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {tables.length === 0 && !showNewTable && (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+          <UtensilsCrossed className="h-10 w-10 opacity-40" />
+          <p className="text-sm">{t("tables.empty")}</p>
+          <Button size="sm" variant="outline" onClick={() => setShowNewTable(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            {t("tables.addFirst")}
+          </Button>
+        </div>
+      )}
+
+      {/* Table list — single column */}
+      <div className="flex flex-col gap-2">
         {tables.map((table) => {
           const status = getStatus(table);
+          const config = statusConfig[status];
           const label = getTableLabel(table.number);
+          const isExpanded = expandedTable === table.number;
+          const items = table.order?.order_items ?? [];
+
           return (
-            <Card
+            <div
               key={table.number}
-              className="cursor-pointer hover:shadow-md active:shadow-sm transition-shadow"
-              onClick={() => openTable(table.number)}
+              className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden"
             >
-              <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm sm:text-lg truncate">
-                    {label}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-2 sm:p-4 pt-0 sm:pt-0">
-                <Badge className={`${statusColors[status]} text-[10px] sm:text-xs`} variant="outline">
-                  {t(`tables.${status}` as any)}
-                </Badge>
-                {table.order && (
-                  <div className="mt-1 sm:mt-2">
-                    <p className="text-xs sm:text-sm font-medium">${table.order.total.toFixed(0)}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      {(table.order.order_items ?? []).length} items
-                    </p>
+              {/* Main row */}
+              <div className="flex items-center gap-3 p-3">
+                {/* Status indicator dot */}
+                <div
+                  className={`shrink-0 w-2.5 h-10 rounded-full ${
+                    status === "available"
+                      ? "bg-emerald-500"
+                      : status === "occupied"
+                      ? "bg-amber-500"
+                      : status === "ready"
+                      ? "bg-blue-500"
+                      : "bg-purple-500"
+                  }`}
+                />
+
+                {/* Info */}
+                <div className="flex-1 min-w-0" onClick={() => table.order ? toggleExpand(table.number) : openTable(table.number)}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm truncate">{label}</span>
+                    <Badge
+                      className={`${config.color} text-[10px] gap-1 px-1.5 py-0`}
+                      variant="outline"
+                    >
+                      {config.icon}
+                      {t(`tables.${status}` as any)}
+                    </Badge>
                   </div>
-                )}
-                <div className="mt-1 sm:mt-2">
-                  <Button variant="outline" size="sm" className="w-full gap-1 h-7 sm:h-8 text-xs">
-                    {table.order ? (
-                      <><Eye className="h-3 w-3" /><span className="hidden sm:inline">{t("orders.viewOrder")}</span></>
-                    ) : (
-                      <><Plus className="h-3 w-3" /><span className="hidden sm:inline">{t("orders.newOrder")}</span></>
-                    )}
-                  </Button>
+
+                  {table.order && (
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                      <span>{items.length} items</span>
+                      <span className="font-medium text-foreground">
+                        ${table.order.total.toFixed(0)}
+                      </span>
+                      {items.some((i) => (i.discount ?? 0) > 0) && (
+                        <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
+                          {t("tables.hasDiscount")}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {table.order && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => toggleExpand(table.number)}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant={table.order ? "outline" : "default"}
+                    className="h-8 text-xs px-3"
+                    onClick={() => openTable(table.number)}
+                  >
+                    {table.order ? t("orders.viewOrder") : t("orders.newOrder")}
+                  </Button>
+                  {!table.order && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteTableNum(table.number)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Expanded order details */}
+              {isExpanded && table.order && (
+                <div className="border-t bg-muted/30 px-3 py-2 space-y-1 animate-in slide-in-from-top-1 duration-150" data-vaul-no-drag>
+                  {items.map((item) => {
+                    const hasDiscount = (item.discount ?? 0) > 0;
+                    const itemTotal = item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
+                    return (
+                      <div key={item.id} className="flex items-start justify-between text-xs py-1">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">{item.quantity}×</span>
+                            <span className="truncate">
+                              {item.menu_item?.name || "—"}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] px-1 py-0 ${
+                                item.status === "ready"
+                                  ? "border-blue-300 text-blue-700 dark:text-blue-300"
+                                  : item.status === "pending"
+                                  ? "border-amber-300 text-amber-700 dark:text-amber-300"
+                                  : "border-muted text-muted-foreground"
+                              }`}
+                            >
+                              {item.status}
+                            </Badge>
+                          </div>
+                          {item.notes && (
+                            <p className="text-[10px] text-muted-foreground ml-5 italic">
+                              {item.notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          {hasDiscount ? (
+                            <div>
+                              <span className="line-through text-muted-foreground mr-1">
+                                ${(item.quantity * item.unit_price).toFixed(0)}
+                              </span>
+                              <span className="text-emerald-600 dark:text-emerald-400">
+                                ${itemTotal.toFixed(0)}
+                              </span>
+                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
+                                -{item.discount}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span>${itemTotal.toFixed(0)}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Total row */}
+                  <div className="flex justify-between pt-1 border-t text-xs font-medium">
+                    <span>{t("billing.total")}</span>
+                    <span>${table.order.total.toFixed(0)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
 
+      {/* Order Dialog */}
       <OrderDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -101,6 +332,24 @@ const TablesPage = () => {
         tableName={getTableLabel(selectedTable)}
         order={activeOrder}
       />
+
+      {/* Delete table confirmation */}
+      <AlertDialog open={deleteTableNum !== null} onOpenChange={() => setDeleteTableNum(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("tables.deleteConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTableNum !== null && getTableLabel(deleteTableNum)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTableNum !== null && handleDeleteTable(deleteTableNum)}>
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -57,6 +57,12 @@ export const translations = {
   "tables.reserved": { es: "Reservada", en: "Reserved" },
   "tables.served": { es: "Servida", en: "Served" },
   "tables.ready": { es: "Lista", en: "Ready" },
+  "tables.addTable": { es: "Nueva mesa", en: "New table" },
+  "tables.newTablePlaceholder": { es: "Nombre de la mesa (ej: Terraza 1, Barra...)", en: "Table name (e.g.: Patio 1, Bar...)" },
+  "tables.empty": { es: "No hay mesas configuradas", en: "No tables configured" },
+  "tables.addFirst": { es: "Crear primera mesa", en: "Create first table" },
+  "tables.hasDiscount": { es: "Con descuento", en: "Discounted" },
+  "tables.deleteConfirm": { es: "¿Eliminar esta mesa?", en: "Delete this table?" },
 
   // Menu
   "menu.title": { es: "Menú", en: "Menu" },
