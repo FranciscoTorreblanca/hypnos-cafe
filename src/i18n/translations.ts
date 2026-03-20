@@ -39,6 +39,16 @@ export const translations = {
   // Dashboard
   "dashboard.welcome": { es: "Bienvenido", en: "Welcome" },
   "dashboard.title": { es: "Panel de control", en: "Dashboard" },
+  "dash.todayRevenue": { es: "Ventas de hoy", en: "Today's Revenue" },
+  "dash.todayTips": { es: "Propinas de hoy", en: "Today's Tips" },
+  "dash.orders": { es: "órdenes", en: "orders" },
+  "dash.occupied": { es: "ocupadas", en: "occupied" },
+  "dash.unavailable": { es: "no disponibles", en: "unavailable" },
+  "dash.weekTrend": { es: "Tendencia semanal", en: "Weekly Trend" },
+  "dash.team": { es: "Equipo", en: "Team" },
+  "dash.activeUsers": { es: "usuarios activos", en: "active users" },
+  "dash.totalUsers": { es: "total", en: "total" },
+  "dash.activeMembers": { es: "miembros activos", en: "active members" },
 
   // Tables
   "tables.title": { es: "Mesas", en: "Tables" },

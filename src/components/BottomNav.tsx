@@ -37,7 +37,7 @@ export const BottomNav = () => {
   const showKitchen = isAdmin || hasRole("waiter") || hasRole("kitchen");
 
   const moreItems = [
-    { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: ["admin", "waiter", "billing", "kitchen"] },
+    { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: ["admin"] },
     { key: "nav.menu" as const, icon: UtensilsCrossed, path: "/menu", roles: ["admin"] },
     { key: "nav.costCalculator" as const, icon: Calculator, path: "/cost-calculator", roles: ["admin"] },
     { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
