@@ -22,8 +22,73 @@ const MenuPage = () => {
   const { isAdmin } = useAuth();
   const { data: items = [], upsert, remove, toggleAvailability } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
+  const { data: combos = [] } = useCombos();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const exportToCsv = () => {
+    const escCsv = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const headers = ["Type", "Name", "Name (EN)", "Category", "Description", "Description (EN)", "Price", "Cost", "Margin %", "Available", "Inventory"];
+    const rows: string[][] = [];
+
+    items.forEach((item) => {
+      const margin = item.price > 0 && item.cost > 0
+        ? (((item.price - item.cost) / item.price) * 100).toFixed(1)
+        : "";
+      rows.push([
+        "Item",
+        item.name,
+        item.name_en,
+        getCategoryName(item.category_id),
+        item.description,
+        item.description_en,
+        String(item.price),
+        String(item.cost),
+        margin,
+        item.is_available ? "Yes" : "No",
+        item.inventory_count !== null ? String(item.inventory_count) : "",
+      ]);
+    });
+
+    combos.forEach((combo) => {
+      const fixedCost = combo.combo_items?.reduce((s, ci) => s + (ci.menu_items?.cost ?? 0) * ci.quantity, 0) ?? 0;
+      const choiceCost = combo.combo_choice_groups?.reduce((s, cg) => {
+        const maxCost = Math.max(0, ...(cg.combo_choice_options?.map(o => o.menu_items?.cost ?? 0) ?? []));
+        return s + maxCost;
+      }, 0) ?? 0;
+      const totalCost = fixedCost + choiceCost;
+      const margin = combo.price > 0 && totalCost > 0
+        ? (((combo.price - totalCost) / combo.price) * 100).toFixed(1)
+        : "";
+      const itemNames = [
+        ...(combo.combo_items?.map(ci => `${ci.menu_items?.name} x${ci.quantity}`) ?? []),
+        ...(combo.combo_choice_groups?.map(cg => `[${cg.label}]`) ?? []),
+      ].join(", ");
+      rows.push([
+        "Combo",
+        combo.name,
+        combo.name_en,
+        "",
+        itemNames,
+        combo.description_en,
+        String(combo.price),
+        String(totalCost),
+        margin,
+        combo.is_available ? "Yes" : "No",
+        "",
+      ]);
+    });
+
+    const csv = [headers.join(","), ...rows.map(r => r.map(escCsv).join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `menu_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: language === "es" ? "CSV exportado" : "CSV exported" });
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | null>(null);
