@@ -124,13 +124,14 @@ export const usePayments = () => {
 
       // Auto-add cash payments to till
       if (payment_method === "cash" && paymentData) {
-        await (supabase.from("till_transactions" as any) as any).insert({
+        const { error: tillErr } = await supabase.from("till_transactions").insert({
           type: "payment",
           amount: amount + tip,
           note: "",
           payment_id: paymentData.id,
           created_by: user!.id,
         });
+        if (tillErr) console.error("Till insert failed:", tillErr);
       }
 
       return { mpResult };
