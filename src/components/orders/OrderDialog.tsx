@@ -281,10 +281,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     language === "es" ? item.name : item.name_en;
 
   const orderItems = order?.order_items ?? [];
-  const canAddItems = !order || ["pending", "in_progress", "served"].includes(order.status);
+  const canAddItems = !order || ["pending", "in_progress", "ready", "served"].includes(order.status);
   const canSendToKitchen = order?.status === "pending" && orderItems.length > 0;
-  const canMarkServed = order?.status === "ready";
-  const canPay = order?.status === "served";
+  const canPay = order && ["in_progress", "ready", "served"].includes(order.status);
   const isOwnOrder = order?.created_by === user?.id;
   const canCancelOrder = order && (isAdmin || (isOwnOrder && ["pending", "in_progress"].includes(order.status)));
   const canDeleteItem = (itemStatus: string) =>
