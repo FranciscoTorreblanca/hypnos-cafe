@@ -246,11 +246,6 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     toast({ title: t("common.success"), description: t("orders.sentToKitchen") });
   };
 
-  const handleMarkServed = async () => {
-    if (!order) return;
-    await updateOrderStatus.mutateAsync({ id: order.id, status: "served" });
-    toast({ title: t("common.success"), description: t("orders.markServed") });
-  };
 
   const handleCancelOrder = async () => {
     if (!order) return;
