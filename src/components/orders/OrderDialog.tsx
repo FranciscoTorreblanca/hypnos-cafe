@@ -617,11 +617,6 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               <Send className="h-3.5 w-3.5" /> {t("orders.sendNewItems")}
             </Button>
           )}
-          {canMarkServed && (
-            <Button className="w-full gap-1.5" size="sm" onClick={handleMarkServed}>
-              <UtensilsCrossed className="h-3.5 w-3.5" /> {t("orders.markServed")}
-            </Button>
-          )}
           {canPay && (
             <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
               <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
