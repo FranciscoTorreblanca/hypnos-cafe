@@ -81,6 +81,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [localTableName, setLocalTableName] = useState("");
   const [comboChoiceOpen, setComboChoiceOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
+  const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
 
   // Reset cart when dialog opens/closes
   useEffect(() => {
