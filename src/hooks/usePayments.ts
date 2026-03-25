@@ -122,17 +122,7 @@ export const usePayments = () => {
       const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any, general_discount: 0 } as any).eq("id", order_id);
       if (upErr) throw upErr;
 
-      // Auto-add cash payments to till
-      if (payment_method === "cash" && paymentData) {
-        const { error: tillErr } = await supabase.from("till_transactions").insert({
-          type: "payment",
-          amount: amount + tip,
-          note: "",
-          payment_id: paymentData.id,
-          created_by: user!.id,
-        });
-        if (tillErr) console.error("Till insert failed:", tillErr);
-      }
+      // Till entry is auto-created by database trigger for cash payments
 
       return { mpResult };
     },
