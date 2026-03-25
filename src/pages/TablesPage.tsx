@@ -313,10 +313,23 @@ const TablesPage = () => {
                     );
                   })}
                   {/* Total row */}
-                  <div className="flex justify-between pt-1 border-t text-xs font-medium">
-                    <span>{t("billing.total")}</span>
-                    <span>${table.order.total.toFixed(0)}</span>
-                  </div>
+                  {(() => {
+                    const gd = (table.order as any)?.general_discount ?? 0;
+                    const subtotal = table.order!.total;
+                    const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+                    return (
+                      <div className="flex justify-between pt-1 border-t text-xs font-medium">
+                        <span>{t("billing.total")}</span>
+                        <span>
+                          {gd > 0 && (
+                            <span className="line-through text-muted-foreground mr-1">${subtotal.toFixed(0)}</span>
+                          )}
+                          ${finalTotal.toFixed(0)}
+                          {gd > 0 && <span className="text-emerald-600 ml-0.5 text-[10px]">-{gd}%</span>}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
