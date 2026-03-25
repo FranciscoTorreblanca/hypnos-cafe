@@ -713,41 +713,57 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         <span>{t("billing.subtotal")}</span>
         <span className="font-semibold">${order?.total.toFixed(0)} MXN</span>
       </div>
-      <div className="space-y-2">
-        <Label>{t("billing.tip")}</Label>
-        <div className="flex gap-2">
-          {[0, 10, 15, 20].map((pct) => {
-            const val = Math.round((order?.total ?? 0) * pct / 100);
-            return (
-              <Button key={pct} type="button" variant={tipAmount === String(val) && pct > 0 ? "default" : "outline"} size="sm" onClick={() => setTipAmount(String(val))}>
-                {pct === 0 ? "$0" : `${pct}%`}
-              </Button>
-            );
-          })}
+      {(order?.general_discount ?? 0) > 0 && (
+        <div className="flex justify-between text-sm text-emerald-600">
+          <span>{language === "es" ? "Descuento general" : "General discount"} (-{order?.general_discount}%)</span>
+          <span>-${((order?.total ?? 0) * (order?.general_discount ?? 0) / 100).toFixed(0)}</span>
         </div>
-        <Input type="number" min="0" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} />
-      </div>
-      <div className="space-y-2">
-        <Label>{t("billing.paymentMethod")}</Label>
-        <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="cash" id="pay-cash" />
-            <Label htmlFor="pay-cash" className="flex items-center gap-1 cursor-pointer"><Banknote className="h-4 w-4" /> {t("billing.cash")}</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="card" id="pay-card" />
-            <Label htmlFor="pay-card" className="flex items-center gap-1 cursor-pointer"><CreditCard className="h-4 w-4" /> {t("billing.card")}</Label>
-          </div>
-        </RadioGroup>
-      </div>
-      <div className="flex justify-between font-bold border-t pt-2">
-        <span>{t("billing.total")}</span>
-        <span>${((order?.total ?? 0) + (parseFloat(tipAmount) || 0)).toFixed(0)} MXN</span>
-      </div>
-      <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>{t("common.back")}</Button>
-        <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>{t("billing.confirmPayment")}</Button>
-      </div>
+      )}
+      {(() => {
+        const subtotal = order?.total ?? 0;
+        const gd = order?.general_discount ?? 0;
+        const finalAmount = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const tip = parseFloat(tipAmount) || 0;
+        return (
+          <>
+            <div className="space-y-2">
+              <Label>{t("billing.tip")}</Label>
+              <div className="flex gap-2">
+                {[0, 10, 15, 20].map((pct) => {
+                  const val = Math.round(finalAmount * pct / 100);
+                  return (
+                    <Button key={pct} type="button" variant={tipAmount === String(val) && pct > 0 ? "default" : "outline"} size="sm" onClick={() => setTipAmount(String(val))}>
+                      {pct === 0 ? "$0" : `${pct}%`}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Input type="number" min="0" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("billing.paymentMethod")}</Label>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="cash" id="pay-cash" />
+                  <Label htmlFor="pay-cash" className="flex items-center gap-1 cursor-pointer"><Banknote className="h-4 w-4" /> {t("billing.cash")}</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="card" id="pay-card" />
+                  <Label htmlFor="pay-card" className="flex items-center gap-1 cursor-pointer"><CreditCard className="h-4 w-4" /> {t("billing.card")}</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="flex justify-between font-bold border-t pt-2">
+              <span>{t("billing.total")}</span>
+              <span>${(finalAmount + tip).toFixed(0)} MXN</span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>{t("common.back")}</Button>
+              <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>{t("billing.confirmPayment")}</Button>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 
