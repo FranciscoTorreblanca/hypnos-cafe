@@ -118,8 +118,8 @@ export const usePayments = () => {
       }).select("id").single();
       if (error) throw error;
 
-      // Mark order as paid
-      const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any }).eq("id", order_id);
+      // Mark order as paid and reset general discount
+      const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any, general_discount: 0 } as any).eq("id", order_id);
       if (upErr) throw upErr;
 
       // Auto-add cash payments to till
