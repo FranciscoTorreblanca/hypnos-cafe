@@ -258,9 +258,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const handleConfirmPayment = async () => {
     if (!order) return;
     try {
+      const gd = order.general_discount ?? 0;
+      const finalAmount = gd > 0 ? order.total * (1 - gd / 100) : order.total;
       await createPayment.mutateAsync({
         order_id: order.id,
-        amount: order.total,
+        amount: Math.round(finalAmount * 100) / 100,
         tip: parseFloat(tipAmount) || 0,
         payment_method: paymentMethod,
       });
