@@ -22,6 +22,7 @@ export interface Order {
   notes: string;
   created_by: string;
   total: number;
+  general_discount: number;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
@@ -159,6 +160,14 @@ export const useOrders = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
+  const updateGeneralDiscount = useMutation({
+    mutationFn: async ({ id, discount }: { id: string; discount: number }) => {
+      const { error } = await supabase.from("orders").update({ general_discount: discount } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
   const cancelOrder = useMutation({
     mutationFn: async (id: string) => {
       // Delete all order items first, then cancel the order
@@ -175,5 +184,5 @@ export const useOrders = () => {
       (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
     );
 
-  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, cancelOrder, updateItemDiscount, getActiveOrderForTable };
+  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, cancelOrder, updateItemDiscount, updateGeneralDiscount, getActiveOrderForTable };
 };

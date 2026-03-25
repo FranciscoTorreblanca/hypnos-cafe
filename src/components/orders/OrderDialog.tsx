@@ -60,7 +60,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { data: combos = [] } = useCombos();
-  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemStatus } = useOrders();
+  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemStatus, updateGeneralDiscount } = useOrders();
   const { createPayment } = usePayments();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -81,6 +81,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [localTableName, setLocalTableName] = useState("");
   const [comboChoiceOpen, setComboChoiceOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
+  const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
 
   // Reset cart when dialog opens/closes
   useEffect(() => {
@@ -257,9 +258,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const handleConfirmPayment = async () => {
     if (!order) return;
     try {
+      const gd = order.general_discount ?? 0;
+      const finalAmount = gd > 0 ? order.total * (1 - gd / 100) : order.total;
       await createPayment.mutateAsync({
         order_id: order.id,
-        amount: order.total,
+        amount: Math.round(finalAmount * 100) / 100,
         tip: parseFloat(tipAmount) || 0,
         payment_method: paymentMethod,
       });
@@ -598,10 +601,60 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
       {orderItems.length > 0 && (
         <div className="mt-auto pt-2 border-t space-y-1.5">
-          <div className="flex justify-between font-semibold text-sm">
-            <span>Total</span>
-            <span>${(order?.total ?? 0).toFixed(0)} MXN</span>
+          {/* General discount */}
+          <div className="flex items-center justify-between text-xs">
+            <button
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setEditingGeneralDiscount(!editingGeneralDiscount)}
+            >
+              <Percent className={`h-3 w-3 ${(order?.general_discount ?? 0) > 0 ? "text-emerald-600" : ""}`} />
+              <span>{language === "es" ? "Descuento general" : "General discount"}</span>
+              {(order?.general_discount ?? 0) > 0 && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
+                  -{order?.general_discount}%
+                </Badge>
+              )}
+            </button>
           </div>
+          {editingGeneralDiscount && order && (
+            <div className="flex items-center gap-1.5">
+              <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                defaultValue={order.general_discount || ""}
+                placeholder="0"
+                onBlur={(e) => {
+                  const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                  updateGeneralDiscount.mutate({ id: order.id, discount: val });
+                  setEditingGeneralDiscount(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                }}
+                className="h-7 w-20 text-xs"
+                autoFocus
+              />
+              <span className="text-[10px] text-muted-foreground">%</span>
+            </div>
+          )}
+          {(() => {
+            const subtotal = order?.total ?? 0;
+            const gd = order?.general_discount ?? 0;
+            const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+            return (
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Total</span>
+                <span>
+                  {gd > 0 && (
+                    <span className="line-through text-muted-foreground text-xs mr-1">${subtotal.toFixed(0)}</span>
+                  )}
+                  ${finalTotal.toFixed(0)} MXN
+                </span>
+              </div>
+            );
+          })()}
           {canSendToKitchen && (
             <Button className="w-full gap-1.5" size="sm" onClick={handleSendToKitchen}>
               <Send className="h-3.5 w-3.5" /> {t("orders.sendToKitchen")}
@@ -660,41 +713,57 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         <span>{t("billing.subtotal")}</span>
         <span className="font-semibold">${order?.total.toFixed(0)} MXN</span>
       </div>
-      <div className="space-y-2">
-        <Label>{t("billing.tip")}</Label>
-        <div className="flex gap-2">
-          {[0, 10, 15, 20].map((pct) => {
-            const val = Math.round((order?.total ?? 0) * pct / 100);
-            return (
-              <Button key={pct} type="button" variant={tipAmount === String(val) && pct > 0 ? "default" : "outline"} size="sm" onClick={() => setTipAmount(String(val))}>
-                {pct === 0 ? "$0" : `${pct}%`}
-              </Button>
-            );
-          })}
+      {(order?.general_discount ?? 0) > 0 && (
+        <div className="flex justify-between text-sm text-emerald-600">
+          <span>{language === "es" ? "Descuento general" : "General discount"} (-{order?.general_discount}%)</span>
+          <span>-${((order?.total ?? 0) * (order?.general_discount ?? 0) / 100).toFixed(0)}</span>
         </div>
-        <Input type="number" min="0" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} />
-      </div>
-      <div className="space-y-2">
-        <Label>{t("billing.paymentMethod")}</Label>
-        <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="cash" id="pay-cash" />
-            <Label htmlFor="pay-cash" className="flex items-center gap-1 cursor-pointer"><Banknote className="h-4 w-4" /> {t("billing.cash")}</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="card" id="pay-card" />
-            <Label htmlFor="pay-card" className="flex items-center gap-1 cursor-pointer"><CreditCard className="h-4 w-4" /> {t("billing.card")}</Label>
-          </div>
-        </RadioGroup>
-      </div>
-      <div className="flex justify-between font-bold border-t pt-2">
-        <span>{t("billing.total")}</span>
-        <span>${((order?.total ?? 0) + (parseFloat(tipAmount) || 0)).toFixed(0)} MXN</span>
-      </div>
-      <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>{t("common.back")}</Button>
-        <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>{t("billing.confirmPayment")}</Button>
-      </div>
+      )}
+      {(() => {
+        const subtotal = order?.total ?? 0;
+        const gd = order?.general_discount ?? 0;
+        const finalAmount = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const tip = parseFloat(tipAmount) || 0;
+        return (
+          <>
+            <div className="space-y-2">
+              <Label>{t("billing.tip")}</Label>
+              <div className="flex gap-2">
+                {[0, 10, 15, 20].map((pct) => {
+                  const val = Math.round(finalAmount * pct / 100);
+                  return (
+                    <Button key={pct} type="button" variant={tipAmount === String(val) && pct > 0 ? "default" : "outline"} size="sm" onClick={() => setTipAmount(String(val))}>
+                      {pct === 0 ? "$0" : `${pct}%`}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Input type="number" min="0" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("billing.paymentMethod")}</Label>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="cash" id="pay-cash" />
+                  <Label htmlFor="pay-cash" className="flex items-center gap-1 cursor-pointer"><Banknote className="h-4 w-4" /> {t("billing.cash")}</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="card" id="pay-card" />
+                  <Label htmlFor="pay-card" className="flex items-center gap-1 cursor-pointer"><CreditCard className="h-4 w-4" /> {t("billing.card")}</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="flex justify-between font-bold border-t pt-2">
+              <span>{t("billing.total")}</span>
+              <span>${(finalAmount + tip).toFixed(0)} MXN</span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>{t("common.back")}</Button>
+              <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>{t("billing.confirmPayment")}</Button>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 
