@@ -670,6 +670,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          general_discount: number
           id: string
           notes: string
           status: Database["public"]["Enums"]["order_status"]
@@ -680,6 +681,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          general_discount?: number
           id?: string
           notes?: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -690,6 +692,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          general_discount?: number
           id?: string
           notes?: string
           status?: Database["public"]["Enums"]["order_status"]
