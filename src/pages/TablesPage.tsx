@@ -210,9 +210,22 @@ const TablesPage = () => {
                   {table.order && (
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                       <span>{items.length} items</span>
-                      <span className="font-medium text-foreground">
-                        ${table.order.total.toFixed(0)}
-                      </span>
+                      {(() => {
+                        const gd = (table.order as any)?.general_discount ?? 0;
+                        const subtotal = table.order!.total;
+                        const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+                        return (
+                          <span className="font-medium text-foreground">
+                            {gd > 0 && <span className="line-through text-muted-foreground mr-1">${subtotal.toFixed(0)}</span>}
+                            ${finalTotal.toFixed(0)}
+                          </span>
+                        );
+                      })()}
+                      {((table.order as any)?.general_discount ?? 0) > 0 && (
+                        <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
+                          -{(table.order as any).general_discount}%
+                        </span>
+                      )}
                       {items.some((i) => (i.discount ?? 0) > 0) && (
                         <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
                           {t("tables.hasDiscount")}
