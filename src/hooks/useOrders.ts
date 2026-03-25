@@ -22,6 +22,7 @@ export interface Order {
   notes: string;
   created_by: string;
   total: number;
+  general_discount: number;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
