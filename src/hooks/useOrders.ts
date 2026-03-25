@@ -160,6 +160,14 @@ export const useOrders = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
+  const updateGeneralDiscount = useMutation({
+    mutationFn: async ({ id, discount }: { id: string; discount: number }) => {
+      const { error } = await supabase.from("orders").update({ general_discount: discount } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
   const cancelOrder = useMutation({
     mutationFn: async (id: string) => {
       // Delete all order items first, then cancel the order
