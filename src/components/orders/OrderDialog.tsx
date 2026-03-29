@@ -840,8 +840,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     return (
       <>{comboChoiceDialogElement}
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
-          <DrawerHeader className="pb-2">
+        <DrawerContent className="max-h-[85dvh] flex flex-col overflow-hidden">
+          <DrawerHeader className="pb-2 shrink-0">
             <DrawerTitle className="flex items-center gap-2 text-base">
               {titleElement}
               {order && !showPayment && (
@@ -856,7 +856,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
             <div className="flex flex-col flex-1 min-h-0 px-4 pb-4">
               {/* Mobile tab toggle */}
               {canAddItems && (
-                <div className="flex gap-1 mb-2">
+                <div className="flex gap-1 mb-2 shrink-0">
                   <Button
                     variant={mobileTab === "menu" ? "default" : "outline"}
                     size="sm"
@@ -889,8 +889,23 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  {orderSection}
+                <div className="flex flex-col flex-1 min-h-0">
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 shrink-0">
+                    {t("orders.currentOrder")}
+                    {order && <Badge variant="outline" className="text-[10px]">{statusLabel[order.status] ?? order.status}</Badge>}
+                  </h3>
+                  {orderItems.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">{t("orders.empty")}</p>
+                  ) : (
+                    <>
+                      <div className="flex-1 overflow-y-auto min-h-0" data-vaul-no-drag>
+                        <div className="space-y-1.5 pr-1">
+                          {orderItemsList}
+                        </div>
+                      </div>
+                      {orderActions}
+                    </>
+                  )}
                 </div>
               )}
             </div>
