@@ -495,7 +495,194 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     </div>
   );
 
-  // ─── Current order section ───
+  // ─── Order items list (scrollable) ───
+  const orderItemsList = (
+    <>
+      {orderItems.map((oi) => {
+        const discountPct = (oi as any).discount ?? 0;
+        const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
+        return (
+          <div key={oi.id} className="space-y-0.5">
+            <div className="flex items-center justify-between text-sm gap-1">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1">
+                  <p className="truncate text-xs">
+                    {oi.quantity}x {getName(oi.menu_item)}
+                  </p>
+                  {discountPct > 0 && (
+                    <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
+                  )}
+                  {order && order.status !== "pending" && itemStatusBadge(oi.status)}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {discountPct > 0 ? (
+                    <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
+                  ) : (
+                    <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-0.5 shrink-0">
+                {order && (oi.status === "pending" || oi.status === "in_progress") && order.status !== "pending" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-emerald-600"
+                    onClick={() => updateItemStatus.mutate({ id: oi.id, status: "ready", order_id: order.id })}
+                    title={t("orders.markReady")}
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
+                  >
+                    <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                  </Button>
+                )}
+                {canDeleteItem(oi.status) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-destructive hover:text-destructive"
+                    onClick={() => handleRemoveItem(oi.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            {editingExistingNotes === `disc-${oi.id}` && isAdmin && order && (
+              <div className="flex items-center gap-1.5 ml-1">
+                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  defaultValue={discountPct || ""}
+                  placeholder="0"
+                  onBlur={(e) => {
+                    const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                    updateItemDiscount.mutate({ id: oi.id, discount: val, order_id: order.id });
+                    setEditingExistingNotes(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
+                  className="h-7 w-20 text-xs"
+                  autoFocus
+                />
+                <span className="text-[10px] text-muted-foreground">%</span>
+              </div>
+            )}
+            {oi.notes && (
+              <p className="text-[10px] text-muted-foreground italic ml-1">📝 {oi.notes}</p>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+
+  // ─── Order action buttons (sticky at bottom) ───
+  const orderActions = orderItems.length > 0 ? (
+    <div className="pt-2 border-t space-y-1.5 shrink-0 bg-background">
+      {/* General discount */}
+      <div className="flex items-center justify-between text-xs">
+        <button
+          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setEditingGeneralDiscount(!editingGeneralDiscount)}
+        >
+          <Percent className={`h-3 w-3 ${(order?.general_discount ?? 0) > 0 ? "text-emerald-600" : ""}`} />
+          <span>{language === "es" ? "Descuento general" : "General discount"}</span>
+          {(order?.general_discount ?? 0) > 0 && (
+            <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
+              -{order?.general_discount}%
+            </Badge>
+          )}
+        </button>
+      </div>
+      {editingGeneralDiscount && order && (
+        <div className="flex items-center gap-1.5">
+          <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+          <Input
+            type="number"
+            min="0"
+            max="100"
+            defaultValue={order.general_discount || ""}
+            placeholder="0"
+            onBlur={(e) => {
+              const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+              updateGeneralDiscount.mutate({ id: order.id, discount: val });
+              setEditingGeneralDiscount(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+            className="h-7 w-20 text-xs"
+            autoFocus
+          />
+          <span className="text-[10px] text-muted-foreground">%</span>
+        </div>
+      )}
+      {(() => {
+        const subtotal = order?.total ?? 0;
+        const gd = order?.general_discount ?? 0;
+        const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        return (
+          <div className="flex justify-between font-semibold text-sm">
+            <span>Total</span>
+            <span>
+              {gd > 0 && (
+                <span className="line-through text-muted-foreground text-xs mr-1">${subtotal.toFixed(0)}</span>
+              )}
+              ${finalTotal.toFixed(0)} MXN
+            </span>
+          </div>
+        );
+      })()}
+      {canSendToKitchen && (
+        <Button className="w-full gap-1.5" size="sm" onClick={handleSendToKitchen}>
+          <Send className="h-3.5 w-3.5" /> {t("orders.sendToKitchen")}
+        </Button>
+      )}
+      {order?.status === "in_progress" && orderItems.some((oi) => oi.status === "pending") && (
+        <Button className="w-full gap-1.5" size="sm" onClick={handleSendToKitchen} variant="outline">
+          <Send className="h-3.5 w-3.5" /> {t("orders.sendNewItems")}
+        </Button>
+      )}
+      {canPay && (
+        <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
+          <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
+        </Button>
+      )}
+      {canCancelOrder && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="w-full gap-1.5" size="sm">
+              <XCircle className="h-3.5 w-3.5" /> {t("orders.cancelOrder")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("orders.cancelOrder")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("orders.cancelConfirm")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCancelOrder}>{t("common.confirm")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </div>
+  ) : null;
+
+  // ─── Current order section (desktop) ───
   const orderSection = (
     <div className="flex flex-col min-h-0 flex-1">
       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
@@ -507,190 +694,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       ) : (
         <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
           <div className="space-y-1.5 pr-1">
-            {orderItems.map((oi) => {
-              const discountPct = (oi as any).discount ?? 0;
-              const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
-              return (
-              <div key={oi.id} className="space-y-0.5">
-                <div className="flex items-center justify-between text-sm gap-1">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <p className="truncate text-xs">
-                        {oi.quantity}x {getName(oi.menu_item)}
-                      </p>
-                      {discountPct > 0 && (
-                        <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
-                      )}
-                      {order && order.status !== "pending" && itemStatusBadge(oi.status)}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      {discountPct > 0 ? (
-                        <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
-                      ) : (
-                        <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    {/* Mark item ready from tables view */}
-                    {order && (oi.status === "pending" || oi.status === "in_progress") && order.status !== "pending" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-emerald-600"
-                        onClick={() => updateItemStatus.mutate({ id: oi.id, status: "ready", order_id: order.id })}
-                        title={t("orders.markReady")}
-                      >
-                        <CheckCircle className="h-3 w-3" />
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
-                      >
-                        <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
-                      </Button>
-                    )}
-                    {canDeleteItem(oi.status) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={() => handleRemoveItem(oi.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {editingExistingNotes === `disc-${oi.id}` && isAdmin && order && (
-                  <div className="flex items-center gap-1.5 ml-1">
-                    <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      defaultValue={discountPct || ""}
-                      placeholder="0"
-                      onBlur={(e) => {
-                        const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                        updateItemDiscount.mutate({ id: oi.id, discount: val, order_id: order.id });
-                        setEditingExistingNotes(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                      }}
-                      className="h-7 w-20 text-xs"
-                      autoFocus
-                    />
-                    <span className="text-[10px] text-muted-foreground">%</span>
-                  </div>
-                )}
-                {oi.notes && (
-                  <p className="text-[10px] text-muted-foreground italic ml-1">📝 {oi.notes}</p>
-                )}
-              </div>
-              );
-            })}
+            {orderItemsList}
           </div>
         </div>
       )}
-
-      {orderItems.length > 0 && (
-        <div className="mt-auto pt-2 border-t space-y-1.5">
-          {/* General discount */}
-          <div className="flex items-center justify-between text-xs">
-            <button
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setEditingGeneralDiscount(!editingGeneralDiscount)}
-            >
-              <Percent className={`h-3 w-3 ${(order?.general_discount ?? 0) > 0 ? "text-emerald-600" : ""}`} />
-              <span>{language === "es" ? "Descuento general" : "General discount"}</span>
-              {(order?.general_discount ?? 0) > 0 && (
-                <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
-                  -{order?.general_discount}%
-                </Badge>
-              )}
-            </button>
-          </div>
-          {editingGeneralDiscount && order && (
-            <div className="flex items-center gap-1.5">
-              <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                defaultValue={order.general_discount || ""}
-                placeholder="0"
-                onBlur={(e) => {
-                  const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                  updateGeneralDiscount.mutate({ id: order.id, discount: val });
-                  setEditingGeneralDiscount(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                }}
-                className="h-7 w-20 text-xs"
-                autoFocus
-              />
-              <span className="text-[10px] text-muted-foreground">%</span>
-            </div>
-          )}
-          {(() => {
-            const subtotal = order?.total ?? 0;
-            const gd = order?.general_discount ?? 0;
-            const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
-            return (
-              <div className="flex justify-between font-semibold text-sm">
-                <span>Total</span>
-                <span>
-                  {gd > 0 && (
-                    <span className="line-through text-muted-foreground text-xs mr-1">${subtotal.toFixed(0)}</span>
-                  )}
-                  ${finalTotal.toFixed(0)} MXN
-                </span>
-              </div>
-            );
-          })()}
-          {canSendToKitchen && (
-            <Button className="w-full gap-1.5" size="sm" onClick={handleSendToKitchen}>
-              <Send className="h-3.5 w-3.5" /> {t("orders.sendToKitchen")}
-            </Button>
-          )}
-          {order?.status === "in_progress" && orderItems.some((oi) => oi.status === "pending") && (
-            <Button className="w-full gap-1.5" size="sm" onClick={handleSendToKitchen} variant="outline">
-              <Send className="h-3.5 w-3.5" /> {t("orders.sendNewItems")}
-            </Button>
-          )}
-          {canPay && (
-            <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
-              <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
-            </Button>
-          )}
-          {canCancelOrder && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full gap-1.5" size="sm">
-                  <XCircle className="h-3.5 w-3.5" /> {t("orders.cancelOrder")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("orders.cancelOrder")}</AlertDialogTitle>
-                  <AlertDialogDescription>{t("orders.cancelConfirm")}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancelOrder}>{t("common.confirm")}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
-      )}
+      {orderActions}
     </div>
   );
 
