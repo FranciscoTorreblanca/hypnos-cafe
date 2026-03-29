@@ -308,7 +308,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   // ─── Menu picker section ───
   const menuPicker = (
     <div className="flex flex-col min-h-0 flex-1">
-      <div className="relative mb-2">
+      <div className="relative mb-2 shrink-0">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           ref={searchRef}
@@ -317,6 +317,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 h-9"
           autoFocus={!isMobile}
+          enterKeyHint="done"
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
         />
       </div>
 
@@ -353,7 +355,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
+      <div
+        className="flex-1 overflow-y-auto"
+        data-vaul-no-drag
+        onTouchStart={() => {
+          // Dismiss keyboard when scrolling results on mobile
+          if (document.activeElement instanceof HTMLInputElement) {
+            document.activeElement.blur();
+          }
+        }}
+      >
         <div className="space-y-0.5 pr-1">
           {/* Combos */}
           {filteredCombos.map((combo) => (
