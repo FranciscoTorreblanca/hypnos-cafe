@@ -695,21 +695,23 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   // ─── Current order section (desktop) ───
   const orderSection = (
-    <div className="flex flex-col min-h-0 flex-1">
-      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+    <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 shrink-0">
         {t("orders.currentOrder")}
         {order && <Badge variant="outline" className="text-[10px]">{statusLabel[order.status] ?? order.status}</Badge>}
       </h3>
       {orderItems.length === 0 ? (
         <p className="text-xs text-muted-foreground">{t("orders.empty")}</p>
       ) : (
-        <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
-          <div className="space-y-1.5 pr-1">
-            {orderItemsList}
+        <>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-1.5 pr-1">
+              {orderItemsList}
+            </div>
           </div>
-        </div>
+          {orderActions}
+        </>
       )}
-      {orderActions}
     </div>
   );
 
