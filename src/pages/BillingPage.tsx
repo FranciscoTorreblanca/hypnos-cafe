@@ -381,78 +381,152 @@ const BillingPage = () => {
 
         {/* Tips by waiter */}
         <TabsContent value="tips" className="mt-4 space-y-4">
-          {/* Tips summary cards */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" /> {t("billing.tipsTotal")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">${totalTips.toFixed(0)} MXN</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Banknote className="h-4 w-4" /> {t("billing.tipsCash")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">${totalTipsCash.toFixed(0)} MXN</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" /> {t("billing.tipsCard")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">${totalTipsCard.toFixed(0)} MXN</p>
-              </CardContent>
-            </Card>
+          {/* Date range selector */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">{language === "es" ? "Desde" : "From"}</Label>
+              <Input type="date" value={tipsCutFrom} onChange={(e) => setTipsCutFrom(e.target.value)} className="w-[160px]" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{language === "es" ? "Hasta" : "To"}</Label>
+              <Input type="date" value={tipsCutTo} onChange={(e) => setTipsCutTo(e.target.value)} className="w-[160px]" />
+            </div>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" onClick={() => { const today = format(new Date(), "yyyy-MM-dd"); setTipsCutFrom(today); setTipsCutTo(today); }}>
+                {language === "es" ? "Hoy" : "Today"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setTipsCutFrom(format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")); setTipsCutTo(format(new Date(), "yyyy-MM-dd")); }}>
+                {language === "es" ? "Semana" : "Week"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setTipsCutFrom(format(startOfMonth(new Date()), "yyyy-MM-dd")); setTipsCutTo(format(new Date(), "yyyy-MM-dd")); }}>
+                {language === "es" ? "Mes" : "Month"}
+              </Button>
+            </div>
           </div>
 
-          {Object.keys(tipsByWaiter).length === 0 ? (
-            <p className="text-muted-foreground">{t("billing.noHistory")}</p>
-          ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("billing.waiter")}</TableHead>
-                    <TableHead>{t("billing.tipsTotal")}</TableHead>
-                    <TableHead className="flex items-center gap-1"><Banknote className="h-3.5 w-3.5" /> {t("billing.cash")}</TableHead>
-                    <TableHead><span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> {t("billing.card")}</span></TableHead>
-                    <TableHead>#</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.values(tipsByWaiter).map((w) => (
-                    <TableRow key={w.name}>
-                      <TableCell>{w.name}</TableCell>
-                      <TableCell className="font-semibold">${w.tips.toFixed(0)}</TableCell>
-                      <TableCell>${w.tipsCash.toFixed(0)}</TableCell>
-                      <TableCell>${w.tipsCard.toFixed(0)}</TableCell>
-                      <TableCell>{w.count}</TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="bg-muted/50 font-semibold">
-                    <TableCell>Total</TableCell>
-                    <TableCell>${totalTips.toFixed(0)}</TableCell>
-                    <TableCell>${totalTipsCash.toFixed(0)}</TableCell>
-                    <TableCell>${totalTipsCard.toFixed(0)}</TableCell>
-                    <TableCell>{payments.length}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
+          {(() => {
+            const fromDate = startOfDay(new Date(tipsCutFrom + "T00:00:00"));
+            const toDate = new Date(tipsCutTo + "T23:59:59.999");
+            const filtered = payments.filter((p) => {
+              const d = new Date(p.created_at);
+              return d >= fromDate && d <= toDate;
+            });
 
-        {/* Cash Flow */}
+            const cutTipsByWaiter: Record<string, { name: string; tips: number; tipsCash: number; tipsCard: number; count: number }> = {};
+            filtered.forEach((p) => {
+              const key = p.waiter?.email ?? "unknown";
+              if (!cutTipsByWaiter[key]) cutTipsByWaiter[key] = { name: p.waiter?.full_name || key, tips: 0, tipsCash: 0, tipsCard: 0, count: 0 };
+              cutTipsByWaiter[key].tips += p.tip;
+              if (p.payment_method === "cash") cutTipsByWaiter[key].tipsCash += p.tip;
+              else cutTipsByWaiter[key].tipsCard += p.tip;
+              cutTipsByWaiter[key].count += 1;
+            });
+
+            const cutTotalTips = filtered.reduce((s, p) => s + p.tip, 0);
+            const cutTotalCash = filtered.filter(p => p.payment_method === "cash").reduce((s, p) => s + p.tip, 0);
+            const cutTotalCard = filtered.filter(p => p.payment_method === "card").reduce((s, p) => s + p.tip, 0);
+
+            const exportTipsCsv = () => {
+              const header = language === "es"
+                ? "Mesero,Propinas Total,Propinas Efectivo,Propinas Tarjeta,Ordenes"
+                : "Waiter,Total Tips,Cash Tips,Card Tips,Orders";
+              const rows = Object.values(cutTipsByWaiter).map((w) =>
+                `${w.name},${w.tips.toFixed(2)},${w.tipsCash.toFixed(2)},${w.tipsCard.toFixed(2)},${w.count}`
+              );
+              rows.push(`Total,${cutTotalTips.toFixed(2)},${cutTotalCash.toFixed(2)},${cutTotalCard.toFixed(2)},${filtered.length}`);
+              const csv = [header, ...rows].join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `tips_${tipsCutFrom}_${tipsCutTo}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            };
+
+            return (
+              <>
+                {/* Summary cards */}
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" /> {t("billing.tipsTotal")}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">${cutTotalTips.toFixed(0)} MXN</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Banknote className="h-4 w-4" /> {t("billing.tipsCash")}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">${cutTotalCash.toFixed(0)} MXN</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" /> {t("billing.tipsCard")}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">${cutTotalCard.toFixed(0)} MXN</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {Object.keys(cutTipsByWaiter).length === 0 ? (
+                  <p className="text-muted-foreground">{t("billing.noHistory")}</p>
+                ) : (
+                  <>
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm" className="gap-1" onClick={exportTipsCsv}>
+                        <Download className="h-3.5 w-3.5" />
+                        {language === "es" ? "Exportar CSV" : "Export CSV"}
+                      </Button>
+                    </div>
+                    <div className="rounded-md border overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>{t("billing.waiter")}</TableHead>
+                            <TableHead>{t("billing.tipsTotal")}</TableHead>
+                            <TableHead className="flex items-center gap-1"><Banknote className="h-3.5 w-3.5" /> {t("billing.cash")}</TableHead>
+                            <TableHead><span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> {t("billing.card")}</span></TableHead>
+                            <TableHead>#</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {Object.values(cutTipsByWaiter).map((w) => (
+                            <TableRow key={w.name}>
+                              <TableCell>{w.name}</TableCell>
+                              <TableCell className="font-semibold">${w.tips.toFixed(0)}</TableCell>
+                              <TableCell>${w.tipsCash.toFixed(0)}</TableCell>
+                              <TableCell>${w.tipsCard.toFixed(0)}</TableCell>
+                              <TableCell>{w.count}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="bg-muted/50 font-semibold">
+                            <TableCell>Total</TableCell>
+                            <TableCell>${cutTotalTips.toFixed(0)}</TableCell>
+                            <TableCell>${cutTotalCash.toFixed(0)}</TableCell>
+                            <TableCell>${cutTotalCard.toFixed(0)}</TableCell>
+                            <TableCell>{filtered.length}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </TabsContent>
         <TabsContent value="cashflow" className="mt-4 space-y-4">
           <div className="flex items-center gap-2">
             <Select value={cashFlowPeriod} onValueChange={(v) => setCashFlowPeriod(v as any)}>
