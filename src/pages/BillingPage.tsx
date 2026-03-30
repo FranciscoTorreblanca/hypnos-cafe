@@ -71,6 +71,10 @@ const BillingPage = () => {
   const [tillAdjustAmount, setTillAdjustAmount] = useState("");
   const [tillAdjustNote, setTillAdjustNote] = useState("");
 
+  // Tips cut date range state
+  const [tipsCutFrom, setTipsCutFrom] = useState(() => format(startOfDay(new Date()), "yyyy-MM-dd"));
+  const [tipsCutTo, setTipsCutTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
+
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
 
