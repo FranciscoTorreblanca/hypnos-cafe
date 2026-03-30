@@ -695,21 +695,23 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   // ─── Current order section (desktop) ───
   const orderSection = (
-    <div className="flex flex-col min-h-0 flex-1">
-      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+    <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 shrink-0">
         {t("orders.currentOrder")}
         {order && <Badge variant="outline" className="text-[10px]">{statusLabel[order.status] ?? order.status}</Badge>}
       </h3>
       {orderItems.length === 0 ? (
         <p className="text-xs text-muted-foreground">{t("orders.empty")}</p>
       ) : (
-        <div className="flex-1 overflow-y-auto" data-vaul-no-drag>
-          <div className="space-y-1.5 pr-1">
-            {orderItemsList}
+        <>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-1.5 pr-1">
+              {orderItemsList}
+            </div>
           </div>
-        </div>
+          {orderActions}
+        </>
       )}
-      {orderActions}
     </div>
   );
 
@@ -935,22 +937,24 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   return (
     <>{comboChoiceDialogElement}
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             {titleElement}
             {order && <Badge variant="outline" className="text-xs">{statusLabel[order.status] ?? order.status}</Badge>}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-4 flex-1 min-h-0">
+        <div className="flex gap-4 flex-1 min-h-0 overflow-hidden">
           {canAddItems && (
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {menuPicker}
-              {cartSection}
+              <div className="overflow-y-auto shrink-0 max-h-[40%]">
+                {cartSection}
+              </div>
             </div>
           )}
-          <div className={`flex flex-col ${canAddItems ? "w-64 border-l pl-4" : "flex-1"}`}>
+          <div className={`flex flex-col min-h-0 overflow-hidden ${canAddItems ? "w-72 border-l pl-4" : "flex-1"}`}>
             {orderSection}
           </div>
         </div>
