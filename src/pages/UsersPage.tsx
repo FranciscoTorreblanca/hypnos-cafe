@@ -98,7 +98,7 @@ const UsersPage = () => {
         .from("user_roles")
         .delete()
         .eq("user_id", editUser.id)
-        .in("role", INTERNAL_ROLES as unknown as string[]);
+        .in("role", ["admin", "waiter", "billing", "kitchen"] as const);
       if (delError) throw delError;
 
       // Insert new roles
