@@ -287,6 +287,11 @@ export const translations = {
   "common.active": { es: "Activo", en: "Active" },
   "common.inactive": { es: "Inactivo", en: "Inactive" },
   "common.status": { es: "Estado", en: "Status" },
+  "users.internalUsers": { es: "Usuarios internos", en: "Internal Users" },
+  "users.externalUsers": { es: "Miembros de lealtad", en: "Loyalty Members" },
+  "users.editRoles": { es: "Editar roles", en: "Edit Roles" },
+  "users.rolesUpdated": { es: "Roles actualizados", en: "Roles updated" },
+  "users.cannotEditSelf": { es: "No puedes editar tus propios roles", en: "You cannot edit your own roles" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
