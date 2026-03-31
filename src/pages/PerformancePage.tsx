@@ -546,46 +546,101 @@ const PerformancePage = () => {
 
                         return {
                           label: format(day, "EEE dd/MM", { locale: loc }),
+                          shortLabel: format(day, "EEE", { locale: loc }),
                           prevLabel: format(prevDay, "dd/MM", { locale: loc }),
                           curRev, prevRev, curOrds, prevOrds, curAvg, prevAvg, curTips, prevTips,
                         };
                       });
 
+                      const chartData = rows.map(r => ({
+                        name: r.shortLabel,
+                        [language === "es" ? "Esta semana" : "This week"]: r.curRev,
+                        [language === "es" ? "Sem. anterior" : "Prev. week"]: r.prevRev,
+                      }));
+
+                      const ordersChartData = rows.map(r => ({
+                        name: r.shortLabel,
+                        [language === "es" ? "Esta semana" : "This week"]: r.curOrds,
+                        [language === "es" ? "Sem. anterior" : "Prev. week"]: r.prevOrds,
+                      }));
+
+                      const curLabel = language === "es" ? "Esta semana" : "This week";
+                      const prevLabel = language === "es" ? "Sem. anterior" : "Prev. week";
+
                       return (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>{t("performance.day")}</TableHead>
-                                <TableHead className="text-right">{t("performance.revenue")}</TableHead>
-                                <TableHead className="text-right">{t("performance.prevWeekDay")}</TableHead>
-                                <TableHead className="text-right">{t("performance.change")}</TableHead>
-                                <TableHead className="text-right">{t("performance.totalOrders")}</TableHead>
-                                <TableHead className="text-right">{t("performance.avgTicket")}</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {rows.map((r, idx) => {
-                                const revChg = pctChange(r.curRev, r.prevRev);
-                                return (
-                                  <TableRow key={idx}>
-                                    <TableCell className="font-medium">{r.label}</TableCell>
-                                    <TableCell className="text-right">${r.curRev.toLocaleString()}</TableCell>
-                                    <TableCell className="text-right text-muted-foreground">${r.prevRev.toLocaleString()}</TableCell>
-                                    <TableCell className="text-right">
-                                      <ChangeIndicator value={revChg} />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      {r.curOrds} <span className="text-muted-foreground text-xs">({r.prevOrds})</span>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      ${r.curAvg.toFixed(0)} <span className="text-muted-foreground text-xs">(${r.prevAvg.toFixed(0)})</span>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+                        <div className="space-y-6">
+                          {/* Revenue chart */}
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">{t("performance.revenue")}</p>
+                            <div className="h-[250px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} barGap={2}>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                                  <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} />
+                                  <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                                  <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]} />
+                                  <Legend />
+                                  <Bar dataKey={curLabel} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey={prevLabel} fill="hsl(var(--muted-foreground) / 0.3)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+
+                          {/* Orders chart */}
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">{t("performance.totalOrders")}</p>
+                            <div className="h-[200px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={ordersChartData} barGap={2}>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                                  <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} />
+                                  <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey={curLabel} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey={prevLabel} fill="hsl(var(--muted-foreground) / 0.3)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+
+                          {/* Table */}
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>{t("performance.day")}</TableHead>
+                                  <TableHead className="text-right">{t("performance.revenue")}</TableHead>
+                                  <TableHead className="text-right">{t("performance.prevWeekDay")}</TableHead>
+                                  <TableHead className="text-right">{t("performance.change")}</TableHead>
+                                  <TableHead className="text-right">{t("performance.totalOrders")}</TableHead>
+                                  <TableHead className="text-right">{t("performance.avgTicket")}</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {rows.map((r, idx) => {
+                                  const revChg = pctChange(r.curRev, r.prevRev);
+                                  return (
+                                    <TableRow key={idx}>
+                                      <TableCell className="font-medium">{r.label}</TableCell>
+                                      <TableCell className="text-right">${r.curRev.toLocaleString()}</TableCell>
+                                      <TableCell className="text-right text-muted-foreground">${r.prevRev.toLocaleString()}</TableCell>
+                                      <TableCell className="text-right">
+                                        <ChangeIndicator value={revChg} />
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {r.curOrds} <span className="text-muted-foreground text-xs">({r.prevOrds})</span>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        ${r.curAvg.toFixed(0)} <span className="text-muted-foreground text-xs">(${r.prevAvg.toFixed(0)})</span>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
                       );
                     })()}
@@ -628,6 +683,24 @@ const PerformancePage = () => {
                       const prevW = calcMetrics(prevWeekStart, prevWeekEnd);
                       const prevM = calcMetrics(prevMonthStart, prevMonthEnd);
 
+                      const curLbl = language === "es" ? "Actual" : "Current";
+                      const prevWkLbl = language === "es" ? "Sem. ant." : "Prev. week";
+                      const prevMoLbl = language === "es" ? "Mes ant." : "Prev. month";
+
+                      const weeklyChartData = [
+                        { name: t("performance.revenue"), [curLbl]: cur.revenue, [prevWkLbl]: prevW.revenue, [prevMoLbl]: prevM.dailyAvgRev * 7 },
+                        { name: t("performance.tips"), [curLbl]: cur.tips, [prevWkLbl]: prevW.tips, [prevMoLbl]: prevM.tips / Math.max(1, Math.ceil((prevMonthEnd.getTime() - prevMonthStart.getTime()) / (1000*60*60*24*7))) },
+                      ];
+
+                      const weeklyOrdersChart = [
+                        { name: t("performance.totalOrders"), [curLbl]: cur.ordersCount, [prevWkLbl]: prevW.ordersCount, [prevMoLbl]: prevM.ordersCount / Math.max(1, Math.ceil((prevMonthEnd.getTime() - prevMonthStart.getTime()) / (1000*60*60*24*7))) },
+                      ];
+
+                      const weeklyAvgChart = [
+                        { name: t("performance.avgTicket"), [curLbl]: Math.round(cur.avgTicketVal), [prevWkLbl]: Math.round(prevW.avgTicketVal), [prevMoLbl]: Math.round(prevM.avgTicketVal) },
+                        { name: t("performance.avgItems"), [curLbl]: parseFloat(cur.avgItemsPerOrder.toFixed(1)), [prevWkLbl]: parseFloat(prevW.avgItemsPerOrder.toFixed(1)), [prevMoLbl]: parseFloat(prevM.avgItemsPerOrder.toFixed(1)) },
+                      ];
+
                       const metrics = [
                         { label: t("performance.revenue"), cur: `$${cur.revenue.toLocaleString()}`, prevWk: `$${prevW.revenue.toLocaleString()}`, chgWk: pctChange(cur.revenue, prevW.revenue), prevMo: `$${prevM.dailyAvgRev.toFixed(0)}/d`, chgMo: pctChange(cur.dailyAvgRev, prevM.dailyAvgRev) },
                         { label: t("performance.totalOrders"), cur: String(cur.ordersCount), prevWk: String(prevW.ordersCount), chgWk: pctChange(cur.ordersCount, prevW.ordersCount), prevMo: `${(prevM.ordersCount / Math.max(1, Math.ceil((prevMonthEnd.getTime() - prevMonthStart.getTime()) / (1000*60*60*24*7)))).toFixed(0)}/sem`, chgMo: pctChange(cur.ordersCount, prevM.ordersCount / Math.max(1, Math.ceil((prevMonthEnd.getTime() - prevMonthStart.getTime()) / (1000*60*60*24*7)))) },
@@ -637,31 +710,72 @@ const PerformancePage = () => {
                       ];
 
                       return (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead></TableHead>
-                                <TableHead className="text-right">{t("performance.current")}</TableHead>
-                                <TableHead className="text-right">{language === "es" ? "Sem. ant." : "Prev. week"}</TableHead>
-                                <TableHead className="text-right">%</TableHead>
-                                <TableHead className="text-right">{language === "es" ? "Mes ant." : "Prev. month"}</TableHead>
-                                <TableHead className="text-right">%</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {metrics.map((m, idx) => (
-                                <TableRow key={idx}>
-                                  <TableCell className="font-medium">{m.label}</TableCell>
-                                  <TableCell className="text-right font-bold">{m.cur}</TableCell>
-                                  <TableCell className="text-right text-muted-foreground">{m.prevWk}</TableCell>
-                                  <TableCell className="text-right"><ChangeIndicator value={m.chgWk} /></TableCell>
-                                  <TableCell className="text-right text-muted-foreground">{m.prevMo}</TableCell>
-                                  <TableCell className="text-right"><ChangeIndicator value={m.chgMo} /></TableCell>
+                        <div className="space-y-6">
+                          {/* Revenue & Tips chart */}
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">{t("performance.revenue")} & {t("performance.tips")}</p>
+                            <div className="h-[250px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={weeklyChartData} barGap={2}>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                                  <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} />
+                                  <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                                  <Tooltip formatter={(value: number) => [`$${Math.round(value).toLocaleString()}`, undefined]} />
+                                  <Legend />
+                                  <Bar dataKey={curLbl} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey={prevWkLbl} fill="hsl(var(--muted-foreground) / 0.3)" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey={prevMoLbl} fill="hsl(var(--muted-foreground) / 0.15)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+
+                          {/* Avg ticket & items chart */}
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">{t("performance.avgTicket")} & {t("performance.avgItems")}</p>
+                            <div className="h-[200px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={weeklyAvgChart} barGap={2}>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                                  <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} />
+                                  <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey={curLbl} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey={prevWkLbl} fill="hsl(var(--muted-foreground) / 0.3)" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey={prevMoLbl} fill="hsl(var(--muted-foreground) / 0.15)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+
+                          {/* Table */}
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead></TableHead>
+                                  <TableHead className="text-right">{t("performance.current")}</TableHead>
+                                  <TableHead className="text-right">{prevWkLbl}</TableHead>
+                                  <TableHead className="text-right">%</TableHead>
+                                  <TableHead className="text-right">{prevMoLbl}</TableHead>
+                                  <TableHead className="text-right">%</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {metrics.map((m, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell className="font-medium">{m.label}</TableCell>
+                                    <TableCell className="text-right font-bold">{m.cur}</TableCell>
+                                    <TableCell className="text-right text-muted-foreground">{m.prevWk}</TableCell>
+                                    <TableCell className="text-right"><ChangeIndicator value={m.chgWk} /></TableCell>
+                                    <TableCell className="text-right text-muted-foreground">{m.prevMo}</TableCell>
+                                    <TableCell className="text-right"><ChangeIndicator value={m.chgMo} /></TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
                       );
                     })()}
