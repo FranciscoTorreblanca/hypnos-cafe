@@ -397,6 +397,7 @@ const PerformancePage = () => {
           <Tabs defaultValue="top-sellers" className="space-y-4">
             <TabsList className="flex flex-wrap h-auto gap-1">
               <TabsTrigger value="top-sellers">{t("performance.topSellers")}</TabsTrigger>
+              <TabsTrigger value="comparison">{t("performance.comparison")}</TabsTrigger>
               <TabsTrigger value="trend">{t("performance.trend")}</TabsTrigger>
               <TabsTrigger value="payment-breakdown">{t("performance.paymentBreakdown")}</TabsTrigger>
               <TabsTrigger value="hours">{t("performance.hourlyDistribution")}</TabsTrigger>
