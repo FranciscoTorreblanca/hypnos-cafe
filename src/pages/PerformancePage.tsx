@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays, startOfDay, endOfDay } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -397,6 +397,7 @@ const PerformancePage = () => {
           <Tabs defaultValue="top-sellers" className="space-y-4">
             <TabsList className="flex flex-wrap h-auto gap-1">
               <TabsTrigger value="top-sellers">{t("performance.topSellers")}</TabsTrigger>
+              <TabsTrigger value="comparison">{t("performance.comparison")}</TabsTrigger>
               <TabsTrigger value="trend">{t("performance.trend")}</TabsTrigger>
               <TabsTrigger value="payment-breakdown">{t("performance.paymentBreakdown")}</TabsTrigger>
               <TabsTrigger value="hours">{t("performance.hourlyDistribution")}</TabsTrigger>
@@ -505,6 +506,167 @@ const PerformancePage = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Comparison */}
+            <TabsContent value="comparison">
+              <div className="space-y-4">
+                {/* Daily comparison: each of last 7 days vs same day previous week */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      {t("performance.dailyComparison")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const rows = Array.from({ length: 7 }, (_, i) => {
+                        const day = subDays(new Date(), 6 - i);
+                        const dayStart = startOfDay(day);
+                        const dayEndD = endOfDay(day);
+                        const prevDay = subDays(day, 7);
+                        const prevDayStart = startOfDay(prevDay);
+                        const prevDayEnd = endOfDay(prevDay);
+
+                        const curP = getPaymentsInRange(dayStart, dayEndD);
+                        const prevP = getPaymentsInRange(prevDayStart, prevDayEnd);
+                        const curO = getOrdersInRange(dayStart, dayEndD);
+                        const prevO = getOrdersInRange(prevDayStart, prevDayEnd);
+
+                        const curRev = curP.reduce((s, p) => s + p.amount, 0);
+                        const prevRev = prevP.reduce((s, p) => s + p.amount, 0);
+                        const curTips = curP.reduce((s, p) => s + p.tip, 0);
+                        const prevTips = prevP.reduce((s, p) => s + p.tip, 0);
+                        const curOrds = curO.length;
+                        const prevOrds = prevO.length;
+                        const curAvg = curOrds > 0 ? curRev / curOrds : 0;
+                        const prevAvg = prevOrds > 0 ? prevRev / prevOrds : 0;
+
+                        return {
+                          label: format(day, "EEE dd/MM", { locale: loc }),
+                          prevLabel: format(prevDay, "dd/MM", { locale: loc }),
+                          curRev, prevRev, curOrds, prevOrds, curAvg, prevAvg, curTips, prevTips,
+                        };
+                      });
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>{t("performance.day")}</TableHead>
+                                <TableHead className="text-right">{t("performance.revenue")}</TableHead>
+                                <TableHead className="text-right">{t("performance.prevWeekDay")}</TableHead>
+                                <TableHead className="text-right">{t("performance.change")}</TableHead>
+                                <TableHead className="text-right">{t("performance.totalOrders")}</TableHead>
+                                <TableHead className="text-right">{t("performance.avgTicket")}</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {rows.map((r, idx) => {
+                                const revChg = pctChange(r.curRev, r.prevRev);
+                                return (
+                                  <TableRow key={idx}>
+                                    <TableCell className="font-medium">{r.label}</TableCell>
+                                    <TableCell className="text-right">${r.curRev.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right text-muted-foreground">${r.prevRev.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right">
+                                      <ChangeIndicator value={revChg} />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {r.curOrds} <span className="text-muted-foreground text-xs">({r.prevOrds})</span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      ${r.curAvg.toFixed(0)} <span className="text-muted-foreground text-xs">(${r.prevAvg.toFixed(0)})</span>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+
+                {/* Current week vs same week previous month + vs previous week */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      {t("performance.weekVsPrevMonth")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const now = new Date();
+                      const curWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+                      const curWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
+                      const prevWeekStart = subWeeks(curWeekStart, 1);
+                      const prevWeekEnd = endOfWeek(prevWeekStart, { weekStartsOn: 1 });
+                      const prevMonthStart = startOfMonth(subMonths(now, 1));
+                      const prevMonthEnd = endOfMonth(subMonths(now, 1));
+
+                      const calcMetrics = (start: Date, end: Date) => {
+                        const p = getPaymentsInRange(start, end);
+                        const o = getOrdersInRange(start, end);
+                        const revenue = p.reduce((s, pp) => s + pp.amount, 0);
+                        const tips = p.reduce((s, pp) => s + pp.tip, 0);
+                        const ordersCount = o.length;
+                        const items = o.reduce((s, oo) => s + oo.order_items.reduce((ss, ii) => ss + ii.quantity, 0), 0);
+                        const avgTicketVal = ordersCount > 0 ? revenue / ordersCount : 0;
+                        const avgItemsPerOrder = ordersCount > 0 ? items / ordersCount : 0;
+                        const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                        const dailyAvgRev = revenue / days;
+                        return { revenue, tips, ordersCount, avgTicketVal, avgItemsPerOrder, dailyAvgRev, items };
+                      };
+
+                      const cur = calcMetrics(curWeekStart, curWeekEnd);
+                      const prevW = calcMetrics(prevWeekStart, prevWeekEnd);
+                      const prevM = calcMetrics(prevMonthStart, prevMonthEnd);
+
+                      const metrics = [
+                        { label: t("performance.revenue"), cur: `$${cur.revenue.toLocaleString()}`, prevWk: `$${prevW.revenue.toLocaleString()}`, chgWk: pctChange(cur.revenue, prevW.revenue), prevMo: `$${prevM.dailyAvgRev.toFixed(0)}/d`, chgMo: pctChange(cur.dailyAvgRev, prevM.dailyAvgRev) },
+                        { label: t("performance.totalOrders"), cur: String(cur.ordersCount), prevWk: String(prevW.ordersCount), chgWk: pctChange(cur.ordersCount, prevW.ordersCount), prevMo: `${(prevM.ordersCount / Math.max(1, Math.ceil((prevMonthEnd.getTime() - prevMonthStart.getTime()) / (1000*60*60*24*7)))).toFixed(0)}/sem`, chgMo: pctChange(cur.ordersCount, prevM.ordersCount / Math.max(1, Math.ceil((prevMonthEnd.getTime() - prevMonthStart.getTime()) / (1000*60*60*24*7)))) },
+                        { label: t("performance.avgTicket"), cur: `$${cur.avgTicketVal.toFixed(0)}`, prevWk: `$${prevW.avgTicketVal.toFixed(0)}`, chgWk: pctChange(cur.avgTicketVal, prevW.avgTicketVal), prevMo: `$${prevM.avgTicketVal.toFixed(0)}`, chgMo: pctChange(cur.avgTicketVal, prevM.avgTicketVal) },
+                        { label: t("performance.tips"), cur: `$${cur.tips.toLocaleString()}`, prevWk: `$${prevW.tips.toLocaleString()}`, chgWk: pctChange(cur.tips, prevW.tips), prevMo: `$${prevM.tips.toLocaleString()}`, chgMo: pctChange(cur.tips, prevM.tips) },
+                        { label: t("performance.avgItems"), cur: cur.avgItemsPerOrder.toFixed(1), prevWk: prevW.avgItemsPerOrder.toFixed(1), chgWk: pctChange(cur.avgItemsPerOrder, prevW.avgItemsPerOrder), prevMo: prevM.avgItemsPerOrder.toFixed(1), chgMo: pctChange(cur.avgItemsPerOrder, prevM.avgItemsPerOrder) },
+                      ];
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead></TableHead>
+                                <TableHead className="text-right">{t("performance.current")}</TableHead>
+                                <TableHead className="text-right">{language === "es" ? "Sem. ant." : "Prev. week"}</TableHead>
+                                <TableHead className="text-right">%</TableHead>
+                                <TableHead className="text-right">{language === "es" ? "Mes ant." : "Prev. month"}</TableHead>
+                                <TableHead className="text-right">%</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {metrics.map((m, idx) => (
+                                <TableRow key={idx}>
+                                  <TableCell className="font-medium">{m.label}</TableCell>
+                                  <TableCell className="text-right font-bold">{m.cur}</TableCell>
+                                  <TableCell className="text-right text-muted-foreground">{m.prevWk}</TableCell>
+                                  <TableCell className="text-right"><ChangeIndicator value={m.chgWk} /></TableCell>
+                                  <TableCell className="text-right text-muted-foreground">{m.prevMo}</TableCell>
+                                  <TableCell className="text-right"><ChangeIndicator value={m.chgMo} /></TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Trend */}
