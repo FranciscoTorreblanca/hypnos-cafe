@@ -78,7 +78,6 @@ async function createVapidJwt(
   const unsigned = `${hdr}.${pay}`;
 
   const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(unsigned)));
-  // Web Crypto returns raw r||s (64 bytes) for P-256
   return `${unsigned}.${b64urlEncode(sig)}`;
 }
 
@@ -96,25 +95,19 @@ async function encryptPayload(
   const serverPub = new Uint8Array(await crypto.subtle.exportKey("raw", serverKP.publicKey));
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  // IKM = HKDF-Extract(auth_secret, ecdh_secret)
-  // then HKDF-Expand with info="WebPush: info\0" || ua_public || as_public
   const ikmPrk = await hkdfExtract(clientAuth, sharedSecret);
   const ikmInfo = concat(new TextEncoder().encode("WebPush: info\0"), clientPub, serverPub);
   const ikm = await hkdfExpand(ikmPrk, ikmInfo, 32);
 
-  // PRK = HKDF-Extract(salt, ikm)
   const prk = await hkdfExtract(salt, ikm);
 
-  // CEK and nonce
   const cek = await hkdfExpand(prk, new TextEncoder().encode("Content-Encoding: aes128gcm\0"), 16);
   const nonce = await hkdfExpand(prk, new TextEncoder().encode("Content-Encoding: nonce\0"), 12);
 
-  // Encrypt
   const aesKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"]);
-  const padded = concat(payload, new Uint8Array([2])); // delimiter
+  const padded = concat(payload, new Uint8Array([2]));
   const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, padded));
 
-  // aes128gcm header: salt(16) || rs(4) || idlen(1) || keyid(65) || ciphertext
   const rs = new Uint8Array(4);
   new DataView(rs.buffer).setUint32(0, 4096);
 
@@ -152,7 +145,6 @@ async function sendWebPush(
     err.statusCode = res.status;
     throw err;
   }
-  // consume body
   await res.text();
 }
 
@@ -170,6 +162,13 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const vapidPub = Deno.env.get("VAPID_PUBLIC_KEY")!;
     const vapidPriv = Deno.env.get("VAPID_PRIVATE_KEY")!;
+
+    // Debug: log the public key being used by server
+    if (type === "debug_keys") {
+      return new Response(JSON.stringify({ ok: true, vapidPub }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
