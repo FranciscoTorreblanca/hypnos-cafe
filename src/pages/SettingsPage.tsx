@@ -258,6 +258,57 @@ const SettingsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Push Notifications */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base">{t("settings.pushNotifications")}</CardTitle>
+              <CardDescription className="text-sm">{t("settings.pushDescription")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Global toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="push-toggle">{t("settings.pushEnabled")}</Label>
+            <Switch
+              id="push-toggle"
+              checked={pushEnabled}
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({ ...prev, push_enabled: checked ? "true" : "false" }))
+              }
+            />
+          </div>
+
+          {pushEnabled && (
+            <div className="space-y-3">
+              {!isSupported ? (
+                <p className="text-sm text-muted-foreground">{t("settings.pushNotSupported")}</p>
+              ) : permission === "denied" ? (
+                <p className="text-sm text-destructive">{t("settings.pushPermissionDenied")}</p>
+              ) : isSubscribed ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">✓ {t("settings.pushSubscribed")}</p>
+                  <Button variant="outline" size="sm" onClick={unsubscribe} disabled={pushLoading}>
+                    {t("settings.pushUnsubscribe")}
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" onClick={subscribe} disabled={pushLoading}>
+                  {t("settings.pushSubscribe")}
+                </Button>
+              )}
+
+              <Button onClick={handleSave} disabled={loading} className="w-full">
+                {loading ? t("common.loading") : t("settings.save")}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
