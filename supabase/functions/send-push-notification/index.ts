@@ -73,10 +73,12 @@ Deno.serve(async (req) => {
     }
 
     // Get all admin user IDs
-    const { data: adminRoles } = await supabase
+    const { data: adminRoles, error: rolesErr } = await supabase
       .from("user_roles")
       .select("user_id")
       .eq("role", "admin");
+
+    console.log("Admin roles query:", { adminRoles, rolesErr });
 
     if (!adminRoles || adminRoles.length === 0) {
       return new Response(
@@ -88,10 +90,12 @@ Deno.serve(async (req) => {
     const adminIds = adminRoles.map((r) => r.user_id);
 
     // Get push subscriptions for admins
-    const { data: subscriptions } = await supabase
+    const { data: subscriptions, error: subsErr } = await supabase
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth, user_id")
       .in("user_id", adminIds);
+
+    console.log("Subscriptions query:", { count: subscriptions?.length, subsErr, adminIds });
 
     if (!subscriptions || subscriptions.length === 0) {
       return new Response(
