@@ -21,6 +21,7 @@ interface SettingsMap {
   mp_enabled: string;
   mp_device_id: string;
   mp_token_set: string;
+  push_enabled: string;
 }
 
 const SettingsPage = () => {
