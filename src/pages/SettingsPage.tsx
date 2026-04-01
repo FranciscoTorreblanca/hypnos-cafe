@@ -29,6 +29,7 @@ const SettingsPage = () => {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const { tableNames, updateNames } = useTableNames();
+  const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
   const [settings, setSettings] = useState<SettingsMap>({
     restaurant_name: "",
     tax_rate: "16",
@@ -38,6 +39,7 @@ const SettingsPage = () => {
     mp_enabled: "false",
     mp_device_id: "",
     mp_token_set: "false",
+    push_enabled: "false",
   });
   const [localTableNames, setLocalTableNames] = useState<TableNamesMap>({});
   const [loading, setLoading] = useState(false);
