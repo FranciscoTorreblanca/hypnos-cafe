@@ -129,6 +129,7 @@ const SettingsPage = () => {
 
   const tablesCount = parseInt(settings.tables_count) || 12;
   const mpEnabled = settings.mp_enabled === "true";
+  const pushEnabled = settings.push_enabled === "true";
 
   return (
     <div className="max-w-2xl space-y-6">
