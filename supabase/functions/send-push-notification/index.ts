@@ -135,11 +135,12 @@ Deno.serve(async (req) => {
       ),
     );
 
-    // Clean up invalid subscriptions (410 Gone)
+    // Log errors and clean up invalid subscriptions (410 Gone)
     const invalidEndpoints: string[] = [];
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         const err = r.reason;
+        console.error(`Push send failed for ${subscriptions[i].endpoint}:`, err?.message || err, "statusCode:", err?.statusCode);
         if (err?.statusCode === 410 || err?.statusCode === 404) {
           invalidEndpoints.push(subscriptions[i].endpoint);
         }
