@@ -163,13 +163,6 @@ Deno.serve(async (req) => {
     const vapidPub = Deno.env.get("VAPID_PUBLIC_KEY")!;
     const vapidPriv = Deno.env.get("VAPID_PRIVATE_KEY")!;
 
-    // Debug: log the public key being used by server
-    if (type === "debug_keys") {
-      return new Response(JSON.stringify({ ok: true, vapidPub }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Check if push notifications are enabled
