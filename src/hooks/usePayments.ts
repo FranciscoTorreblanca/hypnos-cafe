@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { triggerPushNotification } from "@/hooks/usePushNotifications";
 
 export interface Payment {
   id: string;
@@ -121,6 +122,20 @@ export const usePayments = () => {
       // Mark order as paid and reset general discount
       const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any, general_discount: 0 } as any).eq("id", order_id);
       if (upErr) throw upErr;
+
+      // Get order details for notification
+      const { data: orderData } = await supabase.from("orders").select("table_number").eq("id", order_id).single();
+      const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user!.id).single();
+
+      // Trigger push notification (fire and forget)
+      triggerPushNotification("order_paid", {
+        amount,
+        tip,
+        payment_method,
+        waiter_name: profile?.full_name || user!.email || "Mesero",
+        table_number: orderData?.table_number ?? "?",
+        order_id,
+      });
 
       // Till entry is auto-created by database trigger for cash payments
 

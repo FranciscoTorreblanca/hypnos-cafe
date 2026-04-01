@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useTableNames, TableNamesMap } from "@/hooks/useTableNames";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Eye, EyeOff } from "lucide-react";
+import { CreditCard, Eye, EyeOff, Bell } from "lucide-react";
 
 interface SettingsMap {
   restaurant_name: string;
@@ -20,6 +21,7 @@ interface SettingsMap {
   mp_enabled: string;
   mp_device_id: string;
   mp_token_set: string;
+  push_enabled: string;
 }
 
 const SettingsPage = () => {
@@ -27,6 +29,7 @@ const SettingsPage = () => {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const { tableNames, updateNames } = useTableNames();
+  const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
   const [settings, setSettings] = useState<SettingsMap>({
     restaurant_name: "",
     tax_rate: "16",
@@ -36,6 +39,7 @@ const SettingsPage = () => {
     mp_enabled: "false",
     mp_device_id: "",
     mp_token_set: "false",
+    push_enabled: "false",
   });
   const [localTableNames, setLocalTableNames] = useState<TableNamesMap>({});
   const [loading, setLoading] = useState(false);
@@ -125,6 +129,7 @@ const SettingsPage = () => {
 
   const tablesCount = parseInt(settings.tables_count) || 12;
   const mpEnabled = settings.mp_enabled === "true";
+  const pushEnabled = settings.push_enabled === "true";
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -250,6 +255,57 @@ const SettingsPage = () => {
                 {loading ? t("common.loading") : t("settings.save")}
               </Button>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Push Notifications */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base">{t("settings.pushNotifications")}</CardTitle>
+              <CardDescription className="text-sm">{t("settings.pushDescription")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Global toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="push-toggle">{t("settings.pushEnabled")}</Label>
+            <Switch
+              id="push-toggle"
+              checked={pushEnabled}
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({ ...prev, push_enabled: checked ? "true" : "false" }))
+              }
+            />
+          </div>
+
+          {pushEnabled && (
+            <div className="space-y-3">
+              {!isSupported ? (
+                <p className="text-sm text-muted-foreground">{t("settings.pushNotSupported")}</p>
+              ) : permission === "denied" ? (
+                <p className="text-sm text-destructive">{t("settings.pushPermissionDenied")}</p>
+              ) : isSubscribed ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">✓ {t("settings.pushSubscribed")}</p>
+                  <Button variant="outline" size="sm" onClick={unsubscribe} disabled={pushLoading}>
+                    {t("settings.pushUnsubscribe")}
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" onClick={subscribe} disabled={pushLoading}>
+                  {t("settings.pushSubscribe")}
+                </Button>
+              )}
+
+              <Button onClick={handleSave} disabled={loading} className="w-full">
+                {loading ? t("common.loading") : t("settings.save")}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

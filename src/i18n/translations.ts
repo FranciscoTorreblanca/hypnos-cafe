@@ -306,6 +306,14 @@ export const translations = {
   "users.editRoles": { es: "Editar roles", en: "Edit Roles" },
   "users.rolesUpdated": { es: "Roles actualizados", en: "Roles updated" },
   "users.cannotEditSelf": { es: "No puedes editar tus propios roles", en: "You cannot edit your own roles" },
+  "settings.pushNotifications": { es: "Notificaciones Push", en: "Push Notifications" },
+  "settings.pushDescription": { es: "Recibe notificaciones cuando se cobren órdenes", en: "Get notified when orders are paid" },
+  "settings.pushEnabled": { es: "Activar notificaciones push", en: "Enable push notifications" },
+  "settings.pushSubscribe": { es: "Activar en este dispositivo", en: "Enable on this device" },
+  "settings.pushUnsubscribe": { es: "Desactivar en este dispositivo", en: "Disable on this device" },
+  "settings.pushSubscribed": { es: "Notificaciones activas en este dispositivo", en: "Notifications active on this device" },
+  "settings.pushNotSupported": { es: "Tu navegador no soporta notificaciones push", en: "Your browser doesn't support push notifications" },
+  "settings.pushPermissionDenied": { es: "Permiso de notificaciones denegado. Actívalo en la configuración del navegador.", en: "Notification permission denied. Enable it in browser settings." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
