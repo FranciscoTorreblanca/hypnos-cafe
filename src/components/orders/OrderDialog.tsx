@@ -785,17 +785,25 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                const totalToPay = finalAmount + tip;
               const received = cashReceived;
               const change = received - totalToPay;
-              const DENOMS = [500, 200, 100, 50, 20, 5, 2, 1] as const;
+              const DENOMS = [500, 200, 100, 50, 20, 10, 5, 2, 1] as const;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
                     {received > 0 && (
-                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => setCashDenoms({})}>
+                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => { setCashDenoms({}); setCashManual(""); }}>
                         {language === "es" ? "Limpiar" : "Clear"}
                       </Button>
                     )}
                   </div>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder={`$${totalToPay.toFixed(0)}`}
+                    value={cashManual}
+                    onChange={(e) => setCashManual(e.target.value)}
+                    className="text-center text-lg font-semibold"
+                  />
                   <div className="flex flex-wrap gap-1.5">
                     {DENOMS.map((d) => {
                       const count = cashDenoms[d] || 0;
