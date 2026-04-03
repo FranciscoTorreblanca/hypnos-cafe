@@ -35,8 +35,12 @@ export const ComboChoiceDialog = ({ open, onOpenChange, combo, allItems, onConfi
   const [selections, setSelections] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     sortedGroups.forEach((g) => {
-      if (g.combo_choice_options.length > 0) {
-        init[g.id] = g.combo_choice_options[0].menu_item_id;
+      const firstAvailable = g.combo_choice_options.find((opt) => {
+        const mi = allItems.find((i) => i.id === opt.menu_item_id);
+        return mi?.is_available;
+      });
+      if (firstAvailable) {
+        init[g.id] = firstAvailable.menu_item_id;
       }
     });
     return init;
