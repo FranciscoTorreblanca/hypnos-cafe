@@ -115,10 +115,10 @@ const Auth = () => {
               <Button type="button" variant="link" className="text-sm" onClick={() => setMode("login")}>
                 {t("common.back")}
               </Button>
+              <span className="text-[10px] text-muted-foreground">v{APP_VERSION}</span>
             </CardFooter>
           </form>
         </Card>
-        <p className="mt-4 text-center text-[10px] text-muted-foreground">v{APP_VERSION}</p>
       </div>
     );
   }
