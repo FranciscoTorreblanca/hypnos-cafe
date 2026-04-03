@@ -36,7 +36,7 @@ interface Props {
 }
 
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data: categories = [] } = useMenuCategories();
 
   const form = useForm<FormValues>({
