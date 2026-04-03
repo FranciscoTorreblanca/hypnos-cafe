@@ -123,13 +123,29 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 </Select>
               </FormItem>
             )} />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="price" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("menu.price")} (MXN)</FormLabel>
                   <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                 </FormItem>
               )} />
+              <FormField control={form.control} name="promo_price" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{language === "es" ? "Precio promo" : "Promo price"}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder={language === "es" ? "Sin promo" : "No promo"}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="cost" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Costo</FormLabel>
