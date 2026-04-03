@@ -35,7 +35,7 @@ export const usePushNotifications = () => {
   const checkExistingSubscription = async () => {
     if (!user) return;
     try {
-      const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      const registration = await navigator.serviceWorker.ready;
       if (registration) {
         const sub = await registration.pushManager.getSubscription();
         setIsSubscribed(!!sub);
@@ -56,8 +56,7 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      const registration = await navigator.serviceWorker.register("/push-sw.js");
-      await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.ready;
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -90,7 +89,7 @@ export const usePushNotifications = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      const registration = await navigator.serviceWorker.ready;
       if (registration) {
         const sub = await registration.pushManager.getSubscription();
         if (sub) {
