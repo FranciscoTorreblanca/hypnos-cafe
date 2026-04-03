@@ -96,13 +96,14 @@ export const ComboChoiceDialog = ({ open, onOpenChange, combo, allItems, onConfi
                 {group.combo_choice_options.map((opt) => {
                   const mi = allItems.find((i) => i.id === opt.menu_item_id);
                   if (!mi) return null;
+                  const unavailable = !mi.is_available;
                   return (
-                    <div key={opt.id} className="flex items-center gap-2 rounded-md border p-2 hover:bg-accent cursor-pointer"
-                      onClick={() => setSelections((prev) => ({ ...prev, [group.id]: opt.menu_item_id }))}
+                    <div key={opt.id} className={`flex items-center gap-2 rounded-md border p-2 ${unavailable ? "opacity-40 cursor-not-allowed" : "hover:bg-accent cursor-pointer"}`}
+                      onClick={() => !unavailable && setSelections((prev) => ({ ...prev, [group.id]: opt.menu_item_id }))}
                     >
-                      <RadioGroupItem value={opt.menu_item_id} id={`choice-${opt.id}`} />
-                      <Label htmlFor={`choice-${opt.id}`} className="flex-1 cursor-pointer text-sm">
-                        {getName(mi)}
+                      <RadioGroupItem value={opt.menu_item_id} id={`choice-${opt.id}`} disabled={unavailable} />
+                      <Label htmlFor={`choice-${opt.id}`} className={`flex-1 text-sm ${unavailable ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                        {getName(mi)} {unavailable && <span className="text-xs text-muted-foreground">({language === "es" ? "No disponible" : "Unavailable"})</span>}
                       </Label>
                     </div>
                   );
