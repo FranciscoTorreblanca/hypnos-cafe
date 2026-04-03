@@ -13,6 +13,7 @@ interface PublicMenuItem {
   description: string;
   description_en: string;
   price: number;
+  promo_price: number | null;
   is_available: boolean;
   image_url: string | null;
 }
@@ -236,7 +237,14 @@ const PublicMenuPage = () => {
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="font-semibold text-sm">${Number(item.price).toFixed(2)}</span>
+                      {entry.menu_items?.promo_price != null ? (
+                        <div className="flex flex-col items-end">
+                          <span className="font-semibold text-sm text-green-600">${Number(entry.menu_items.promo_price).toFixed(2)}</span>
+                          <span className="line-through text-xs text-muted-foreground">${Number(item.price).toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <span className="font-semibold text-sm">${Number(item.price).toFixed(2)}</span>
+                      )}
                     </div>
                   </div>
                 );

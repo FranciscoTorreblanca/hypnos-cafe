@@ -9,11 +9,16 @@ export interface MenuItem {
   description: string;
   description_en: string;
   price: number;
+  promo_price: number | null;
   cost: number;
   image_url: string | null;
   is_available: boolean;
   inventory_count: number | null;
 }
+
+/** Returns the effective selling price (promo if set, otherwise regular). */
+export const getEffectivePrice = (item: Pick<MenuItem, "price" | "promo_price">): number =>
+  item.promo_price != null ? item.promo_price : item.price;
 
 export const useMenuItems = () => {
   const queryClient = useQueryClient();

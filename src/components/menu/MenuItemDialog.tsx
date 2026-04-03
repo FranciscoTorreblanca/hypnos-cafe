@@ -19,6 +19,7 @@ const schema = z.object({
   description: z.string().default(""),
   description_en: z.string().default(""),
   price: z.coerce.number().min(0),
+  promo_price: z.coerce.number().min(0).nullable().default(null),
   cost: z.coerce.number().min(0).default(0),
   category_id: z.string().nullable().default(null),
   is_available: z.boolean().default(true),
@@ -35,14 +36,14 @@ interface Props {
 }
 
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data: categories = [] } = useMenuCategories();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: "", name_en: "", description: "", description_en: "",
-      price: 0, cost: 0, category_id: null, is_available: true, inventory_count: null,
+      price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
     },
   });
 
@@ -54,6 +55,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         description: item.description,
         description_en: item.description_en,
         price: item.price,
+        promo_price: item.promo_price,
         cost: item.cost,
         category_id: item.category_id,
         is_available: item.is_available,
@@ -121,13 +123,29 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 </Select>
               </FormItem>
             )} />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="price" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("menu.price")} (MXN)</FormLabel>
                   <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                 </FormItem>
               )} />
+              <FormField control={form.control} name="promo_price" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{language === "es" ? "Precio promo" : "Promo price"}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder={language === "es" ? "Sin promo" : "No promo"}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="cost" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Costo</FormLabel>

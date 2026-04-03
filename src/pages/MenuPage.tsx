@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
+import { useMenuItems, MenuItem, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { CategoryManager } from "@/components/menu/CategoryManager";
 import { ComboManager } from "@/components/menu/ComboManager";
@@ -28,12 +28,13 @@ const MenuPage = () => {
 
   const exportToCsv = () => {
     const escCsv = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const headers = ["Type", "Name", "Name (EN)", "Category", "Description", "Description (EN)", "Price", "Cost", "Margin %", "Available", "Inventory"];
+    const headers = ["Type", "Name", "Name (EN)", "Category", "Description", "Description (EN)", "Price", "Promo Price", "Effective Price", "Cost", "Margin %", "Available", "Inventory"];
     const rows: string[][] = [];
 
     items.forEach((item) => {
-      const margin = item.price > 0 && item.cost > 0
-        ? (((item.price - item.cost) / item.price) * 100).toFixed(1)
+      const ep = getEffectivePrice(item);
+      const margin = ep > 0 && item.cost > 0
+        ? (((ep - item.cost) / ep) * 100).toFixed(1)
         : "";
       rows.push([
         "Item",
@@ -43,6 +44,8 @@ const MenuPage = () => {
         item.description,
         item.description_en,
         String(item.price),
+        item.promo_price != null ? String(item.promo_price) : "",
+        String(ep),
         String(item.cost),
         margin,
         item.is_available ? "Yes" : "No",
@@ -189,8 +192,12 @@ const MenuPage = () => {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((item) => {
-            const margin = item.price > 0 && item.cost > 0
-              ? (((item.price - item.cost) / item.price) * 100).toFixed(0)
+            const effectivePrice = getEffectivePrice(item);
+            const margin = effectivePrice > 0 && item.cost > 0
+              ? (((effectivePrice - item.cost) / effectivePrice) * 100).toFixed(0)
+              : null;
+            const promoDiscount = item.promo_price != null && item.price > 0
+              ? Math.round(((item.price - item.promo_price) / item.price) * 100)
               : null;
             return (
               <Card key={item.id} className={`transition-opacity ${!item.is_available ? "opacity-50" : ""}`}>
@@ -204,8 +211,18 @@ const MenuPage = () => {
                     </div>
                     <Badge variant="outline" className="shrink-0">{getCategoryName(item.category_id)}</Badge>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold">${Number(item.price).toFixed(2)}</span>
+                  <div className="flex items-center justify-between text-sm flex-wrap gap-1">
+                    <div className="flex items-center gap-1.5">
+                      {promoDiscount != null ? (
+                        <>
+                          <span className="font-semibold text-green-600">${effectivePrice.toFixed(2)}</span>
+                          <span className="line-through text-muted-foreground text-xs">${item.price.toFixed(2)}</span>
+                          <Badge variant="secondary" className="text-[10px] h-5">-{promoDiscount}%</Badge>
+                        </>
+                      ) : (
+                        <span className="font-semibold">${item.price.toFixed(2)}</span>
+                      )}
+                    </div>
                     {margin && <span className="text-muted-foreground">Margen {margin}%</span>}
                     {item.inventory_count !== null && (
                       <span className="text-muted-foreground">Inv: {item.inventory_count}</span>

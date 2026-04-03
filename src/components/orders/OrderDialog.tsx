@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
+import { useMenuItems, MenuItem, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useCombos, ComboWithItems } from "@/hooks/useCombos";
 import { Order, useOrders } from "@/hooks/useOrders";
@@ -127,7 +127,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   }, [availableCombos, search, activeCategory]);
 
   const cartTotal = useMemo(
-    () => cart.reduce((s, c) => s + c.menuItem.price * c.quantity * (1 - (c.discount ?? 0) / 100), 0),
+    () => cart.reduce((s, c) => s + getEffectivePrice(c.menuItem) * c.quantity * (1 - (c.discount ?? 0) / 100), 0),
     [cart]
   );
 
@@ -171,11 +171,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     });
 
     // Calculate total original price for proportional pricing
-    const totalOriginalPrice = allComboItems.reduce((sum, { menuItem, quantity }) => sum + menuItem.price * quantity, 0);
+    const totalOriginalPrice = allComboItems.reduce((sum, { menuItem, quantity }) => sum + getEffectivePrice(menuItem) * quantity, 0);
 
     allComboItems.forEach(({ menuItem, quantity }) => {
       const itemPrice = totalOriginalPrice > 0
-        ? Math.round((menuItem.price * quantity / totalOriginalPrice) * combo.price * 100) / 100 / quantity
+        ? Math.round((getEffectivePrice(menuItem) * quantity / totalOriginalPrice) * combo.price * 100) / 100 / quantity
         : combo.price / allComboItems.length;
 
       const comboMenuItem: MenuItem = {
@@ -226,7 +226,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         order_id: orderId,
         menu_item_id: c.menuItem.id,
         quantity: c.quantity,
-        unit_price: c.menuItem.price,
+        unit_price: getEffectivePrice(c.menuItem),
         notes: c.notes || undefined,
         discount: c.discount || 0,
       });
@@ -405,7 +405,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                       {inCart.quantity}
                     </Badge>
                   )}
-                  <span className="text-sm font-semibold">${item.price.toFixed(0)}</span>
+                  <span className="text-sm font-semibold">${getEffectivePrice(item).toFixed(0)}</span>
                   <Plus className="h-4 w-4 text-primary" />
                 </div>
               </button>
