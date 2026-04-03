@@ -782,42 +782,62 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               <span>${(finalAmount + tip).toFixed(0)} MXN</span>
             </div>
             {paymentMethod === "cash" && (() => {
-              const totalToPay = finalAmount + tip;
-              const received = parseFloat(cashReceived) || 0;
+               const totalToPay = finalAmount + tip;
+              const received = cashReceived;
               const change = received - totalToPay;
+              const DENOMS = [500, 200, 100, 50, 20, 5, 2, 1] as const;
               return (
                 <div className="space-y-2">
-                  <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[500, 200, 100, 50, 20, 5, 2, 1].map((d) => (
-                      <Button
-                        key={d}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => setCashReceived((prev) => String((parseFloat(prev) || 0) + d))}
-                      >
-                        +${d}
+                  <div className="flex items-center justify-between">
+                    <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
+                    {received > 0 && (
+                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => setCashDenoms({})}>
+                        {language === "es" ? "Limpiar" : "Clear"}
                       </Button>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-destructive"
-                      onClick={() => setCashReceived("")}
-                    >
-                      {language === "es" ? "Limpiar" : "Clear"}
-                    </Button>
+                    )}
                   </div>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder={`$${totalToPay.toFixed(0)}`}
-                    value={cashReceived}
-                    onChange={(e) => setCashReceived(e.target.value)}
-                  />
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {DENOMS.map((d) => {
+                      const count = cashDenoms[d] || 0;
+                      return (
+                        <div key={d} className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-muted-foreground">${d}</span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-6 w-6 text-xs"
+                              disabled={count === 0}
+                              onClick={() => setCashDenoms((prev) => {
+                                const next = { ...prev, [d]: (prev[d] || 0) - 1 };
+                                if (next[d] <= 0) delete next[d];
+                                return next;
+                              })}
+                            >
+                              −
+                            </Button>
+                            <span className={`w-5 text-center text-xs font-medium ${count > 0 ? "text-foreground" : "text-muted-foreground"}`}>{count}</span>
+                            <Button
+                              type="button"
+                              variant={count > 0 ? "default" : "outline"}
+                              size="icon"
+                              className="h-6 w-6 text-xs"
+                              onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
+                            >
+                              +
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {received > 0 && (
+                    <div className="flex justify-between text-sm font-medium border-t pt-1.5">
+                      <span>{language === "es" ? "Recibido" : "Received"}</span>
+                      <span>${received.toFixed(0)} MXN</span>
+                    </div>
+                  )}
                   {received > 0 && (
                     <div className={`flex justify-between text-sm font-semibold ${change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                       <span>{language === "es" ? "Cambio" : "Change"}</span>
