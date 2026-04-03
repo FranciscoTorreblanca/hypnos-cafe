@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@/version";
 import {
   LayoutDashboard,
   UtensilsCrossed,
