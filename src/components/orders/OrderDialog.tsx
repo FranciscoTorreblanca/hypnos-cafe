@@ -73,6 +73,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [tipAmount, setTipAmount] = useState("0");
+  const [cashReceived, setCashReceived] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null);
@@ -269,6 +270,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
       setShowPayment(false);
       setTipAmount("0");
+      setCashReceived("");
       onOpenChange(false);
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
@@ -778,6 +780,29 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               <span>{t("billing.total")}</span>
               <span>${(finalAmount + tip).toFixed(0)} MXN</span>
             </div>
+            {paymentMethod === "cash" && (() => {
+              const totalToPay = finalAmount + tip;
+              const received = parseFloat(cashReceived) || 0;
+              const change = received - totalToPay;
+              return (
+                <div className="space-y-2">
+                  <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder={`$${totalToPay.toFixed(0)}`}
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                  />
+                  {received > 0 && (
+                    <div className={`flex justify-between text-sm font-semibold ${change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                      <span>{language === "es" ? "Cambio" : "Change"}</span>
+                      <span>${change.toFixed(0)} MXN</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>{t("common.back")}</Button>
               <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>{t("billing.confirmPayment")}</Button>
