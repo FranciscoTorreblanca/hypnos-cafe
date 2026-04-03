@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
+import { useMenuItems, MenuItem, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useCombos, ComboWithItems } from "@/hooks/useCombos";
 import { Order, useOrders } from "@/hooks/useOrders";
