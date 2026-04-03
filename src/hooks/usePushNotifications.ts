@@ -56,8 +56,7 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      const registration = await navigator.serviceWorker.register("/push-sw.js");
-      await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.ready;
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
