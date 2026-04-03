@@ -13,6 +13,7 @@ interface PublicMenuItem {
   description: string;
   description_en: string;
   price: number;
+  promo_price: number | null;
   is_available: boolean;
   image_url: string | null;
 }
