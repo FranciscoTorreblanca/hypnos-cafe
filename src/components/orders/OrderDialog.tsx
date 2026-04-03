@@ -787,6 +787,20 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               return (
                 <div className="space-y-2">
                   <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[500, 200, 100, 50, 20, 5, 2, 1].map((d) => (
+                      <Button
+                        key={d}
+                        type="button"
+                        variant={cashReceived === String(d) ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setCashReceived(String(d))}
+                      >
+                        ${d}
+                      </Button>
+                    ))}
+                  </div>
                   <Input
                     type="number"
                     min="0"
