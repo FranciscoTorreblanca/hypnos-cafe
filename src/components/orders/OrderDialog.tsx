@@ -796,38 +796,36 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {DENOMS.map((d) => {
                       const count = cashDenoms[d] || 0;
                       return (
-                        <div key={d} className="flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-muted-foreground">${d}</span>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6 text-xs"
-                              disabled={count === 0}
-                              onClick={() => setCashDenoms((prev) => {
-                                const next = { ...prev, [d]: (prev[d] || 0) - 1 };
-                                if (next[d] <= 0) delete next[d];
-                                return next;
-                              })}
-                            >
-                              −
-                            </Button>
-                            <span className={`w-5 text-center text-xs font-medium ${count > 0 ? "text-foreground" : "text-muted-foreground"}`}>{count}</span>
-                            <Button
-                              type="button"
-                              variant={count > 0 ? "default" : "outline"}
-                              size="icon"
-                              className="h-6 w-6 text-xs"
-                              onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
-                            >
-                              +
-                            </Button>
-                          </div>
+                        <div key={d} className="inline-flex items-center h-8 rounded-md border border-input overflow-hidden">
+                          <button
+                            type="button"
+                            className="h-full px-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+                            disabled={count === 0}
+                            onClick={() => setCashDenoms((prev) => {
+                              const next = { ...prev, [d]: (prev[d] || 0) - 1 };
+                              if (next[d] <= 0) delete next[d];
+                              return next;
+                            })}
+                          >
+                            −
+                          </button>
+                          <span
+                            className={`px-1.5 text-xs font-semibold cursor-pointer select-none ${count > 0 ? "bg-primary text-primary-foreground" : "text-foreground"}`}
+                            onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
+                          >
+                            {count > 0 && <span className="mr-0.5">({count})</span>}${d}
+                          </span>
+                          <button
+                            type="button"
+                            className="h-full px-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                            onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
+                          >
+                            +
+                          </button>
                         </div>
                       );
                     })}
