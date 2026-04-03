@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Auto-generated at build time by vite.config.ts
-// __BUILD_TIMESTAMP__ is replaced during compilation
-export const APP_VERSION = __BUILD_TIMESTAMP__;
+// @ts-ignore – __BUILD_TIMESTAMP__ is injected via Vite define
+export const APP_VERSION: string = __BUILD_TIMESTAMP__;
