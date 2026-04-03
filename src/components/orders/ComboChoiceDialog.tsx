@@ -64,15 +64,15 @@ export const ComboChoiceDialog = ({ open, onOpenChange, combo, allItems, onConfi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
+      <DialogContent className="max-w-sm max-h-[85dvh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-1.5 text-base">
             <Package className="h-4 w-4 text-primary" />
             {getName(combo)}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 overflow-y-auto flex-1 min-h-0">
           {/* Fixed items summary */}
           {combo.combo_items.length > 0 && (
             <div className="text-xs text-muted-foreground space-y-0.5">
