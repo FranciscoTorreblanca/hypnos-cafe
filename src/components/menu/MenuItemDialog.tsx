@@ -43,7 +43,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "", name_en: "", description: "", description_en: "",
-      price: 0, cost: 0, category_id: null, is_available: true, inventory_count: null,
+      price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
     },
   });
 
