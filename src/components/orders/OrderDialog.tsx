@@ -171,7 +171,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     });
 
     // Calculate total original price for proportional pricing
-    const totalOriginalPrice = allComboItems.reduce((sum, { menuItem, quantity }) => sum + menuItem.price * quantity, 0);
+    const totalOriginalPrice = allComboItems.reduce((sum, { menuItem, quantity }) => sum + getEffectivePrice(menuItem) * quantity, 0);
 
     allComboItems.forEach(({ menuItem, quantity }) => {
       const itemPrice = totalOriginalPrice > 0
