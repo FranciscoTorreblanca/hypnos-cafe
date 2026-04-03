@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { APP_VERSION } from "@/version";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -117,6 +118,7 @@ const Auth = () => {
             </CardFooter>
           </form>
         </Card>
+        <p className="mt-4 text-center text-[10px] text-muted-foreground">v{APP_VERSION}</p>
       </div>
     );
   }
@@ -170,6 +172,7 @@ const Auth = () => {
           </CardFooter>
         </form>
       </Card>
+      <p className="mt-4 text-center text-[10px] text-muted-foreground">v{APP_VERSION}</p>
     </div>
   );
 };

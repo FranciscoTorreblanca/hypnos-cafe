@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@/version";
 import { Grid3X3, ChefHat, Menu } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -113,9 +114,12 @@ export const BottomNav = () => {
             ))}
           </div>
           <div className="flex items-center justify-between border-t border-border pt-3 mt-2">
-            <span className="text-xs text-muted-foreground truncate max-w-[160px]">
-              {user?.email}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                {user?.email}
+              </span>
+              <span className="text-[10px] text-muted-foreground">v{APP_VERSION}</span>
+            </div>
             <div className="flex items-center gap-2">
               <LanguageToggle />
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}>
