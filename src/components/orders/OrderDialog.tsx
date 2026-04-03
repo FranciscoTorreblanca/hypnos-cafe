@@ -792,14 +792,23 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                       <Button
                         key={d}
                         type="button"
-                        variant={cashReceived === String(d) ? "default" : "outline"}
+                        variant="outline"
                         size="sm"
                         className="h-7 px-2 text-xs"
-                        onClick={() => setCashReceived(String(d))}
+                        onClick={() => setCashReceived((prev) => String((parseFloat(prev) || 0) + d))}
                       >
-                        ${d}
+                        +${d}
                       </Button>
                     ))}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-destructive"
+                      onClick={() => setCashReceived("")}
+                    >
+                      {language === "es" ? "Limpiar" : "Clear"}
+                    </Button>
                   </div>
                   <Input
                     type="number"
