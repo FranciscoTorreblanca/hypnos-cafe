@@ -273,6 +273,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       setShowPayment(false);
       setTipAmount("0");
       setCashDenoms({});
+      setCashManual("");
       onOpenChange(false);
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
