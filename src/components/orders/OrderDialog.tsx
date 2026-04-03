@@ -405,7 +405,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                       {inCart.quantity}
                     </Badge>
                   )}
-                  <span className="text-sm font-semibold">${item.price.toFixed(0)}</span>
+                  <span className="text-sm font-semibold">${getEffectivePrice(item).toFixed(0)}</span>
                   <Plus className="h-4 w-4 text-primary" />
                 </div>
               </button>
