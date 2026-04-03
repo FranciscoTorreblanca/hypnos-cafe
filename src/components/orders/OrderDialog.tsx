@@ -175,7 +175,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
     allComboItems.forEach(({ menuItem, quantity }) => {
       const itemPrice = totalOriginalPrice > 0
-        ? Math.round((menuItem.price * quantity / totalOriginalPrice) * combo.price * 100) / 100 / quantity
+        ? Math.round((getEffectivePrice(menuItem) * quantity / totalOriginalPrice) * combo.price * 100) / 100 / quantity
         : combo.price / allComboItems.length;
 
       const comboMenuItem: MenuItem = {
