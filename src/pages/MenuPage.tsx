@@ -28,12 +28,13 @@ const MenuPage = () => {
 
   const exportToCsv = () => {
     const escCsv = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const headers = ["Type", "Name", "Name (EN)", "Category", "Description", "Description (EN)", "Price", "Cost", "Margin %", "Available", "Inventory"];
+    const headers = ["Type", "Name", "Name (EN)", "Category", "Description", "Description (EN)", "Price", "Promo Price", "Effective Price", "Cost", "Margin %", "Available", "Inventory"];
     const rows: string[][] = [];
 
     items.forEach((item) => {
-      const margin = item.price > 0 && item.cost > 0
-        ? (((item.price - item.cost) / item.price) * 100).toFixed(1)
+      const ep = getEffectivePrice(item);
+      const margin = ep > 0 && item.cost > 0
+        ? (((ep - item.cost) / ep) * 100).toFixed(1)
         : "";
       rows.push([
         "Item",
@@ -43,6 +44,8 @@ const MenuPage = () => {
         item.description,
         item.description_en,
         String(item.price),
+        item.promo_price != null ? String(item.promo_price) : "",
+        String(ep),
         String(item.cost),
         margin,
         item.is_available ? "Yes" : "No",
