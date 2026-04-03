@@ -118,6 +118,7 @@ const Auth = () => {
             </CardFooter>
           </form>
         </Card>
+        <p className="mt-4 text-center text-[10px] text-muted-foreground">v{APP_VERSION}</p>
       </div>
     );
   }
