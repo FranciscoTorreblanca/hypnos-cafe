@@ -223,16 +223,23 @@ const MenuPage = () => {
                         <span className="font-semibold">${item.price.toFixed(2)}</span>
                       )}
                     </div>
-                    {margin && <span className="text-muted-foreground">Margen {margin}%</span>}
-                    {item.inventory_count !== null && (
-                      <span className="text-muted-foreground">Inv: {item.inventory_count}</span>
-                    )}
-                    {isAdmin && item.cost > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {item.cost > 0 && (
+                        <span>{language === "es" ? "Costo" : "Cost"}: ${item.cost.toFixed(2)}</span>
+                      )}
+                      {margin && <span>Margen {margin}%</span>}
+                      {item.inventory_count !== null && (
+                        <span>Inv: {item.inventory_count}</span>
+                      )}
+                    </div>
+                  </div>
+                  {isAdmin && item.cost > 0 && (
+                    <div className="flex justify-end">
                       <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" onClick={() => navigate(`/cost-calculator`)}>
                         <Calculator className="h-3 w-3 mr-0.5" />Costear
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   {isAdmin && (
                     <div className="flex items-center justify-between pt-1 border-t">
                       <div className="flex items-center gap-2">
