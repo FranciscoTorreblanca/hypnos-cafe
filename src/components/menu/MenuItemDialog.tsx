@@ -19,6 +19,7 @@ const schema = z.object({
   description: z.string().default(""),
   description_en: z.string().default(""),
   price: z.coerce.number().min(0),
+  promo_price: z.coerce.number().min(0).nullable().default(null),
   cost: z.coerce.number().min(0).default(0),
   category_id: z.string().nullable().default(null),
   is_available: z.boolean().default(true),
