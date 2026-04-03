@@ -165,14 +165,14 @@ const Auth = () => {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-2">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? t("common.loading") : t("auth.login")}
             </Button>
+            <span className="text-[10px] text-muted-foreground">v{APP_VERSION}</span>
           </CardFooter>
         </form>
       </Card>
-      <p className="mt-4 text-center text-[10px] text-muted-foreground">v{APP_VERSION}</p>
     </div>
   );
 };
