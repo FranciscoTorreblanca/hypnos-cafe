@@ -270,6 +270,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
       setShowPayment(false);
       setTipAmount("0");
+      setCashReceived("");
       onOpenChange(false);
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
