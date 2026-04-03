@@ -55,6 +55,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         description: item.description,
         description_en: item.description_en,
         price: item.price,
+        promo_price: item.promo_price,
         cost: item.cost,
         category_id: item.category_id,
         is_available: item.is_available,
