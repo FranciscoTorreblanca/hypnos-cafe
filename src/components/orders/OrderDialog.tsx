@@ -74,7 +74,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [tipAmount, setTipAmount] = useState("0");
   const [cashDenoms, setCashDenoms] = useState<Record<number, number>>({});
-  const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0);
+  const [cashManual, setCashManual] = useState("");
+  const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0) + (parseFloat(cashManual) || 0);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null);
@@ -272,6 +273,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       setShowPayment(false);
       setTipAmount("0");
       setCashDenoms({});
+      setCashManual("");
       onOpenChange(false);
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
@@ -785,17 +787,25 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                const totalToPay = finalAmount + tip;
               const received = cashReceived;
               const change = received - totalToPay;
-              const DENOMS = [500, 200, 100, 50, 20, 5, 2, 1] as const;
+              const DENOMS = [500, 200, 100, 50, 20, 10, 5, 2, 1] as const;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
                     {received > 0 && (
-                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => setCashDenoms({})}>
+                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => { setCashDenoms({}); setCashManual(""); }}>
                         {language === "es" ? "Limpiar" : "Clear"}
                       </Button>
                     )}
                   </div>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder={`$${totalToPay.toFixed(0)}`}
+                    value={cashManual}
+                    onChange={(e) => setCashManual(e.target.value)}
+                    className="text-center text-lg font-semibold"
+                  />
                   <div className="flex flex-wrap gap-1.5">
                     {DENOMS.map((d) => {
                       const count = cashDenoms[d] || 0;
