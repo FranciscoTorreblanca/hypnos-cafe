@@ -74,7 +74,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [tipAmount, setTipAmount] = useState("0");
   const [cashDenoms, setCashDenoms] = useState<Record<number, number>>({});
-  const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0);
+  const [cashManual, setCashManual] = useState("");
+  const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0) + (parseFloat(cashManual) || 0);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null);
