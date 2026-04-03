@@ -226,7 +226,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         order_id: orderId,
         menu_item_id: c.menuItem.id,
         quantity: c.quantity,
-        unit_price: c.menuItem.price,
+        unit_price: getEffectivePrice(c.menuItem),
         notes: c.notes || undefined,
         discount: c.discount || 0,
       });
