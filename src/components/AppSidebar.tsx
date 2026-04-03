@@ -104,6 +104,7 @@ export const AppSidebar = () => {
           <LogOut className="h-4 w-4" />
           {t("auth.logout")}
         </Button>
+        <span className="text-[10px] text-muted-foreground text-center">v{APP_VERSION}</span>
       </SidebarFooter>
     </Sidebar>
   );
