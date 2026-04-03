@@ -73,6 +73,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [tipAmount, setTipAmount] = useState("0");
+  const [cashReceived, setCashReceived] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [editingExistingNotes, setEditingExistingNotes] = useState<string | null>(null);
