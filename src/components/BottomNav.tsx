@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@/version";
 import { Grid3X3, ChefHat, Menu } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
