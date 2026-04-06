@@ -35,6 +35,7 @@ export const translations = {
   "nav.settings": { es: "Configuración", en: "Settings" },
   "nav.costCalculator": { es: "Calculadora de costos", en: "Cost Calculator" },
   "nav.menuGenerator": { es: "Generador de menú", en: "Menu Generator" },
+  "nav.orderHistory": { es: "Historial de órdenes", en: "Order History" },
 
   // Dashboard
   "dashboard.welcome": { es: "Bienvenido", en: "Welcome" },
