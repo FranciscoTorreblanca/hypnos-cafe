@@ -84,15 +84,35 @@ const OrderHistoryPage = () => {
         .select(`
           *,
           order_items(*, menu_items(name, name_en)),
-          profiles!orders_created_by_fkey(full_name, email),
-          payments(amount, tip, payment_method, created_at, created_by, profiles!payments_created_by_fkey(full_name, email))
+          payments(amount, tip, payment_method, created_at, created_by)
         `)
         .gte("created_at", from.toISOString())
         .lte("created_at", to.toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data ?? []) as unknown as HistoryOrder[];
+
+      // Collect unique user IDs for waiter/cashier names
+      const userIds = new Set<string>();
+      (data ?? []).forEach((o: any) => {
+        if (o.created_by) userIds.add(o.created_by);
+        (o.payments ?? []).forEach((p: any) => { if (p.created_by) userIds.add(p.created_by); });
+      });
+
+      let profileMap: Record<string, { full_name: string; email: string }> = {};
+      if (userIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", Array.from(userIds));
+        (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+      }
+
+      return (data ?? []).map((o: any) => ({
+        ...o,
+        waiterName: profileMap[o.created_by]?.full_name || profileMap[o.created_by]?.email || "",
+        cashierName: o.payments?.[0]?.created_by ? (profileMap[o.payments[0].created_by]?.full_name || profileMap[o.payments[0].created_by]?.email || "") : "",
+      })) as HistoryOrder[];
     },
   });
 
