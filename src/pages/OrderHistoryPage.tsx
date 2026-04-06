@@ -129,7 +129,7 @@ const OrderHistoryPage = () => {
           const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
           return name.toLowerCase().includes(s);
         });
-        const waiterMatch = o.profiles?.full_name?.toLowerCase().includes(s) || o.profiles?.email?.toLowerCase().includes(s);
+        const waiterMatch = o.waiterName?.toLowerCase().includes(s);
         return tableMatch || itemMatch || waiterMatch;
       });
     }
@@ -150,7 +150,7 @@ const OrderHistoryPage = () => {
   const exportCsv = () => {
     const rows = [["Fecha", "Mesa", "Mesero", "Producto", "Cant", "P.Unit", "Desc%", "Subtotal", "Notas", "Estado Orden", "Método Pago", "Total Orden", "Propina"]];
     filtered.forEach((o) => {
-      const waiter = o.profiles?.full_name || o.profiles?.email || "";
+      const waiter = o.waiterName || "";
       const payment = o.payments?.[0];
       o.order_items.forEach((oi) => {
         const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
@@ -287,8 +287,8 @@ const OrderHistoryPage = () => {
           <Accordion type="multiple" className="space-y-2">
             {filtered.map((order) => {
               const payment = order.payments?.[0];
-              const waiter = order.profiles?.full_name || order.profiles?.email || "—";
-              const cashier = payment?.profiles?.full_name || payment?.profiles?.email;
+              const waiter = order.waiterName || "—";
+              const cashier = order.cashierName;
               const itemCount = order.order_items.reduce((s, oi) => s + oi.quantity, 0);
               const discountedTotal = order.total * (1 - (order.general_discount ?? 0) / 100);
 
