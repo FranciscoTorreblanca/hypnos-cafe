@@ -54,8 +54,9 @@ interface HistoryOrder {
   updated_at: string;
   created_by: string;
   order_items: HistoryOrderItem[];
-  profiles: { full_name: string; email: string } | null;
-  payments: { amount: number; tip: number; payment_method: string; created_at: string; created_by: string; profiles: { full_name: string; email: string } | null }[];
+  waiterName?: string;
+  cashierName?: string;
+  payments: { amount: number; tip: number; payment_method: string; created_at: string; created_by: string }[];
 }
 
 const OrderHistoryPage = () => {
@@ -83,15 +84,35 @@ const OrderHistoryPage = () => {
         .select(`
           *,
           order_items(*, menu_items(name, name_en)),
-          profiles!orders_created_by_fkey(full_name, email),
-          payments(amount, tip, payment_method, created_at, created_by, profiles!payments_created_by_fkey(full_name, email))
+          payments(amount, tip, payment_method, created_at, created_by)
         `)
         .gte("created_at", from.toISOString())
         .lte("created_at", to.toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data ?? []) as unknown as HistoryOrder[];
+
+      // Collect unique user IDs for waiter/cashier names
+      const userIds = new Set<string>();
+      (data ?? []).forEach((o: any) => {
+        if (o.created_by) userIds.add(o.created_by);
+        (o.payments ?? []).forEach((p: any) => { if (p.created_by) userIds.add(p.created_by); });
+      });
+
+      let profileMap: Record<string, { full_name: string; email: string }> = {};
+      if (userIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", Array.from(userIds));
+        (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+      }
+
+      return (data ?? []).map((o: any) => ({
+        ...o,
+        waiterName: profileMap[o.created_by]?.full_name || profileMap[o.created_by]?.email || "",
+        cashierName: o.payments?.[0]?.created_by ? (profileMap[o.payments[0].created_by]?.full_name || profileMap[o.payments[0].created_by]?.email || "") : "",
+      })) as HistoryOrder[];
     },
   });
 
@@ -108,7 +129,7 @@ const OrderHistoryPage = () => {
           const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
           return name.toLowerCase().includes(s);
         });
-        const waiterMatch = o.profiles?.full_name?.toLowerCase().includes(s) || o.profiles?.email?.toLowerCase().includes(s);
+        const waiterMatch = o.waiterName?.toLowerCase().includes(s);
         return tableMatch || itemMatch || waiterMatch;
       });
     }
@@ -129,7 +150,7 @@ const OrderHistoryPage = () => {
   const exportCsv = () => {
     const rows = [["Fecha", "Mesa", "Mesero", "Producto", "Cant", "P.Unit", "Desc%", "Subtotal", "Notas", "Estado Orden", "Método Pago", "Total Orden", "Propina"]];
     filtered.forEach((o) => {
-      const waiter = o.profiles?.full_name || o.profiles?.email || "";
+      const waiter = o.waiterName || "";
       const payment = o.payments?.[0];
       o.order_items.forEach((oi) => {
         const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
@@ -266,8 +287,8 @@ const OrderHistoryPage = () => {
           <Accordion type="multiple" className="space-y-2">
             {filtered.map((order) => {
               const payment = order.payments?.[0];
-              const waiter = order.profiles?.full_name || order.profiles?.email || "—";
-              const cashier = payment?.profiles?.full_name || payment?.profiles?.email;
+              const waiter = order.waiterName || "—";
+              const cashier = order.cashierName;
               const itemCount = order.order_items.reduce((s, oi) => s + oi.quantity, 0);
               const discountedTotal = order.total * (1 - (order.general_discount ?? 0) / 100);
 
