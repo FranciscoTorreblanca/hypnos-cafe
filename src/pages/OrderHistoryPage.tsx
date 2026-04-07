@@ -29,7 +29,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Download, Calendar, Receipt, Clock } from "lucide-react";
+import { Search, Download, Calendar, Receipt, Clock, Package } from "lucide-react";
 
 interface HistoryOrderItem {
   id: string;
@@ -40,7 +40,10 @@ interface HistoryOrderItem {
   notes: string;
   status: string;
   created_at: string;
+  combo_id?: string | null;
+  combo_group_id?: string | null;
   menu_items: { name: string; name_en: string } | null;
+  combos?: { name: string; name_en: string } | null;
 }
 
 interface HistoryOrder {
@@ -83,7 +86,7 @@ const OrderHistoryPage = () => {
         .from("orders")
         .select(`
           *,
-          order_items(*, menu_items(name, name_en)),
+          order_items(*, menu_items(name, name_en), combos(name, name_en)),
           payments(amount, tip, payment_method, created_at, created_by)
         `)
         .gte("created_at", from.toISOString())
