@@ -519,93 +519,112 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     </div>
   );
 
+  const renderOrderItem = (oi: typeof orderItems[0], indent = false) => {
+    const discountPct = (oi as any).discount ?? 0;
+    const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
+    return (
+      <div key={oi.id} className={`space-y-0.5 ${indent ? "ml-3" : ""}`}>
+        <div className="flex items-center justify-between text-sm gap-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1">
+              <p className="truncate text-xs">
+                {oi.quantity}x {getName(oi.menu_item)}
+              </p>
+              {discountPct > 0 && (
+                <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
+              )}
+              {order && order.status !== "pending" && itemStatusBadge(oi.status)}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {discountPct > 0 ? (
+                <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
+              ) : (
+                <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {order && (oi.status === "pending" || oi.status === "in_progress") && order.status !== "pending" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-emerald-600"
+                onClick={() => updateItemStatus.mutate({ id: oi.id, status: "ready", order_id: order.id })}
+                title={t("orders.markReady")}
+              >
+                <CheckCircle className="h-3 w-3" />
+              </Button>
+            )}
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
+              >
+                <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+              </Button>
+            )}
+            {canDeleteItem(oi.status) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                onClick={() => handleRemoveItem(oi.id)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+        {editingExistingNotes === `disc-${oi.id}` && isAdmin && order && (
+          <div className="flex items-center gap-1.5 ml-1">
+            <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              defaultValue={discountPct || ""}
+              placeholder="0"
+              onBlur={(e) => {
+                const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                updateItemDiscount.mutate({ id: oi.id, discount: val, order_id: order.id });
+                setEditingExistingNotes(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              className="h-7 w-20 text-xs"
+              autoFocus
+            />
+            <span className="text-[10px] text-muted-foreground">%</span>
+          </div>
+        )}
+        {oi.notes && (
+          <p className="text-[10px] text-muted-foreground italic ml-1">📝 {oi.notes}</p>
+        )}
+      </div>
+    );
+  };
+
+  const grouped = useMemo(() => groupOrderItems(orderItems), [orderItems]);
+
   // ─── Order items list (scrollable) ───
   const orderItemsList = (
     <>
-      {orderItems.map((oi) => {
-        const discountPct = (oi as any).discount ?? 0;
-        const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
+      {grouped.map((entry) => {
+        if (entry.type === "single") {
+          return renderOrderItem(entry.item);
+        }
+        const { group } = entry;
+        const comboLabel = language === "es" ? group.comboName : group.comboNameEn;
         return (
-          <div key={oi.id} className="space-y-0.5">
-            <div className="flex items-center justify-between text-sm gap-1">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <p className="truncate text-xs">
-                    {oi.quantity}x {getName(oi.menu_item)}
-                  </p>
-                  {discountPct > 0 && (
-                    <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
-                  )}
-                  {order && order.status !== "pending" && itemStatusBadge(oi.status)}
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  {discountPct > 0 ? (
-                    <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
-                  ) : (
-                    <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
-                  )}
-                </p>
-              </div>
-              <div className="flex items-center gap-0.5 shrink-0">
-                {order && (oi.status === "pending" || oi.status === "in_progress") && order.status !== "pending" && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-emerald-600"
-                    onClick={() => updateItemStatus.mutate({ id: oi.id, status: "ready", order_id: order.id })}
-                    title={t("orders.markReady")}
-                  >
-                    <CheckCircle className="h-3 w-3" />
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
-                  >
-                    <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
-                  </Button>
-                )}
-                {canDeleteItem(oi.status) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive hover:text-destructive"
-                    onClick={() => handleRemoveItem(oi.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
+          <div key={group.comboGroupId} className="border rounded-md p-1.5 bg-muted/20 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <Package className="h-3 w-3 text-primary shrink-0" />
+              <span className="text-xs font-semibold text-primary">{comboLabel}</span>
             </div>
-            {editingExistingNotes === `disc-${oi.id}` && isAdmin && order && (
-              <div className="flex items-center gap-1.5 ml-1">
-                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  defaultValue={discountPct || ""}
-                  placeholder="0"
-                  onBlur={(e) => {
-                    const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                    updateItemDiscount.mutate({ id: oi.id, discount: val, order_id: order.id });
-                    setEditingExistingNotes(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                  }}
-                  className="h-7 w-20 text-xs"
-                  autoFocus
-                />
-                <span className="text-[10px] text-muted-foreground">%</span>
-              </div>
-            )}
-            {oi.notes && (
-              <p className="text-[10px] text-muted-foreground italic ml-1">📝 {oi.notes}</p>
-            )}
+            {group.items.map((oi) => renderOrderItem(oi, true))}
           </div>
         );
       })}
