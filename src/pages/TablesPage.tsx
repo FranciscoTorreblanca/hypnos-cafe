@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useOrders } from "@/hooks/useOrders";
+import { useOrders, OrderItem } from "@/hooks/useOrders";
 import { useTableNames } from "@/hooks/useTableNames";
+import { groupOrderItems } from "@/utils/groupOrderItems";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Trash2,
+  Package,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -275,56 +277,76 @@ const TablesPage = () => {
               {/* Expanded order details */}
               {isExpanded && table.order && (
                 <div className="border-t bg-muted/30 px-3 py-2 space-y-1 animate-in slide-in-from-top-1 duration-150" data-vaul-no-drag>
-                  {items.map((item) => {
-                    const hasDiscount = (item.discount ?? 0) > 0;
-                    const itemTotal = item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
-                    return (
-                      <div key={item.id} className="flex items-start justify-between text-xs py-1">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-muted-foreground">{item.quantity}×</span>
-                            <span className="truncate">
-                              {item.menu_item?.name || "—"}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={`text-[9px] px-1 py-0 ${
-                                item.status === "ready"
-                                  ? "border-blue-300 text-blue-700 dark:text-blue-300"
-                                  : item.status === "pending"
-                                  ? "border-amber-300 text-amber-700 dark:text-amber-300"
-                                  : "border-muted text-muted-foreground"
-                              }`}
-                            >
-                              {item.status}
-                            </Badge>
-                          </div>
-                          {item.notes && (
-                            <p className="text-[10px] text-muted-foreground ml-5 italic">
-                              {item.notes}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right shrink-0 ml-2">
-                          {hasDiscount ? (
-                            <div>
-                              <span className="line-through text-muted-foreground mr-1">
-                                ${(item.quantity * item.unit_price).toFixed(0)}
+                  {(() => {
+                    const renderItem = (item: OrderItem) => {
+                      const hasDiscount = (item.discount ?? 0) > 0;
+                      const itemTotal = item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
+                      return (
+                        <div key={item.id} className="flex items-start justify-between text-xs py-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">{item.quantity}×</span>
+                              <span className="truncate">
+                                {item.menu_item?.name || "—"}
                               </span>
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                ${itemTotal.toFixed(0)}
-                              </span>
-                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
-                                -{item.discount}%
-                              </span>
+                              <Badge
+                                variant="outline"
+                                className={`text-[9px] px-1 py-0 ${
+                                  item.status === "ready"
+                                    ? "border-blue-300 text-blue-700 dark:text-blue-300"
+                                    : item.status === "pending"
+                                    ? "border-amber-300 text-amber-700 dark:text-amber-300"
+                                    : "border-muted text-muted-foreground"
+                                }`}
+                              >
+                                {item.status}
+                              </Badge>
                             </div>
-                          ) : (
-                            <span>${itemTotal.toFixed(0)}</span>
-                          )}
+                            {item.notes && (
+                              <p className="text-[10px] text-muted-foreground ml-5 italic">
+                                {item.notes}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0 ml-2">
+                            {hasDiscount ? (
+                              <div>
+                                <span className="line-through text-muted-foreground mr-1">
+                                  ${(item.quantity * item.unit_price).toFixed(0)}
+                                </span>
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  ${itemTotal.toFixed(0)}
+                                </span>
+                                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
+                                  -{item.discount}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span>${itemTotal.toFixed(0)}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    };
+
+                    const grouped = groupOrderItems(items);
+                    return grouped.map((entry) => {
+                      if (entry.type === "combo") {
+                        const { group } = entry;
+                        const comboLabel = language === "es" ? group.comboName : group.comboNameEn;
+                        return (
+                          <div key={group.comboGroupId} className="border rounded p-1.5 bg-muted/20 space-y-0.5">
+                            <div className="flex items-center gap-1">
+                              <Package className="h-3 w-3 text-primary" />
+                              <span className="text-[10px] font-semibold text-primary">{comboLabel}</span>
+                            </div>
+                            {group.items.map((item) => renderItem(item))}
+                          </div>
+                        );
+                      }
+                      return renderItem(entry.item);
+                    });
+                  })()}
                   {/* Total row */}
                   {(() => {
                     const gd = (table.order as any)?.general_discount ?? 0;
