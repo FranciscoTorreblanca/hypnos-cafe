@@ -620,6 +620,8 @@ export type Database = {
       }
       order_items: {
         Row: {
+          combo_group_id: string | null
+          combo_id: string | null
           created_at: string
           discount: number
           id: string
@@ -631,6 +633,8 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          combo_group_id?: string | null
+          combo_id?: string | null
           created_at?: string
           discount?: number
           id?: string
@@ -642,6 +646,8 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          combo_group_id?: string | null
+          combo_id?: string | null
           created_at?: string
           discount?: number
           id?: string
@@ -653,6 +659,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "combos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_menu_item_id_fkey"
             columns: ["menu_item_id"]

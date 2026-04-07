@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useIngredients } from "@/hooks/useIngredients";
@@ -6,6 +6,7 @@ import { useMenuItems } from "@/hooks/useMenuItems";
 import { useTableNames } from "@/hooks/useTableNames";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { supabase } from "@/integrations/supabase/client";
+import { groupOrderItems } from "@/utils/groupOrderItems";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Clock, BookOpen, Search } from "lucide-react";
+import { CheckCircle, Clock, BookOpen, Search, Package } from "lucide-react";
 
 const KitchenPage = () => {
   const { t, language } = useLanguage();
@@ -156,42 +157,62 @@ const KitchenPage = () => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="space-y-2">
-                      {(order.order_items ?? []).map((oi) => (
-                        <Collapsible key={oi.id}>
-                          <div className="flex items-start justify-between text-sm gap-1">
-                            <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-                              <span className="break-words">
-                                {oi.quantity}x{" "}
-                                {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
-                              </span>
-                              <Badge variant="outline" className={`text-[10px] shrink-0 ${itemStatusColor[oi.status] ?? itemStatusColor.pending}`}>
-                                {itemStatusLabel[oi.status] ?? itemStatusLabel.pending}
-                              </Badge>
+                      {(() => {
+                        const renderKitchenItem = (oi: typeof order.order_items[0]) => (
+                          <Collapsible key={oi.id}>
+                            <div className="flex items-start justify-between text-sm gap-1">
+                              <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                                <span className="break-words">
+                                  {oi.quantity}x{" "}
+                                  {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}
+                                </span>
+                                <Badge variant="outline" className={`text-[10px] shrink-0 ${itemStatusColor[oi.status] ?? itemStatusColor.pending}`}>
+                                  {itemStatusLabel[oi.status] ?? itemStatusLabel.pending}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <BookOpen className="h-3 w-3" />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                {oi.status === "pending" && (
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleStartItem(oi.id, order.id)}>
+                                    <Clock className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                {(oi.status === "pending" || oi.status === "in_progress") && (
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600" onClick={() => handleMarkItemReady(oi.id, order.id)}>
+                                    <CheckCircle className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-0.5 shrink-0">
-                              <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                  <BookOpen className="h-3 w-3" />
-                                </Button>
-                              </CollapsibleTrigger>
-                              {oi.status === "pending" && (
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleStartItem(oi.id, order.id)}>
-                                  <Clock className="h-3 w-3" />
-                                </Button>
-                              )}
-                              {(oi.status === "pending" || oi.status === "in_progress") && (
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600" onClick={() => handleMarkItemReady(oi.id, order.id)}>
-                                  <CheckCircle className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                          {oi.notes && <span className="text-xs text-muted-foreground italic block">📝 {oi.notes}</span>}
-                          <CollapsibleContent className="pt-1 pb-2">
-                            {renderRecipe(oi.menu_item_id)}
-                          </CollapsibleContent>
-                        </Collapsible>
-                      ))}
+                            {oi.notes && <span className="text-xs text-muted-foreground italic block">📝 {oi.notes}</span>}
+                            <CollapsibleContent className="pt-1 pb-2">
+                              {renderRecipe(oi.menu_item_id)}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+
+                        const grouped = groupOrderItems(order.order_items ?? []);
+                        return grouped.map((entry) => {
+                          if (entry.type === "combo") {
+                            const { group } = entry;
+                            const comboLabel = language === "es" ? group.comboName : group.comboNameEn;
+                            return (
+                              <div key={group.comboGroupId} className="border rounded-md p-1.5 bg-muted/20 space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Package className="h-3 w-3 text-primary shrink-0" />
+                                  <span className="text-xs font-semibold text-primary">{comboLabel}</span>
+                                </div>
+                                {group.items.map((oi) => renderKitchenItem(oi))}
+                              </div>
+                            );
+                          }
+                          return renderKitchenItem(entry.item);
+                        });
+                      })()}
                     </div>
                     {order.notes && (
                       <p className="text-xs italic text-muted-foreground border-t pt-2">{order.notes}</p>
