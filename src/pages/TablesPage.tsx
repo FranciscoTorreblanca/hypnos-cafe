@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const TablesPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data: orders = [], cancelOrder } = useOrders();
   const { tableNames, getTableLabel, updateNames } = useTableNames();
   const [dialogOpen, setDialogOpen] = useState(false);
