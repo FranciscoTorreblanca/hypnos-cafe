@@ -12,7 +12,10 @@ export interface OrderItem {
   notes: string;
   status: string;
   created_at: string;
+  combo_id?: string | null;
+  combo_group_id?: string | null;
   menu_item?: { name: string; name_en: string };
+  combo?: { name: string; name_en: string } | null;
 }
 
 export interface Order {
@@ -38,7 +41,7 @@ export const useOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*, menu_items(name, name_en))")
+        .select("*, order_items(*, menu_items(name, name_en), combos(name, name_en))")
         .in("status", ["pending", "in_progress", "completed", "ready", "served"])
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -47,6 +50,7 @@ export const useOrders = () => {
         order_items: (o.order_items ?? []).map((oi: any) => ({
           ...oi,
           menu_item: oi.menu_items,
+          combo: oi.combos ?? null,
         })),
       })) as Order[];
     },
@@ -98,6 +102,8 @@ export const useOrders = () => {
       unit_price,
       notes,
       discount,
+      combo_id,
+      combo_group_id,
     }: {
       order_id: string;
       menu_item_id: string;
@@ -105,10 +111,12 @@ export const useOrders = () => {
       unit_price: number;
       notes?: string;
       discount?: number;
+      combo_id?: string;
+      combo_group_id?: string;
     }) => {
       const { error } = await supabase
         .from("order_items")
-        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "", discount: discount ?? 0 } as any);
+        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "", discount: discount ?? 0, combo_id: combo_id ?? null, combo_group_id: combo_group_id ?? null } as any);
       if (error) throw error;
       const { data: items } = await supabase
         .from("order_items")
