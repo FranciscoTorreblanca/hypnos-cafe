@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useIngredients } from "@/hooks/useIngredients";
@@ -6,6 +6,7 @@ import { useMenuItems } from "@/hooks/useMenuItems";
 import { useTableNames } from "@/hooks/useTableNames";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { supabase } from "@/integrations/supabase/client";
+import { groupOrderItems } from "@/utils/groupOrderItems";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Clock, BookOpen, Search } from "lucide-react";
+import { CheckCircle, Clock, BookOpen, Search, Package } from "lucide-react";
 
 const KitchenPage = () => {
   const { t, language } = useLanguage();
