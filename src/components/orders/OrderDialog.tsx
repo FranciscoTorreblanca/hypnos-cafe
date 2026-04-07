@@ -441,78 +441,140 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </h4>
         <span className="text-xs font-semibold">${cartTotal.toFixed(0)}</span>
       </div>
-      {cart.map((c) => (
-        <div key={c.menuItem.id} className="space-y-1">
-          <div className="flex items-center gap-1 text-sm">
-            <div className="flex items-center gap-0.5 shrink-0">
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateCartQty(c.menuItem.id, -1)}>
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="w-5 text-center text-xs font-medium">{c.quantity}</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateCartQty(c.menuItem.id, 1)}>
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-            <span className="flex-1 truncate text-xs">{getName(c.menuItem)}</span>
-            {c.discount > 0 && (
-              <span className="text-[10px] text-emerald-600 font-medium">-{c.discount}%</span>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0"
-              onClick={() => setEditingNotes(editingNotes === c.menuItem.id ? null : c.menuItem.id)}
-            >
-              <MessageSquare className={`h-3 w-3 ${c.notes ? "text-primary" : "text-muted-foreground"}`} />
-            </Button>
-            {isAdmin && (
+      {(() => {
+        // Group cart items by comboGroupId
+        const comboCartGroups = new Map<string, { comboName: string; items: CartItem[] }>();
+        const singles: CartItem[] = [];
+        const orderedEntries: Array<{ type: "single"; item: CartItem } | { type: "combo"; groupId: string }> = [];
+        const usedGroups = new Set<string>();
+
+        for (const c of cart) {
+          if (c.comboGroupId) {
+            if (!comboCartGroups.has(c.comboGroupId)) {
+              const combo = combos.find((cb) => cb.id === c.comboId);
+              comboCartGroups.set(c.comboGroupId, {
+                comboName: language === "es" ? (combo?.name ?? "Combo") : (combo?.name_en || combo?.name || "Combo"),
+                items: [],
+              });
+            }
+            comboCartGroups.get(c.comboGroupId)!.items.push(c);
+            if (!usedGroups.has(c.comboGroupId)) {
+              usedGroups.add(c.comboGroupId);
+              orderedEntries.push({ type: "combo", groupId: c.comboGroupId });
+            }
+          } else {
+            orderedEntries.push({ type: "single", item: c });
+          }
+        }
+
+        const renderCartItem = (c: CartItem, indent = false) => (
+          <div key={c.menuItem.id} className={`space-y-1 ${indent ? "ml-3" : ""}`}>
+            <div className="flex items-center gap-1 text-sm">
+              {!c.comboGroupId && (
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateCartQty(c.menuItem.id, -1)}>
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-5 text-center text-xs font-medium">{c.quantity}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateCartQty(c.menuItem.id, 1)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              {c.comboGroupId && (
+                <span className="text-xs text-muted-foreground ml-1">{c.quantity}×</span>
+              )}
+              <span className="flex-1 truncate text-xs">{getName(c.menuItem)}</span>
+              {c.discount > 0 && (
+                <span className="text-[10px] text-emerald-600 font-medium">-{c.discount}%</span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 shrink-0"
-                onClick={() => setEditingNotes(editingNotes === `disc-${c.menuItem.id}` ? null : `disc-${c.menuItem.id}`)}
+                onClick={() => setEditingNotes(editingNotes === c.menuItem.id ? null : c.menuItem.id)}
               >
-                <Percent className={`h-3 w-3 ${c.discount > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                <MessageSquare className={`h-3 w-3 ${c.notes ? "text-primary" : "text-muted-foreground"}`} />
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 text-destructive"
-              onClick={() => removeFromCart(c.menuItem.id)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-          {editingNotes === `disc-${c.menuItem.id}` && isAdmin && (
-            <div className="flex items-center gap-1.5 ml-1">
-              <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={c.discount || ""}
-                placeholder="0"
-                onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
-                className="h-7 w-20 text-xs"
-              />
-              <span className="text-[10px] text-muted-foreground">%</span>
+              {isAdmin && !c.comboGroupId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => setEditingNotes(editingNotes === `disc-${c.menuItem.id}` ? null : `disc-${c.menuItem.id}`)}
+                >
+                  <Percent className={`h-3 w-3 ${c.discount > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                </Button>
+              )}
+              {!c.comboGroupId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 text-destructive"
+                  onClick={() => removeFromCart(c.menuItem.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
-          )}
-          {editingNotes === c.menuItem.id && (
-            <Textarea
-              placeholder={t("orders.itemNotes")}
-              value={c.notes}
-              onChange={(e) => updateCartNotes(c.menuItem.id, e.target.value)}
-              className="min-h-[40px] text-xs resize-none"
-              rows={1}
-            />
-          )}
-          {c.notes && editingNotes !== c.menuItem.id && (
-            <p className="text-[10px] text-muted-foreground italic ml-1">📝 {c.notes}</p>
-          )}
-        </div>
-      ))}
+            {editingNotes === `disc-${c.menuItem.id}` && isAdmin && (
+              <div className="flex items-center gap-1.5 ml-1">
+                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={c.discount || ""}
+                  placeholder="0"
+                  onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
+                  className="h-7 w-20 text-xs"
+                />
+                <span className="text-[10px] text-muted-foreground">%</span>
+              </div>
+            )}
+            {editingNotes === c.menuItem.id && (
+              <Textarea
+                placeholder={t("orders.itemNotes")}
+                value={c.notes}
+                onChange={(e) => updateCartNotes(c.menuItem.id, e.target.value)}
+                className="min-h-[40px] text-xs resize-none"
+                rows={1}
+              />
+            )}
+            {c.notes && editingNotes !== c.menuItem.id && (
+              <p className="text-[10px] text-muted-foreground italic ml-1">📝 {c.notes}</p>
+            )}
+          </div>
+        );
+
+        return orderedEntries.map((entry) => {
+          if (entry.type === "combo") {
+            const group = comboCartGroups.get(entry.groupId)!;
+            return (
+              <div key={entry.groupId} className="border rounded-md p-1.5 bg-muted/20 space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Package className="h-3 w-3 text-primary shrink-0" />
+                    <span className="text-xs font-semibold text-primary">{group.comboName}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 text-destructive"
+                    onClick={() => {
+                      group.items.forEach((c) => removeFromCart(c.menuItem.id));
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                {group.items.map((c) => renderCartItem(c, true))}
+              </div>
+            );
+          }
+          return renderCartItem(entry.item);
+        });
+      })()}
       <Button size="sm" className="w-full gap-1 h-8" onClick={handleSubmitCart} disabled={addItem.isPending || createOrder.isPending}>
         <Plus className="h-3 w-3" /> {t("orders.addToOrder")}
       </Button>
