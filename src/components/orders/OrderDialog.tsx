@@ -53,6 +53,8 @@ interface CartItem {
   quantity: number;
   notes: string;
   discount: number;
+  comboId?: string;
+  comboGroupId?: string;
 }
 
 export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order }: Props) => {
