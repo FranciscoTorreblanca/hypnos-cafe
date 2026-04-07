@@ -7,18 +7,13 @@ export interface ComboGroup {
   items: OrderItem[];
 }
 
-export interface GroupedOrderEntry {
-  type: "single";
-  item: OrderItem;
-} | {
-  type: "combo";
-  group: ComboGroup;
-}
+export type GroupedOrderEntry =
+  | { type: "single"; item: OrderItem }
+  | { type: "combo"; group: ComboGroup };
 
 export function groupOrderItems(items: OrderItem[]): GroupedOrderEntry[] {
   const result: GroupedOrderEntry[] = [];
   const comboGroups = new Map<string, ComboGroup>();
-  const processedIds = new Set<string>();
 
   // First pass: collect combo groups
   for (const item of items) {
@@ -32,11 +27,10 @@ export function groupOrderItems(items: OrderItem[]): GroupedOrderEntry[] {
         });
       }
       comboGroups.get(item.combo_group_id)!.items.push(item);
-      processedIds.add(item.id);
     }
   }
 
-  // Build result maintaining original order (first item of each group determines position)
+  // Build result maintaining original order
   const usedGroups = new Set<string>();
   for (const item of items) {
     if (item.combo_group_id) {
