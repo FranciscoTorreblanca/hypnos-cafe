@@ -163,6 +163,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   }, []);
 
   const addComboToCart = useCallback((combo: ComboWithItems, selectedChoices: { groupLabel: string; menuItem: MenuItem }[]) => {
+    // Generate a unique group id for this combo instance
+    const comboGroupId = crypto.randomUUID();
+    
     // All items in combo: fixed + selected choices
     const allComboItems: { menuItem: MenuItem; quantity: number }[] = [];
     
@@ -186,11 +189,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       const comboMenuItem: MenuItem = {
         ...menuItem,
         price: itemPrice,
-        name: `${menuItem.name} (${combo.name})`,
-        name_en: `${menuItem.name_en || menuItem.name} (${combo.name_en || combo.name})`,
+        name: menuItem.name,
+        name_en: menuItem.name_en || menuItem.name,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0 }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0, comboId: combo.id, comboGroupId }]);
     });
   }, [items]);
 
