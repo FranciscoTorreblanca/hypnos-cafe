@@ -342,22 +342,66 @@ const OrderHistoryPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {order.order_items.map((oi) => {
-                            const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "—";
-                            const sub = oi.quantity * oi.unit_price * (1 - (oi.discount ?? 0) / 100);
-                            return (
-                              <tr key={oi.id} className="border-t border-border/50">
-                                <td className="p-1.5">
-                                  {name}
-                                  {oi.notes && <span className="block text-[10px] text-muted-foreground italic">{oi.notes}</span>}
-                                </td>
-                                <td className="text-center p-1.5">{oi.quantity}</td>
-                                <td className="text-right p-1.5">${oi.unit_price.toFixed(2)}</td>
-                                <td className="text-right p-1.5">{oi.discount > 0 ? `${oi.discount}%` : "—"}</td>
-                                <td className="text-right p-1.5 font-medium">${sub.toFixed(2)}</td>
-                              </tr>
-                            );
-                          })}
+                          {(() => {
+                            // Group by combo
+                            const comboGroups = new Map<string, { name: string; items: typeof order.order_items }>();
+                            const singles: typeof order.order_items = [];
+                            const usedGroups = new Set<string>();
+                            const orderedEntries: Array<{ type: "single"; item: typeof order.order_items[0] } | { type: "combo"; groupId: string }> = [];
+                            
+                            for (const oi of order.order_items) {
+                              if (oi.combo_group_id) {
+                                if (!comboGroups.has(oi.combo_group_id)) {
+                                  comboGroups.set(oi.combo_group_id, {
+                                    name: (language === "en" && oi.combos?.name_en ? oi.combos.name_en : oi.combos?.name) ?? "Combo",
+                                    items: [],
+                                  });
+                                }
+                                comboGroups.get(oi.combo_group_id)!.items.push(oi);
+                                if (!usedGroups.has(oi.combo_group_id)) {
+                                  usedGroups.add(oi.combo_group_id);
+                                  orderedEntries.push({ type: "combo", groupId: oi.combo_group_id });
+                                }
+                              } else {
+                                orderedEntries.push({ type: "single", item: oi });
+                              }
+                            }
+
+                            const renderRow = (oi: typeof order.order_items[0], indent = false) => {
+                              const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "—";
+                              const sub = oi.quantity * oi.unit_price * (1 - (oi.discount ?? 0) / 100);
+                              return (
+                                <tr key={oi.id} className="border-t border-border/50">
+                                  <td className={`p-1.5 ${indent ? "pl-4" : ""}`}>
+                                    {name}
+                                    {oi.notes && <span className="block text-[10px] text-muted-foreground italic">{oi.notes}</span>}
+                                  </td>
+                                  <td className="text-center p-1.5">{oi.quantity}</td>
+                                  <td className="text-right p-1.5">${oi.unit_price.toFixed(2)}</td>
+                                  <td className="text-right p-1.5">{oi.discount > 0 ? `${oi.discount}%` : "—"}</td>
+                                  <td className="text-right p-1.5 font-medium">${sub.toFixed(2)}</td>
+                                </tr>
+                              );
+                            };
+
+                            return orderedEntries.map((entry) => {
+                              if (entry.type === "combo") {
+                                const group = comboGroups.get(entry.groupId)!;
+                                return [
+                                  <tr key={`combo-${entry.groupId}`} className="border-t border-border/50 bg-muted/30">
+                                    <td colSpan={5} className="p-1.5">
+                                      <div className="flex items-center gap-1">
+                                        <Package className="h-3 w-3 text-primary" />
+                                        <span className="text-xs font-semibold text-primary">{group.name}</span>
+                                      </div>
+                                    </td>
+                                  </tr>,
+                                  ...group.items.map((oi) => renderRow(oi, true)),
+                                ];
+                              }
+                              return renderRow(entry.item);
+                            });
+                          })()}
                         </tbody>
                       </table>
                     </div>
