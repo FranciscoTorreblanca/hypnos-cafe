@@ -25,7 +25,7 @@ export const useMenuItems = () => {
 
   const query = useQuery({
     queryKey: ["menu_items"],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 30 * 1000, // 30s cache - shorter for stock updates
     queryFn: async () => {
       const { data, error } = await supabase
         .from("menu_items")
