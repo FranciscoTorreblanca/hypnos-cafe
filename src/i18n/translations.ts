@@ -315,6 +315,11 @@ export const translations = {
   "settings.pushSubscribed": { es: "Notificaciones activas en este dispositivo", en: "Notifications active on this device" },
   "settings.pushNotSupported": { es: "Tu navegador no soporta notificaciones push", en: "Your browser doesn't support push notifications" },
   "settings.pushPermissionDenied": { es: "Permiso de notificaciones denegado. Actívalo en la configuración del navegador.", en: "Notification permission denied. Enable it in browser settings." },
+  "billing.cashCount": { es: "Conteo de caja", en: "Cash Count" },
+  "billing.cashCountReset": { es: "Limpiar", en: "Clear" },
+  "billing.cashCountTotal": { es: "Total contado", en: "Counted total" },
+  "billing.cashCountSystem": { es: "Saldo en sistema", en: "System balance" },
+  "billing.cashCountDifference": { es: "Diferencia", en: "Difference" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
