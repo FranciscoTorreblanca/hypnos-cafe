@@ -649,6 +649,9 @@ const BillingPage = () => {
             </CardContent>
           </Card>
 
+          {/* Cash Count */}
+          <CashCountCard tillBalance={tillBalance} />
+
           {/* Admin adjustment form */}
           {isAdmin && (
             <Card>
