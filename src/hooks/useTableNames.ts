@@ -4,6 +4,27 @@ import { toast } from "@/hooks/use-toast";
 
 export type TableNamesMap = Record<string, string>; // { "1": "Terraza", "2": "Barra", ... }
 
+const upsertSetting = async (key: string, value: string) => {
+  const { data: existing } = await supabase
+    .from("restaurant_settings")
+    .select("id")
+    .eq("key", key)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("restaurant_settings")
+      .update({ value })
+      .eq("key", key);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("restaurant_settings")
+      .insert({ key, value });
+    if (error) throw error;
+  }
+};
+
 export const useTableNames = () => {
   const queryClient = useQueryClient();
 
@@ -30,27 +51,32 @@ export const useTableNames = () => {
     },
   });
 
+  const orderQuery = useQuery({
+    queryKey: ["table_order"],
+    queryFn: async (): Promise<number[]> => {
+      const { data, error } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "table_order")
+        .maybeSingle();
+      if (error) {
+        console.error("Failed to load table order:", error);
+        throw error;
+      }
+      if (data?.value) {
+        try {
+          return JSON.parse(data.value);
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    },
+  });
+
   const updateNames = useMutation({
     mutationFn: async (names: TableNamesMap) => {
-      const value = JSON.stringify(names);
-      const { data: existing } = await supabase
-        .from("restaurant_settings")
-        .select("id")
-        .eq("key", "table_names")
-        .maybeSingle();
-
-      if (existing) {
-        const { error } = await supabase
-          .from("restaurant_settings")
-          .update({ value })
-          .eq("key", "table_names");
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("restaurant_settings")
-          .insert({ key: "table_names", value });
-        if (error) throw error;
-      }
+      await upsertSetting("table_names", JSON.stringify(names));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["table_names"] });
@@ -65,6 +91,18 @@ export const useTableNames = () => {
     },
   });
 
+  const updateOrder = useMutation({
+    mutationFn: async (order: number[]) => {
+      await upsertSetting("table_order", JSON.stringify(order));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["table_order"] });
+    },
+    onError: (error: any) => {
+      console.error("Table order update failed:", error);
+    },
+  });
+
   const getTableName = (num: number): string => {
     return query.data?.[String(num)] || "";
   };
@@ -76,9 +114,11 @@ export const useTableNames = () => {
 
   return {
     tableNames: query.data ?? {},
+    tableOrder: orderQuery.data ?? [],
     isLoading: query.isLoading,
     getTableName,
     getTableLabel,
     updateNames,
+    updateOrder,
   };
 };
