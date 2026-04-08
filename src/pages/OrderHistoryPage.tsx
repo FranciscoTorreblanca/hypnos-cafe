@@ -77,10 +77,11 @@ const OrderHistoryPage = () => {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["order-history", dateFrom, dateTo],
     queryFn: async () => {
-      const from = new Date(dateFrom);
-      from.setHours(0, 0, 0, 0);
-      const to = new Date(dateTo);
-      to.setHours(23, 59, 59, 999);
+      // Parse as local dates by splitting the string (avoids UTC interpretation of "YYYY-MM-DD")
+      const [fy, fm, fd] = dateFrom.split("-").map(Number);
+      const from = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+      const [ty, tm, td] = dateTo.split("-").map(Number);
+      const to = new Date(ty, tm - 1, td, 23, 59, 59, 999);
 
       const { data, error } = await supabase
         .from("orders")
