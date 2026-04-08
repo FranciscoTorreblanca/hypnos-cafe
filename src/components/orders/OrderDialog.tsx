@@ -413,6 +413,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   <p className="text-sm font-medium truncate">{getName(item)}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {item.inventory_count != null && (
+                    <Badge variant="outline" className={`text-[10px] h-5 ${item.inventory_count <= 0 ? "border-destructive text-destructive font-bold" : item.inventory_count <= 3 ? "border-amber-500 text-amber-600" : "text-muted-foreground"}`}>
+                      {item.inventory_count <= 0 ? "⚠ 0" : item.inventory_count}
+                    </Badge>
+                  )}
                   {inCart && (
                     <Badge className="bg-primary text-primary-foreground text-[10px] h-5 min-w-[20px] justify-center">
                       {inCart.quantity}

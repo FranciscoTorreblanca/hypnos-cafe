@@ -108,6 +108,11 @@ export const ComboChoiceDialog = ({ open, onOpenChange, combo, allItems, onConfi
                       <RadioGroupItem value={opt.menu_item_id} id={`choice-${opt.id}`} disabled={unavailable} />
                       <Label htmlFor={`choice-${opt.id}`} className={`flex-1 text-sm ${unavailable ? "cursor-not-allowed" : "cursor-pointer"}`}>
                         {getName(mi)} {unavailable && <span className="text-xs text-muted-foreground">({language === "es" ? "No disponible" : "Unavailable"})</span>}
+                        {mi.inventory_count != null && (
+                          <span className={`ml-1 text-[10px] ${mi.inventory_count <= 0 ? "text-destructive font-bold" : mi.inventory_count <= 3 ? "text-amber-600" : "text-muted-foreground"}`}>
+                            [{mi.inventory_count <= 0 ? "⚠ 0" : mi.inventory_count}]
+                          </span>
+                        )}
                       </Label>
                     </div>
                   );
