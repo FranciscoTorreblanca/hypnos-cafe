@@ -24,6 +24,7 @@ import {
   Heart,
   ScanLine,
   History,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -48,6 +49,7 @@ export const BottomNav = () => {
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
     { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"] },
+    { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"] },
     { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"] },
     { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"] },
     { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },

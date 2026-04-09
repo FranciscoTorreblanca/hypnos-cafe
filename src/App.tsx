@@ -27,6 +27,7 @@ import LoyaltyMemberPage from "@/pages/LoyaltyMemberPage";
 import LoyaltyAdminPage from "@/pages/LoyaltyAdminPage";
 import LoyaltyScanPage from "@/pages/LoyaltyScanPage";
 import OrderHistoryPage from "@/pages/OrderHistoryPage";
+import StockPage from "@/pages/StockPage";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
                 <Route path="/loyalty-admin" element={<LoyaltyAdminPage />} />
                 <Route path="/loyalty-scan" element={<LoyaltyScanPage />} />
                 <Route path="/order-history" element={<OrderHistoryPage />} />
+                <Route path="/stock" element={<StockPage />} />
               </Route>
               <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
               <Route path="/loyalty" element={<LoyaltyPublicPage />} />
