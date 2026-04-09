@@ -320,6 +320,23 @@ export const translations = {
   "billing.cashCountTotal": { es: "Total contado", en: "Counted total" },
   "billing.cashCountSystem": { es: "Saldo en sistema", en: "System balance" },
   "billing.cashCountDifference": { es: "Diferencia", en: "Difference" },
+
+  // Stock
+  "nav.stock": { es: "Inventario", en: "Stock" },
+  "stock.title": { es: "Inventario", en: "Stock" },
+  "stock.tracked": { es: "Con stock", en: "Tracked" },
+  "stock.lowStock": { es: "Stock bajo", en: "Low stock" },
+  "stock.outOfStock": { es: "Sin stock", en: "Out of stock" },
+  "stock.inStock": { es: "en stock", en: "in stock" },
+  "stock.notTracked": { es: "Sin seguimiento", en: "Not tracked" },
+  "stock.search": { es: "Buscar producto...", en: "Search item..." },
+  "stock.all": { es: "Todos", en: "All" },
+  "stock.status": { es: "Estado", en: "Status" },
+  "stock.count": { es: "Conteo", en: "Count" },
+  "stock.noItems": { es: "No se encontraron productos", en: "No items found" },
+  "stock.unavailable": { es: "No disponible", en: "Unavailable" },
+  "stock.saved": { es: "Inventario actualizado", en: "Stock updated" },
+  "stock.save": { es: "Guardar", en: "Save" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
