@@ -1,0 +1,1 @@
+CREATE POLICY "Anon can view categories" ON public.menu_categories FOR SELECT TO anon USING (true);
