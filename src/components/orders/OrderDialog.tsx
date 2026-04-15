@@ -143,6 +143,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   const addToCart = useCallback((menuItem: MenuItem) => {
+    // Dismiss mobile keyboard so drawer reflows properly
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     setCart((prev) => {
       const existing = prev.find((c) => c.menuItem.id === menuItem.id);
       if (existing) {
@@ -155,6 +157,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   }, []);
 
   const handleComboClick = useCallback((combo: ComboWithItems) => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     if (combo.combo_choice_groups && combo.combo_choice_groups.length > 0) {
       setSelectedCombo(combo);
       setComboChoiceOpen(true);
