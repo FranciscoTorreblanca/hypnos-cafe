@@ -89,6 +89,13 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
 
+  const dismissMobileKeyboard = useCallback(() => {
+    if (!isMobile) return;
+    searchRef.current?.blur();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }), 50);
+  }, [isMobile]);
+
   // Reset cart when dialog opens/closes
   useEffect(() => {
     if (open) {
@@ -143,8 +150,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   const addToCart = useCallback((menuItem: MenuItem) => {
-    // Dismiss mobile keyboard so drawer reflows properly
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    dismissMobileKeyboard();
     setCart((prev) => {
       const existing = prev.find((c) => c.menuItem.id === menuItem.id);
       if (existing) {
@@ -154,17 +160,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       }
       return [...prev, { menuItem, quantity: 1, notes: "", discount: 0 }];
     });
-  }, []);
+  }, [dismissMobileKeyboard]);
 
   const handleComboClick = useCallback((combo: ComboWithItems) => {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    dismissMobileKeyboard();
     if (combo.combo_choice_groups && combo.combo_choice_groups.length > 0) {
       setSelectedCombo(combo);
       setComboChoiceOpen(true);
     } else {
       addComboToCart(combo, []);
     }
-  }, []);
+  }, [dismissMobileKeyboard]);
 
   const addComboToCart = useCallback((combo: ComboWithItems, selectedChoices: { groupLabel: string; menuItem: MenuItem }[]) => {
     // Generate a unique group id for this combo instance
