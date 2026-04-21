@@ -93,7 +93,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     if (!isMobile) return;
     searchRef.current?.blur();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }), 50);
+    window.setTimeout(() => window.scrollTo(0, 0), 50);
+    window.setTimeout(() => window.scrollTo(0, 0), 250);
   }, [isMobile]);
 
   // Reset cart when dialog opens/closes
@@ -392,6 +393,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           {filteredCombos.map((combo) => (
             <button
               key={`combo-${combo.id}`}
+              type="button"
+              onPointerDown={dismissMobileKeyboard}
               onClick={() => handleComboClick(combo)}
               className="w-full flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 p-2 hover:bg-primary/10 active:bg-primary/15 transition-colors text-left"
             >
@@ -415,6 +418,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
             return (
               <button
                 key={item.id}
+                type="button"
+                onPointerDown={dismissMobileKeyboard}
                 onClick={() => addToCart(item)}
                 className="w-full flex items-center justify-between rounded-md border p-2 hover:bg-accent active:bg-accent/80 transition-colors text-left"
               >
