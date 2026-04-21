@@ -89,6 +89,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
 
+  const dismissMobileKeyboard = useCallback(() => {
+    if (!isMobile) return;
+    searchRef.current?.blur();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.setTimeout(() => window.scrollTo(0, 0), 50);
+    window.setTimeout(() => window.scrollTo(0, 0), 250);
+  }, [isMobile]);
+
   // Reset cart when dialog opens/closes
   useEffect(() => {
     if (open) {
@@ -143,8 +151,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   const addToCart = useCallback((menuItem: MenuItem) => {
-    // Dismiss mobile keyboard so drawer reflows properly
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    dismissMobileKeyboard();
     setCart((prev) => {
       const existing = prev.find((c) => c.menuItem.id === menuItem.id);
       if (existing) {
@@ -154,17 +161,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       }
       return [...prev, { menuItem, quantity: 1, notes: "", discount: 0 }];
     });
-  }, []);
+  }, [dismissMobileKeyboard]);
 
   const handleComboClick = useCallback((combo: ComboWithItems) => {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    dismissMobileKeyboard();
     if (combo.combo_choice_groups && combo.combo_choice_groups.length > 0) {
       setSelectedCombo(combo);
       setComboChoiceOpen(true);
     } else {
       addComboToCart(combo, []);
     }
-  }, []);
+  }, [dismissMobileKeyboard]);
 
   const addComboToCart = useCallback((combo: ComboWithItems, selectedChoices: { groupLabel: string; menuItem: MenuItem }[]) => {
     // Generate a unique group id for this combo instance
@@ -386,6 +393,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           {filteredCombos.map((combo) => (
             <button
               key={`combo-${combo.id}`}
+              type="button"
+              onPointerDown={dismissMobileKeyboard}
               onClick={() => handleComboClick(combo)}
               className="w-full flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 p-2 hover:bg-primary/10 active:bg-primary/15 transition-colors text-left"
             >
@@ -409,6 +418,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
             return (
               <button
                 key={item.id}
+                type="button"
+                onPointerDown={dismissMobileKeyboard}
                 onClick={() => addToCart(item)}
                 className="w-full flex items-center justify-between rounded-md border p-2 hover:bg-accent active:bg-accent/80 transition-colors text-left"
               >
