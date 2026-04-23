@@ -157,8 +157,7 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
         return { ...g, options: [...g.options, { menu_item_id: item.id, name: getItemName(item), price: item.price, cost: item.cost }] };
       })
     );
-    setActiveGroupSearch(null);
-    setGroupFilters((prev) => ({ ...prev, [groupIdx]: { ...(prev[groupIdx] ?? emptyFilters), query: "" } }));
+    // Keep results panel open so user can continue adding from filtered list
   };
 
   const removeOptionFromGroup = (groupIdx: number, menuItemId: string) => {
