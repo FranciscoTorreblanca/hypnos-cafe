@@ -199,16 +199,7 @@ export const MenuItemFilters = ({ value, onChange, compact = false }: Props) => 
 };
 
 /** Filter a list of menu items by the current filter state. */
-export const applyMenuItemFilters = <
-  T extends {
-    name: string;
-    name_en?: string;
-    price: number;
-    cost: number;
-    category_id: string | null;
-    [key: string]: any;
-  },
->(
+export const applyMenuItemFilters = <T extends Record<string, any>>(
   items: T[],
   filters: MenuItemFilterState,
   getName: (i: T) => string,
