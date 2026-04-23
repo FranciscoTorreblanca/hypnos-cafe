@@ -108,8 +108,9 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
       setComboItems([]);
       setChoiceGroups([]);
     }
-    setItemSearch("");
-    setOptionSearch(null);
+    setItemFilters(emptyFilters);
+    setGroupFilters({});
+    setActiveGroupSearch(null);
   }, [combo, open]);
 
   // Fixed items management
@@ -156,7 +157,8 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
         return { ...g, options: [...g.options, { menu_item_id: item.id, name: getItemName(item), price: item.price, cost: item.cost }] };
       })
     );
-    setOptionSearch(null);
+    setActiveGroupSearch(null);
+    setGroupFilters((prev) => ({ ...prev, [groupIdx]: { ...(prev[groupIdx] ?? emptyFilters), query: "" } }));
   };
 
   const removeOptionFromGroup = (groupIdx: number, menuItemId: string) => {
@@ -181,11 +183,10 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
   const discount = originalPrice > 0 ? ((originalPrice - comboPrice) / originalPrice) * 100 : 0;
   const margin = comboPrice > 0 ? ((comboPrice - productionCost) / comboPrice) * 100 : 0;
 
-  const filteredMenuItems = menuItems.filter((mi) => {
-    const query = optionSearch ? optionSearch.query : itemSearch;
-    const name = getItemName(mi);
-    return name.toLowerCase().includes(query.toLowerCase());
-  });
+  const filteredFixedItems = applyMenuItemFilters(menuItems, itemFilters, getItemName);
+  const getGroupFilters = (idx: number) => groupFilters[idx] ?? emptyFilters;
+  const getFilteredOptionsForGroup = (idx: number) =>
+    applyMenuItemFilters(menuItems, getGroupFilters(idx), getItemName);
 
   const onSubmit = (values: FormValues) => {
     const choiceGroupInputs: ChoiceGroupInput[] = choiceGroups
