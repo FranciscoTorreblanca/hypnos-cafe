@@ -11,7 +11,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export const ComboManager = () => {
+interface ComboManagerProps {
+  /** When true, renders without the surrounding collapsible card (for use inside a tab). */
+  headerless?: boolean;
+}
+
+export const ComboManager = ({ headerless = false }: ComboManagerProps) => {
   const { t, language } = useLanguage();
   const { isAdmin } = useAuth();
   const { data: combos = [], upsert, remove, toggleAvailability } = useCombos();
