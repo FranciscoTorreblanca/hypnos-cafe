@@ -206,6 +206,7 @@ export const applyMenuItemFilters = <
     price: number;
     cost: number;
     category_id: string | null;
+    [key: string]: any;
   },
 >(
   items: T[],

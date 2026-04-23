@@ -361,30 +361,41 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                       </Button>
                     </div>
 
-                    {/* Options search */}
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        placeholder={language === "es" ? "Buscar opción..." : "Search option..."}
-                        value={optionSearch?.groupIndex === gIdx ? optionSearch.query : ""}
-                        onChange={(e) => { setOptionSearch({ groupIndex: gIdx, query: e.target.value }); setItemSearch(""); }}
-                        onFocus={() => setItemSearch("")}
-                        className="pl-7 h-7 text-xs"
+                    {/* Options search + filters */}
+                    <div onFocus={() => setActiveGroupSearch(gIdx)}>
+                      <MenuItemFilters
+                        value={getGroupFilters(gIdx)}
+                        onChange={(next) => {
+                          setGroupFilters((prev) => ({ ...prev, [gIdx]: next }));
+                          setActiveGroupSearch(gIdx);
+                        }}
+                        compact
                       />
                     </div>
-                    {optionSearch?.groupIndex === gIdx && optionSearch.query && (
-                      <div className="border rounded-md max-h-28 overflow-y-auto">
-                        {filteredMenuItems.slice(0, 6).map((mi) => (
-                          <button
-                            key={mi.id}
-                            type="button"
-                            className="w-full flex items-center justify-between px-2 py-1 text-xs hover:bg-accent transition-colors"
-                            onClick={() => addOptionToGroup(gIdx, mi)}
-                          >
-                            <span>{getItemName(mi)}</span>
-                            <span className="text-muted-foreground">${Number(mi.price).toFixed(2)}</span>
-                          </button>
-                        ))}
+                    {activeGroupSearch === gIdx && getGroupFilters(gIdx).query && (
+                      <div className="border rounded-md max-h-32 overflow-y-auto">
+                        {getFilteredOptionsForGroup(gIdx).length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-2">
+                            {language === "es" ? "Sin resultados" : "No results"}
+                          </p>
+                        ) : (
+                          getFilteredOptionsForGroup(gIdx).slice(0, 10).map((mi) => (
+                            <button
+                              key={mi.id}
+                              type="button"
+                              className="w-full flex items-center justify-between px-2 py-1 text-xs hover:bg-accent transition-colors"
+                              onClick={() => addOptionToGroup(gIdx, mi)}
+                            >
+                              <span className="truncate">{getItemName(mi)}</span>
+                              <span className="text-muted-foreground shrink-0 ml-2">
+                                ${Number(mi.price).toFixed(2)}
+                                {mi.cost > 0 && (
+                                  <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
+                                )}
+                              </span>
+                            </button>
+                          ))
+                        )}
                       </div>
                     )}
 
