@@ -32,44 +32,27 @@ export const ComboManager = ({ headerless = false }: ComboManagerProps) => {
     });
   };
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="border-dashed">
-        <CardContent className="p-4">
-          <CollapsibleTrigger asChild>
-            <div className="flex items-center justify-between cursor-pointer">
-              <div className="flex items-center gap-2">
-                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <Package className="h-4 w-4 text-primary" />
-                <h2 className="text-base font-medium text-foreground">
-                  {language === "es" ? "Combos" : "Combos"}
-                </h2>
-                <Badge variant="secondary" className="text-xs">{combos.length}</Badge>
-              </div>
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => { e.stopPropagation(); setEditing(null); setDialogOpen(true); }}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  {language === "es" ? "Nuevo combo" : "New combo"}
-                </Button>
-              )}
-            </div>
-          </CollapsibleTrigger>
+  const dialog = (
+    <ComboDialog
+      open={dialogOpen}
+      onOpenChange={setDialogOpen}
+      combo={editing}
+      onSave={handleSave}
+    />
+  );
 
-          <CollapsibleContent>
-            {combos.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6 mt-3">
-                {language === "es" ? "No hay combos creados aún" : "No combos created yet"}
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
-                {combos.map((combo) => {
-                  const fixedOrigPrice = combo.combo_items.reduce(
-                    (sum, ci) => sum + ci.menu_items.price * ci.quantity, 0
-                  );
+  const grid = (
+    <>
+      {combos.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">
+          {language === "es" ? "No hay combos creados aún" : "No combos created yet"}
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {combos.map((combo) => {
+            const fixedOrigPrice = combo.combo_items.reduce(
+              (sum, ci) => sum + ci.menu_items.price * ci.quantity, 0
+            );
                   const fixedCost = combo.combo_items.reduce(
                     (sum, ci) => sum + ci.menu_items.cost * ci.quantity, 0
                   );
