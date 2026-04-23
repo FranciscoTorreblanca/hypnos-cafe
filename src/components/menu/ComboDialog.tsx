@@ -254,28 +254,35 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
             {/* Fixed items */}
             <div className="space-y-2">
               <FormLabel>{language === "es" ? "Artículos fijos del combo" : "Fixed combo items"}</FormLabel>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={language === "es" ? "Buscar artículo..." : "Search item..."}
-                  value={itemSearch}
-                  onChange={(e) => { setItemSearch(e.target.value); setOptionSearch(null); }}
-                  className="pl-9"
-                />
-              </div>
-              {itemSearch && !optionSearch && (
-                <div className="border rounded-md max-h-32 overflow-y-auto">
-                  {filteredMenuItems.slice(0, 8).map((mi) => (
-                    <button
-                      key={mi.id}
-                      type="button"
-                      className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-                      onClick={() => { addItem(mi); setItemSearch(""); }}
-                    >
-                      <span>{getItemName(mi)}</span>
-                      <span className="text-muted-foreground">${Number(mi.price).toFixed(2)}</span>
-                    </button>
-                  ))}
+              <MenuItemFilters
+                value={itemFilters}
+                onChange={(next) => { setItemFilters(next); setActiveGroupSearch(null); }}
+                compact
+              />
+              {itemFilters.query && activeGroupSearch === null && (
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {filteredFixedItems.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      {language === "es" ? "Sin resultados" : "No results"}
+                    </p>
+                  ) : (
+                    filteredFixedItems.slice(0, 12).map((mi) => (
+                      <button
+                        key={mi.id}
+                        type="button"
+                        className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                        onClick={() => { addItem(mi); setItemFilters((f) => ({ ...f, query: "" })); }}
+                      >
+                        <span className="truncate">{getItemName(mi)}</span>
+                        <span className="text-muted-foreground shrink-0 ml-2">
+                          ${Number(mi.price).toFixed(2)}
+                          {mi.cost > 0 && (
+                            <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
+                          )}
+                        </span>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
 
