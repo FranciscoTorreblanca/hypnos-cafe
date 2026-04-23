@@ -13,7 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, Trash2, Search, Package, ListChecks, X } from "lucide-react";
+import { Plus, Minus, Trash2, Package, ListChecks, X } from "lucide-react";
+import {
+  MenuItemFilters,
+  applyMenuItemFilters,
+  emptyFilters,
+  type MenuItemFilterState,
+} from "./MenuItemFilters";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -52,8 +58,9 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
   const { data: menuItems = [] } = useMenuItems();
   const [comboItems, setComboItems] = useState<ComboItemEntry[]>([]);
   const [choiceGroups, setChoiceGroups] = useState<ChoiceGroupEntry[]>([]);
-  const [itemSearch, setItemSearch] = useState("");
-  const [optionSearch, setOptionSearch] = useState<{ groupIndex: number; query: string } | null>(null);
+  const [itemFilters, setItemFilters] = useState<MenuItemFilterState>(emptyFilters);
+  const [groupFilters, setGroupFilters] = useState<Record<number, MenuItemFilterState>>({});
+  const [activeGroupSearch, setActiveGroupSearch] = useState<number | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
