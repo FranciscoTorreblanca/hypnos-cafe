@@ -269,30 +269,56 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                 onChange={(next) => { setItemFilters(next); setActiveGroupSearch(null); }}
                 compact
               />
-              {itemFilters.query && activeGroupSearch === null && (
-                <div className="border rounded-md max-h-40 overflow-y-auto">
-                  {filteredFixedItems.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-2">
-                      {language === "es" ? "Sin resultados" : "No results"}
+              {isFiltersActive(itemFilters) && activeGroupSearch === null && (
+                <div className="border rounded-md bg-muted/20">
+                  <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/40">
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      {language === "es" ? "Resultados" : "Results"}
+                      <span className="ml-1.5 normal-case font-normal">
+                        ({filteredFixedItems.length})
+                      </span>
                     </p>
-                  ) : (
-                    filteredFixedItems.slice(0, 12).map((mi) => (
-                      <button
-                        key={mi.id}
-                        type="button"
-                        className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-                        onClick={() => { addItem(mi); setItemFilters((f) => ({ ...f, query: "" })); }}
-                      >
-                        <span className="truncate">{getItemName(mi)}</span>
-                        <span className="text-muted-foreground shrink-0 ml-2">
-                          ${Number(mi.price).toFixed(2)}
-                          {mi.cost > 0 && (
-                            <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
-                          )}
-                        </span>
-                      </button>
-                    ))
-                  )}
+                    {filteredFixedItems.length > 12 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {language === "es" ? "Mostrando 12" : "Showing 12"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="max-h-44 overflow-y-auto">
+                    {filteredFixedItems.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-3">
+                        {language === "es" ? "Sin resultados" : "No results"}
+                      </p>
+                    ) : (
+                      filteredFixedItems.slice(0, 12).map((mi) => {
+                        const added = comboItems.find((ci) => ci.menu_item_id === mi.id);
+                        return (
+                          <button
+                            key={mi.id}
+                            type="button"
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors ${added ? "bg-primary/5" : ""}`}
+                            onClick={() => addItem(mi)}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Plus className="h-3 w-3 shrink-0 text-primary" />
+                              <span className="truncate">{getItemName(mi)}</span>
+                              {added && (
+                                <Badge variant="secondary" className="h-4 px-1 text-[10px] shrink-0">
+                                  ×{added.quantity}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-muted-foreground shrink-0 ml-2 text-xs">
+                              ${Number(mi.price).toFixed(2)}
+                              {mi.cost > 0 && (
+                                <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               )}
 
