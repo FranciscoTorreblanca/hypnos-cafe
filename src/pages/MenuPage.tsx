@@ -137,55 +137,152 @@ const MenuPage = () => {
       {/* Section 1: Category Management (admin only, collapsible) */}
       {isAdmin && <CategoryManager />}
 
-      {/* Section 2: Combos (admin only) */}
-      {isAdmin && <ComboManager />}
+      {/* Section 2: Tabs — Menu Items vs Combos */}
+      <Tabs defaultValue="items" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="items">
+            {language === "es" ? "Artículos" : "Items"}
+            <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">
+              {items.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="combos">
+            {language === "es" ? "Combos" : "Combos"}
+            <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">
+              {combos.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Section 3: Menu Items */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-medium text-foreground">
-            {language === "es" ? "Artículos del Menú" : "Menu Items"}
-          </h2>
-          {isAdmin && (
-            <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
-            </Button>
-          )}
-        </div>
-
-        {/* Search + filters bar */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t("common.search")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+        <TabsContent value="items" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-medium text-foreground">
+              {language === "es" ? "Artículos del Menú" : "Menu Items"}
+            </h2>
+            {isAdmin && (
+              <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
+              </Button>
+            )}
           </div>
-        </div>
 
-        {/* Category filter tabs */}
-        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="all">{language === "es" ? "Todos" : "All"}</TabsTrigger>
-            {categories.map((c) => (
-              <TabsTrigger key={c.id} value={c.id}>
-                {language === "es" ? c.name : c.name_en || c.name}
+          {/* Search bar */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("common.search")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {/* Category filter tabs */}
+          <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+            <TabsList className="flex-wrap h-auto">
+              <TabsTrigger value="all">{language === "es" ? "Todos" : "All"}</TabsTrigger>
+              {categories.map((c) => (
+                <TabsTrigger key={c.id} value={c.id}>
+                  {language === "es" ? c.name : c.name_en || c.name}
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="uncategorized" className="text-muted-foreground">
+                {language === "es" ? "Sin categoría" : "No category"}
+                {uncategorizedCount > 0 && (
+                  <Badge variant="destructive" className="ml-1.5 h-5 min-w-5 px-1 text-[10px]">
+                    {uncategorizedCount}
+                  </Badge>
+                )}
               </TabsTrigger>
-            ))}
-            <TabsTrigger value="uncategorized" className="text-muted-foreground">
-              {language === "es" ? "Sin categoría" : "No category"}
-              {uncategorizedCount > 0 && (
-                <Badge variant="destructive" className="ml-1.5 h-5 min-w-5 px-1 text-[10px]">
-                  {uncategorizedCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+            </TabsList>
+          </Tabs>
+
+          {filtered.length === 0 ? (
+            <p className="text-muted-foreground text-center py-12">{t("common.noResults")}</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((item) => {
+                const effectivePrice = getEffectivePrice(item);
+                const margin = effectivePrice > 0 && item.cost > 0
+                  ? (((effectivePrice - item.cost) / effectivePrice) * 100).toFixed(0)
+                  : null;
+                const promoDiscount = item.promo_price != null && item.price > 0
+                  ? Math.round(((item.price - item.promo_price) / item.price) * 100)
+                  : null;
+                return (
+                  <Card key={item.id} className={`transition-opacity ${!item.is_available ? "opacity-50" : ""}`}>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium">{language === "es" ? item.name : item.name_en || item.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "es" ? item.description : item.description_en || item.description}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0">{getCategoryName(item.category_id)}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-sm flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5">
+                          {promoDiscount != null ? (
+                            <>
+                              <span className="font-semibold text-green-600">${effectivePrice.toFixed(2)}</span>
+                              <span className="line-through text-muted-foreground text-xs">${item.price.toFixed(2)}</span>
+                              <Badge variant="secondary" className="text-[10px] h-5">-{promoDiscount}%</Badge>
+                            </>
+                          ) : (
+                            <span className="font-semibold">${item.price.toFixed(2)}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {item.cost > 0 && (
+                            <span>{language === "es" ? "Costo" : "Cost"}: ${item.cost.toFixed(2)}</span>
+                          )}
+                          {margin && <span>Margen {margin}%</span>}
+                          {item.inventory_count !== null && (
+                            <span>Inv: {item.inventory_count}</span>
+                          )}
+                        </div>
+                      </div>
+                      {isAdmin && item.cost > 0 && (
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" onClick={() => navigate(`/cost-calculator`)}>
+                            <Calculator className="h-3 w-3 mr-0.5" />Costear
+                          </Button>
+                        </div>
+                      )}
+                      {isAdmin && (
+                        <div className="flex items-center justify-between pt-1 border-t">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={item.is_available}
+                              onCheckedChange={(v) => toggleAvailability.mutate({ id: item.id, is_available: v })}
+                            />
+                            <span className="text-xs text-muted-foreground">{t("menu.available")}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(item); setDialogOpen(true); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove.mutate(item.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="combos" className="space-y-4">
+          <ComboManager headerless />
+        </TabsContent>
+      </Tabs>
 
       {filtered.length === 0 ? (
         <p className="text-muted-foreground text-center py-12">{t("common.noResults")}</p>
