@@ -13,7 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, Trash2, Search, Package, ListChecks, X } from "lucide-react";
+import { Plus, Minus, Trash2, Package, ListChecks, X } from "lucide-react";
+import {
+  MenuItemFilters,
+  applyMenuItemFilters,
+  emptyFilters,
+  type MenuItemFilterState,
+} from "./MenuItemFilters";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -52,8 +58,9 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
   const { data: menuItems = [] } = useMenuItems();
   const [comboItems, setComboItems] = useState<ComboItemEntry[]>([]);
   const [choiceGroups, setChoiceGroups] = useState<ChoiceGroupEntry[]>([]);
-  const [itemSearch, setItemSearch] = useState("");
-  const [optionSearch, setOptionSearch] = useState<{ groupIndex: number; query: string } | null>(null);
+  const [itemFilters, setItemFilters] = useState<MenuItemFilterState>(emptyFilters);
+  const [groupFilters, setGroupFilters] = useState<Record<number, MenuItemFilterState>>({});
+  const [activeGroupSearch, setActiveGroupSearch] = useState<number | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -101,8 +108,9 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
       setComboItems([]);
       setChoiceGroups([]);
     }
-    setItemSearch("");
-    setOptionSearch(null);
+    setItemFilters(emptyFilters);
+    setGroupFilters({});
+    setActiveGroupSearch(null);
   }, [combo, open]);
 
   // Fixed items management
@@ -149,7 +157,8 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
         return { ...g, options: [...g.options, { menu_item_id: item.id, name: getItemName(item), price: item.price, cost: item.cost }] };
       })
     );
-    setOptionSearch(null);
+    setActiveGroupSearch(null);
+    setGroupFilters((prev) => ({ ...prev, [groupIdx]: { ...(prev[groupIdx] ?? emptyFilters), query: "" } }));
   };
 
   const removeOptionFromGroup = (groupIdx: number, menuItemId: string) => {
@@ -174,11 +183,10 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
   const discount = originalPrice > 0 ? ((originalPrice - comboPrice) / originalPrice) * 100 : 0;
   const margin = comboPrice > 0 ? ((comboPrice - productionCost) / comboPrice) * 100 : 0;
 
-  const filteredMenuItems = menuItems.filter((mi) => {
-    const query = optionSearch ? optionSearch.query : itemSearch;
-    const name = getItemName(mi);
-    return name.toLowerCase().includes(query.toLowerCase());
-  });
+  const filteredFixedItems = applyMenuItemFilters(menuItems, itemFilters, (i) => getItemName(i));
+  const getGroupFilters = (idx: number) => groupFilters[idx] ?? emptyFilters;
+  const getFilteredOptionsForGroup = (idx: number) =>
+    applyMenuItemFilters(menuItems, getGroupFilters(idx), (i) => getItemName(i));
 
   const onSubmit = (values: FormValues) => {
     const choiceGroupInputs: ChoiceGroupInput[] = choiceGroups
@@ -246,28 +254,35 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
             {/* Fixed items */}
             <div className="space-y-2">
               <FormLabel>{language === "es" ? "Artículos fijos del combo" : "Fixed combo items"}</FormLabel>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={language === "es" ? "Buscar artículo..." : "Search item..."}
-                  value={itemSearch}
-                  onChange={(e) => { setItemSearch(e.target.value); setOptionSearch(null); }}
-                  className="pl-9"
-                />
-              </div>
-              {itemSearch && !optionSearch && (
-                <div className="border rounded-md max-h-32 overflow-y-auto">
-                  {filteredMenuItems.slice(0, 8).map((mi) => (
-                    <button
-                      key={mi.id}
-                      type="button"
-                      className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-                      onClick={() => { addItem(mi); setItemSearch(""); }}
-                    >
-                      <span>{getItemName(mi)}</span>
-                      <span className="text-muted-foreground">${Number(mi.price).toFixed(2)}</span>
-                    </button>
-                  ))}
+              <MenuItemFilters
+                value={itemFilters}
+                onChange={(next) => { setItemFilters(next); setActiveGroupSearch(null); }}
+                compact
+              />
+              {itemFilters.query && activeGroupSearch === null && (
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {filteredFixedItems.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      {language === "es" ? "Sin resultados" : "No results"}
+                    </p>
+                  ) : (
+                    filteredFixedItems.slice(0, 12).map((mi) => (
+                      <button
+                        key={mi.id}
+                        type="button"
+                        className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                        onClick={() => { addItem(mi); setItemFilters((f) => ({ ...f, query: "" })); }}
+                      >
+                        <span className="truncate">{getItemName(mi)}</span>
+                        <span className="text-muted-foreground shrink-0 ml-2">
+                          ${Number(mi.price).toFixed(2)}
+                          {mi.cost > 0 && (
+                            <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
+                          )}
+                        </span>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -346,30 +361,41 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                       </Button>
                     </div>
 
-                    {/* Options search */}
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        placeholder={language === "es" ? "Buscar opción..." : "Search option..."}
-                        value={optionSearch?.groupIndex === gIdx ? optionSearch.query : ""}
-                        onChange={(e) => { setOptionSearch({ groupIndex: gIdx, query: e.target.value }); setItemSearch(""); }}
-                        onFocus={() => setItemSearch("")}
-                        className="pl-7 h-7 text-xs"
+                    {/* Options search + filters */}
+                    <div onFocus={() => setActiveGroupSearch(gIdx)}>
+                      <MenuItemFilters
+                        value={getGroupFilters(gIdx)}
+                        onChange={(next) => {
+                          setGroupFilters((prev) => ({ ...prev, [gIdx]: next }));
+                          setActiveGroupSearch(gIdx);
+                        }}
+                        compact
                       />
                     </div>
-                    {optionSearch?.groupIndex === gIdx && optionSearch.query && (
-                      <div className="border rounded-md max-h-28 overflow-y-auto">
-                        {filteredMenuItems.slice(0, 6).map((mi) => (
-                          <button
-                            key={mi.id}
-                            type="button"
-                            className="w-full flex items-center justify-between px-2 py-1 text-xs hover:bg-accent transition-colors"
-                            onClick={() => addOptionToGroup(gIdx, mi)}
-                          >
-                            <span>{getItemName(mi)}</span>
-                            <span className="text-muted-foreground">${Number(mi.price).toFixed(2)}</span>
-                          </button>
-                        ))}
+                    {activeGroupSearch === gIdx && getGroupFilters(gIdx).query && (
+                      <div className="border rounded-md max-h-32 overflow-y-auto">
+                        {getFilteredOptionsForGroup(gIdx).length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-2">
+                            {language === "es" ? "Sin resultados" : "No results"}
+                          </p>
+                        ) : (
+                          getFilteredOptionsForGroup(gIdx).slice(0, 10).map((mi) => (
+                            <button
+                              key={mi.id}
+                              type="button"
+                              className="w-full flex items-center justify-between px-2 py-1 text-xs hover:bg-accent transition-colors"
+                              onClick={() => addOptionToGroup(gIdx, mi)}
+                            >
+                              <span className="truncate">{getItemName(mi)}</span>
+                              <span className="text-muted-foreground shrink-0 ml-2">
+                                ${Number(mi.price).toFixed(2)}
+                                {mi.cost > 0 && (
+                                  <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
+                                )}
+                              </span>
+                            </button>
+                          ))
+                        )}
                       </div>
                     )}
 
