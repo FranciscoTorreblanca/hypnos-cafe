@@ -183,10 +183,10 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
   const discount = originalPrice > 0 ? ((originalPrice - comboPrice) / originalPrice) * 100 : 0;
   const margin = comboPrice > 0 ? ((comboPrice - productionCost) / comboPrice) * 100 : 0;
 
-  const filteredFixedItems = applyMenuItemFilters(menuItems, itemFilters, getItemName);
+  const filteredFixedItems = applyMenuItemFilters(menuItems, itemFilters, (i) => getItemName(i));
   const getGroupFilters = (idx: number) => groupFilters[idx] ?? emptyFilters;
   const getFilteredOptionsForGroup = (idx: number) =>
-    applyMenuItemFilters(menuItems, getGroupFilters(idx), getItemName);
+    applyMenuItemFilters(menuItems, getGroupFilters(idx), (i) => getItemName(i));
 
   const onSubmit = (values: FormValues) => {
     const choiceGroupInputs: ChoiceGroupInput[] = choiceGroups
