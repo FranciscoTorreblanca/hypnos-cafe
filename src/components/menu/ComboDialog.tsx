@@ -408,30 +408,58 @@ export const ComboDialog = ({ open, onOpenChange, combo, onSave }: Props) => {
                         compact
                       />
                     </div>
-                    {activeGroupSearch === gIdx && getGroupFilters(gIdx).query && (
-                      <div className="border rounded-md max-h-32 overflow-y-auto">
-                        {getFilteredOptionsForGroup(gIdx).length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center py-2">
-                            {language === "es" ? "Sin resultados" : "No results"}
+                    {activeGroupSearch === gIdx && isFiltersActive(getGroupFilters(gIdx)) && (
+                      <div className="border rounded-md bg-muted/20">
+                        <div className="flex items-center justify-between px-2 py-1 border-b bg-muted/40">
+                          <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            {language === "es" ? "Resultados" : "Results"}
+                            <span className="ml-1 normal-case font-normal">
+                              ({getFilteredOptionsForGroup(gIdx).length})
+                            </span>
                           </p>
-                        ) : (
-                          getFilteredOptionsForGroup(gIdx).slice(0, 10).map((mi) => (
-                            <button
-                              key={mi.id}
-                              type="button"
-                              className="w-full flex items-center justify-between px-2 py-1 text-xs hover:bg-accent transition-colors"
-                              onClick={() => addOptionToGroup(gIdx, mi)}
-                            >
-                              <span className="truncate">{getItemName(mi)}</span>
-                              <span className="text-muted-foreground shrink-0 ml-2">
-                                ${Number(mi.price).toFixed(2)}
-                                {mi.cost > 0 && (
-                                  <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
-                                )}
-                              </span>
-                            </button>
-                          ))
-                        )}
+                          {getFilteredOptionsForGroup(gIdx).length > 10 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {language === "es" ? "Mostrando 10" : "Showing 10"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="max-h-36 overflow-y-auto">
+                          {getFilteredOptionsForGroup(gIdx).length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">
+                              {language === "es" ? "Sin resultados" : "No results"}
+                            </p>
+                          ) : (
+                            getFilteredOptionsForGroup(gIdx).slice(0, 10).map((mi) => {
+                              const alreadyAdded = group.options.some((o) => o.menu_item_id === mi.id);
+                              return (
+                                <button
+                                  key={mi.id}
+                                  type="button"
+                                  disabled={alreadyAdded}
+                                  className={`w-full flex items-center justify-between gap-2 px-2 py-1 text-xs transition-colors ${alreadyAdded ? "bg-primary/5 opacity-60 cursor-not-allowed" : "hover:bg-accent"}`}
+                                  onClick={() => addOptionToGroup(gIdx, mi)}
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {alreadyAdded ? (
+                                      <Badge variant="secondary" className="h-4 px-1 text-[9px] shrink-0">
+                                        {language === "es" ? "Añadido" : "Added"}
+                                      </Badge>
+                                    ) : (
+                                      <Plus className="h-3 w-3 shrink-0 text-primary" />
+                                    )}
+                                    <span className="truncate">{getItemName(mi)}</span>
+                                  </div>
+                                  <span className="text-muted-foreground shrink-0 ml-2">
+                                    ${Number(mi.price).toFixed(2)}
+                                    {mi.cost > 0 && (
+                                      <span className="opacity-60"> · ${Number(mi.cost).toFixed(2)}</span>
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
                       </div>
                     )}
 
