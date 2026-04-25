@@ -960,6 +960,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_email: string
+          customer_instagram: string
           customer_name: string
           customer_phone: string
           deposit_amount: number
@@ -981,6 +982,7 @@ export type Database = {
           created_at?: string
           created_by: string
           customer_email?: string
+          customer_instagram?: string
           customer_name: string
           customer_phone?: string
           deposit_amount?: number
@@ -1002,6 +1004,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_email?: string
+          customer_instagram?: string
           customer_name?: string
           customer_phone?: string
           deposit_amount?: number
