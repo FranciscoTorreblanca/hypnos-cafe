@@ -1,0 +1,1 @@
+ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS customer_instagram text NOT NULL DEFAULT '';
