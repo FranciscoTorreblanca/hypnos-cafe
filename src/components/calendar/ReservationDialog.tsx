@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useReservations, type Reservation, type ReservationStatus } from "@/hooks/useReservations";
 import { useEvents } from "@/hooks/useEvents";
-import { Trash2 } from "lucide-react";
+import { Instagram, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -45,6 +45,7 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
     customer_name: "",
     customer_phone: "",
     customer_email: "",
+    customer_instagram: "",
     party_size: "2",
     reserved_for: "",
     table_number: "",
@@ -65,6 +66,7 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
         customer_name: reservation.customer_name,
         customer_phone: reservation.customer_phone,
         customer_email: reservation.customer_email,
+        customer_instagram: reservation.customer_instagram ?? "",
         party_size: reservation.party_size.toString(),
         reserved_for: toLocalInput(reservation.reserved_for),
         table_number: reservation.table_number?.toString() ?? "",
@@ -77,12 +79,14 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
         notes: reservation.notes,
       });
     } else {
-      const d = defaultDate ?? new Date();
+      const linkedEvent = defaultEventId ? events.find((e) => e.id === defaultEventId) : null;
+      const d = linkedEvent ? new Date(linkedEvent.starts_at) : (defaultDate ?? new Date());
       setForm({
         event_id: defaultEventId ?? "",
         customer_name: "",
         customer_phone: "",
         customer_email: "",
+        customer_instagram: "",
         party_size: "2",
         reserved_for: toLocalInput(d.toISOString()),
         table_number: "",
@@ -95,7 +99,27 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
         notes: "",
       });
     }
-  }, [open, reservation, defaultDate, defaultEventId]);
+  }, [open, reservation, defaultDate, defaultEventId, events]);
+
+  // When user picks/changes a linked event on a NEW reservation, sync date to event start
+  const handleEventChange = (newEventId: string) => {
+    setForm((prev) => {
+      const next = { ...prev, event_id: newEventId };
+      if (isNew && newEventId) {
+        const ev = events.find((e) => e.id === newEventId);
+        if (ev) next.reserved_for = toLocalInput(ev.starts_at);
+      }
+      return next;
+    });
+  };
+
+  const normalizeInstagram = (v: string) => {
+    const trimmed = v.trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    const handle = trimmed.replace(/^@/, "");
+    return `https://instagram.com/${handle}`;
+  };
 
   const handleSave = async () => {
     if (!form.customer_name.trim() || !form.reserved_for) {
@@ -107,6 +131,7 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone,
       customer_email: form.customer_email,
+      customer_instagram: normalizeInstagram(form.customer_instagram),
       party_size: parseInt(form.party_size) || 1,
       reserved_for: fromLocalInput(form.reserved_for),
       table_number: form.table_number ? parseInt(form.table_number) : null,
@@ -142,7 +167,7 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
         <div className="space-y-3">
           <div>
             <Label>{t("res.linkedEvent")}</Label>
-            <Select value={form.event_id || "none"} onValueChange={(v) => setForm({ ...form, event_id: v === "none" ? "" : v })}>
+            <Select value={form.event_id || "none"} onValueChange={(v) => handleEventChange(v === "none" ? "" : v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">{t("res.noEvent")}</SelectItem>
@@ -165,6 +190,31 @@ export const ReservationDialog = ({ open, onOpenChange, reservation, defaultDate
           <div>
             <Label>{t("res.email")}</Label>
             <Input type="email" value={form.customer_email} onChange={(e) => setForm({ ...form, customer_email: e.target.value })} />
+          </div>
+
+          <div>
+            <Label className="flex items-center gap-1.5">
+              <Instagram className="h-3.5 w-3.5" />
+              {t("res.instagram")}
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={form.customer_instagram}
+                onChange={(e) => setForm({ ...form, customer_instagram: e.target.value })}
+                placeholder="@username"
+              />
+              {form.customer_instagram && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => window.open(normalizeInstagram(form.customer_instagram), "_blank")}
+                  title={t("res.openInstagram")}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">

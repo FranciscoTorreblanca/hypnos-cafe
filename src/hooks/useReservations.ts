@@ -10,6 +10,7 @@ export interface Reservation {
   customer_name: string;
   customer_phone: string;
   customer_email: string;
+  customer_instagram: string;
   party_size: number;
   reserved_for: string;
   table_number: number | null;
