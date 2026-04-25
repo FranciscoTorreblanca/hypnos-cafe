@@ -300,7 +300,7 @@ const CalendarPage = () => {
         defaultDate={selectedDay}
         canDelete={isAdmin}
       />
-    </AppLayout>
+    </>
   );
 };
 
