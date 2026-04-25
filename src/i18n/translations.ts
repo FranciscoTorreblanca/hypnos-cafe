@@ -406,6 +406,8 @@ export const translations = {
   "res.customer": { es: "Cliente", en: "Customer" },
   "res.phone": { es: "Teléfono", en: "Phone" },
   "res.email": { es: "Email", en: "Email" },
+  "res.instagram": { es: "Instagram", en: "Instagram" },
+  "res.openInstagram": { es: "Abrir perfil de Instagram", en: "Open Instagram profile" },
   "res.partySize": { es: "# Personas", en: "Party size" },
   "res.reservedFor": { es: "Fecha y hora", en: "Date & time" },
   "res.table": { es: "Mesa", en: "Table" },
