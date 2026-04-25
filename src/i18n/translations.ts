@@ -425,14 +425,6 @@ export const translations = {
   "res.status.cancelled": { es: "Cancelada", en: "Cancelled" },
   "res.status.no_show": { es: "No se presentó", en: "No-show" },
   "res.status.completed": { es: "Completada", en: "Completed" },
-
-  "common.save": { es: "Guardar", en: "Save" },
-  "common.cancel": { es: "Cancelar", en: "Cancel" },
-  "common.delete": { es: "Eliminar", en: "Delete" },
-  "common.edit": { es: "Editar", en: "Edit" },
-  "common.add": { es: "Agregar", en: "Add" },
-  "common.close": { es: "Cerrar", en: "Close" },
-  "common.confirmDelete": { es: "¿Estás seguro de eliminar?", en: "Are you sure you want to delete?" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
