@@ -154,6 +154,140 @@ export type Database = {
         }
         Relationships: []
       }
+      event_cost_categories: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          key: string
+          label: string
+          label_en: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          key: string
+          label: string
+          label_en?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          key?: string
+          label?: string
+          label_en?: string
+        }
+        Relationships: []
+      }
+      event_cost_items: {
+        Row: {
+          amount: number
+          category_key: string | null
+          created_at: string
+          display_order: number
+          event_id: string
+          id: string
+          name: string
+          notes: string
+        }
+        Insert: {
+          amount?: number
+          category_key?: string | null
+          created_at?: string
+          display_order?: number
+          event_id: string
+          id?: string
+          name: string
+          notes?: string
+        }
+        Update: {
+          amount?: number
+          category_key?: string | null
+          created_at?: string
+          display_order?: number
+          event_id?: string
+          id?: string
+          name?: string
+          notes?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_cost_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          all_day: boolean
+          capacity: number | null
+          color: string
+          cover_charge: number
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string
+          ends_at: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id: string
+          instagram_url: string
+          is_public: boolean
+          location: string
+          name: string
+          notes: string
+          starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          capacity?: number | null
+          color?: string
+          cover_charge?: number
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string
+          ends_at: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          instagram_url?: string
+          is_public?: boolean
+          location?: string
+          name: string
+          notes?: string
+          starts_at: string
+          status?: Database["public"]["Enums"]["event_status"]
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          capacity?: number | null
+          color?: string
+          cover_charge?: number
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          ends_at?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          instagram_url?: string
+          is_public?: boolean
+          location?: string
+          name?: string
+          notes?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           created_at: string
@@ -821,6 +955,80 @@ export type Database = {
           },
         ]
       }
+      reservations: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          deposit_amount: number
+          deposit_method: string
+          deposit_paid: boolean
+          deposit_reference: string
+          event_id: string | null
+          id: string
+          notes: string
+          party_size: number
+          reminder_sent: boolean
+          reserved_for: string
+          special_requests: string
+          status: Database["public"]["Enums"]["reservation_status"]
+          table_number: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          customer_email?: string
+          customer_name: string
+          customer_phone?: string
+          deposit_amount?: number
+          deposit_method?: string
+          deposit_paid?: boolean
+          deposit_reference?: string
+          event_id?: string | null
+          id?: string
+          notes?: string
+          party_size?: number
+          reminder_sent?: boolean
+          reserved_for: string
+          special_requests?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+          table_number?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          deposit_amount?: number
+          deposit_method?: string
+          deposit_paid?: boolean
+          deposit_reference?: string
+          event_id?: string | null
+          id?: string
+          notes?: string
+          party_size?: number
+          reminder_sent?: boolean
+          reserved_for?: string
+          special_requests?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+          table_number?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_settings: {
         Row: {
           created_at: string
@@ -928,6 +1136,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "waiter" | "billing" | "kitchen" | "loyalty_member"
+      event_status:
+        | "scheduled"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      event_type: "live_music" | "private" | "promo" | "workshop" | "other"
       menu_status: "draft" | "published" | "archived"
       menu_type: "main" | "seasonal" | "event"
       order_status:
@@ -938,6 +1153,12 @@ export type Database = {
         | "ready"
         | "served"
         | "paid"
+      reservation_status:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "no_show"
+        | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1066,6 +1287,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "waiter", "billing", "kitchen", "loyalty_member"],
+      event_status: [
+        "scheduled",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      event_type: ["live_music", "private", "promo", "workshop", "other"],
       menu_status: ["draft", "published", "archived"],
       menu_type: ["main", "seasonal", "event"],
       order_status: [
@@ -1076,6 +1305,13 @@ export const Constants = {
         "ready",
         "served",
         "paid",
+      ],
+      reservation_status: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "no_show",
+        "completed",
       ],
     },
   },

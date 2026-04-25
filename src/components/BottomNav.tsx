@@ -1,5 +1,5 @@
 import { APP_VERSION } from "@/version";
-import { Grid3X3, ChefHat, Menu } from "lucide-react";
+import { Grid3X3, ChefHat, Menu, CalendarDays } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,6 +50,7 @@ export const BottomNav = () => {
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
     { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"] },
     { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"] },
+    { key: "nav.calendar" as const, icon: CalendarDays, path: "/calendar", roles: ["admin", "waiter", "billing"] },
     { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"] },
     { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"] },
     { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },
