@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AppLayout } from "@/components/AppLayout";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,8 +80,8 @@ const CalendarPage = () => {
   const openRes = (r: Reservation) => { setEditingRes(r); setResOpen(true); };
 
   return (
-    <AppLayout>
-      <div className="space-y-4 p-4 sm:p-6 max-w-7xl mx-auto pb-24">
+    <>
+      <div className="space-y-4 max-w-7xl mx-auto pb-24">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">{t("calendar.title")}</h1>
