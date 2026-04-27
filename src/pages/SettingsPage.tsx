@@ -49,6 +49,30 @@ const SettingsPage = () => {
   const [mpToken, setMpToken] = useState("");
   const [mpTokenSaving, setMpTokenSaving] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [reloading, setReloading] = useState(false);
+
+  const handleForceReload = async () => {
+    setReloading(true);
+    try {
+      // Clear all Cache Storage entries (Workbox/PWA caches)
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      // Unregister service workers so the next load fetches a fresh one
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      toast({ title: t("settings.updateApplied") });
+    } catch {
+      // Ignore — still try to reload
+    }
+    // Hard reload bypassing HTTP cache via cache-busting query param
+    const url = new URL(window.location.href);
+    url.searchParams.set("_v", Date.now().toString());
+    window.location.replace(url.toString());
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
