@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Eye, EyeOff, Bell } from "lucide-react";
+import { CreditCard, Eye, EyeOff, Bell, RefreshCw } from "lucide-react";
+import { APP_VERSION } from "@/version";
 
 interface SettingsMap {
   restaurant_name: string;
@@ -48,6 +49,30 @@ const SettingsPage = () => {
   const [mpToken, setMpToken] = useState("");
   const [mpTokenSaving, setMpTokenSaving] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [reloading, setReloading] = useState(false);
+
+  const handleForceReload = async () => {
+    setReloading(true);
+    try {
+      // Clear all Cache Storage entries (Workbox/PWA caches)
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      // Unregister service workers so the next load fetches a fresh one
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      toast({ title: t("settings.updateApplied") });
+    } catch {
+      // Ignore — still try to reload
+    }
+    // Hard reload bypassing HTTP cache via cache-busting query param
+    const url = new URL(window.location.href);
+    url.searchParams.set("_v", Date.now().toString());
+    window.location.replace(url.toString());
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -179,6 +204,29 @@ const SettingsPage = () => {
 
           <Button onClick={handleSave} disabled={loading}>
             {loading ? t("common.loading") : t("settings.save")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* App Updates */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base">{t("settings.appUpdates")}</CardTitle>
+              <CardDescription className="text-sm">{t("settings.appUpdatesDescription")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{t("settings.currentVersion")}</span>
+            <code className="rounded bg-muted px-2 py-1 text-xs font-mono">v{APP_VERSION}</code>
+          </div>
+          <Button onClick={handleForceReload} disabled={reloading} variant="outline" className="w-full gap-2">
+            <RefreshCw className={`h-4 w-4 ${reloading ? "animate-spin" : ""}`} />
+            {reloading ? t("settings.reloading") : t("settings.checkForUpdates")}
           </Button>
         </CardContent>
       </Card>
