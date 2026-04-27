@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Eye, EyeOff, Bell } from "lucide-react";
+import { CreditCard, Eye, EyeOff, Bell, RefreshCw } from "lucide-react";
+import { APP_VERSION } from "@/version";
 
 interface SettingsMap {
   restaurant_name: string;
