@@ -208,6 +208,29 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
+      {/* App Updates */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base">{t("settings.appUpdates")}</CardTitle>
+              <CardDescription className="text-sm">{t("settings.appUpdatesDescription")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{t("settings.currentVersion")}</span>
+            <code className="rounded bg-muted px-2 py-1 text-xs font-mono">v{APP_VERSION}</code>
+          </div>
+          <Button onClick={handleForceReload} disabled={reloading} variant="outline" className="w-full gap-2">
+            <RefreshCw className={`h-4 w-4 ${reloading ? "animate-spin" : ""}`} />
+            {reloading ? t("settings.reloading") : t("settings.checkForUpdates")}
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Mercado Pago Settings */}
       <Card>
         <CardHeader>
