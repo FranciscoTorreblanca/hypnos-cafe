@@ -105,6 +105,12 @@ export const translations = {
   "settings.mpSavingToken": { es: "Guardando token...", en: "Saving token..." },
   "settings.mpTokenSaved": { es: "Token guardado correctamente", en: "Token saved successfully" },
   "settings.mpDescription": { es: "Conecta tu terminal Point Mini para cobrar con tarjeta", en: "Connect your Point Mini terminal for card payments" },
+  "settings.appUpdates": { es: "Actualizaciones de la app", en: "App updates" },
+  "settings.appUpdatesDescription": { es: "Fuerza la recarga sin caché para obtener la última versión de la app.", en: "Force a no-cache reload to get the latest version of the app." },
+  "settings.currentVersion": { es: "Versión actual", en: "Current version" },
+  "settings.checkForUpdates": { es: "Buscar actualizaciones", en: "Check for updates" },
+  "settings.reloading": { es: "Recargando...", en: "Reloading..." },
+  "settings.updateApplied": { es: "Caché limpiado. Recargando...", en: "Cache cleared. Reloading..." },
 
   // Roles
   "role.admin": { es: "Administrador", en: "Admin" },
