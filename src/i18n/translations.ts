@@ -227,7 +227,6 @@ export const translations = {
   "common.success": { es: "Éxito", en: "Success" },
   "common.close": { es: "Cerrar", en: "Close" },
   "common.optional": { es: "(opcional)", en: "(optional)" },
-  "common.optional2": { es: "(opcional)", en: "(optional)" },
 
   // Kitchen
   "kitchen.recipeBook": { es: "Recetario", en: "Recipe Book" },
