@@ -29,7 +29,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Download, Calendar, Receipt, Clock, Package } from "lucide-react";
+import { Search, Download, Calendar, Receipt, Clock, Package, Printer } from "lucide-react";
+import { useTickets, Ticket } from "@/hooks/useTickets";
+import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
+import { buildTicketSnapshot } from "@/utils/ticketSnapshot";
+import { useToast } from "@/hooks/use-toast";
 
 interface HistoryOrderItem {
   id: string;
