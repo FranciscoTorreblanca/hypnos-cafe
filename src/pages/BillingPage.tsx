@@ -934,6 +934,38 @@ const BillingPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Post-payment success: ask to print ticket */}
+      <AlertDialog open={paidPromptOpen} onOpenChange={setPaidPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("tickets.successPaid")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("tickets.askPrintReceipt")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPaidPromptOpen(false)}>
+              {t("tickets.skipPrint")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPaidPromptOpen(false);
+                setPrintOpen(true);
+              }}
+            >
+              {t("tickets.printReceipt")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <PrintTicketDialog
+        open={printOpen}
+        onOpenChange={(v) => {
+          setPrintOpen(v);
+          if (!v) setPendingTicket(null);
+        }}
+        ticket={pendingTicket}
+      />
     </div>
   );
 };
