@@ -128,4 +128,49 @@ All colors MUST be HSL.
     background: white !important;
     color: black !important;
   }
+  /* Thermal ticket printing: hide everything except the ticket */
+  body.printing-ticket > *:not(.ticket-print-root) {
+    display: none !important;
+  }
+  body.printing-ticket .ticket-print-root {
+    position: static !important;
+    inset: auto !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  body.printing-ticket [data-radix-popper-content-wrapper],
+  body.printing-ticket [role="dialog"] {
+    display: none !important;
+  }
+  body.printing-ticket .ticket-print-root [role="dialog"],
+  body.printing-ticket .ticket-print-root * {
+    display: revert !important;
+  }
+}
+
+/* Thermal ticket layout (visible on screen as preview, also used for print) */
+.ticket-print {
+  width: 80mm;
+  max-width: 80mm;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: black;
+  background: white;
+  padding: 6px 8px;
+}
+.ticket-print h1, .ticket-print h2, .ticket-print h3 { margin: 0; }
+.ticket-print .ticket-divider {
+  border-top: 1px dashed black;
+  margin: 6px 0;
+}
+.ticket-print .ticket-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
 }
