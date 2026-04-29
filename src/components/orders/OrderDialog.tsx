@@ -90,6 +90,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [editingTableName, setEditingTableName] = useState(false);
   const [localTableName, setLocalTableName] = useState("");
   const [comboChoiceOpen, setComboChoiceOpen] = useState(false);
+  const [prePaymentTicket, setPrePaymentTicket] = useState<Ticket | null>(null);
+  const [prePaymentOpen, setPrePaymentOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
 
