@@ -53,10 +53,17 @@ const BillingPage = () => {
   const { toast } = useToast();
   const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
+  const { createTicket } = useTickets();
+
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [tipAmount, setTipAmount] = useState<string>("0");
+
+  // Post-payment ticket flow
+  const [paidPromptOpen, setPaidPromptOpen] = useState(false);
+  const [pendingTicket, setPendingTicket] = useState<Ticket | null>(null);
+  const [printOpen, setPrintOpen] = useState(false);
 
   // Admin edit/delete state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
