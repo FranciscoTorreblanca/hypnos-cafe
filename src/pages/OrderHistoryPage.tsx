@@ -69,6 +69,11 @@ interface HistoryOrder {
 const OrderHistoryPage = () => {
   const { t, language } = useLanguage();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
+  const { createTicket, getLatestTicketForOrder } = useTickets();
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printTicket, setPrintTicket] = useState<Ticket | null>(null);
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState(() => {
