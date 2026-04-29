@@ -124,6 +124,15 @@ const BillingPage = () => {
         waiterName = prof?.full_name ?? undefined;
       }
 
+      const { buildTicketSnapshot } = await import("@/utils/ticketSnapshot");
+      const snapshot = await buildTicketSnapshot({
+        table_number: selectedOrder.table_number,
+        waiter_name: waiterName,
+        general_discount: gd,
+        language,
+        items: selectedOrder.order_items ?? [],
+      });
+
       const ticket = await createTicket.mutateAsync({
         order_id: selectedOrder.id,
         payment_id: result.payment_id,
@@ -133,20 +142,7 @@ const BillingPage = () => {
         tip,
         total: totalNoTip + tip,
         payment_method: paymentMethod,
-        snapshot: {
-          table_number: selectedOrder.table_number,
-          waiter_name: waiterName,
-          general_discount: gd,
-          items: (selectedOrder.order_items ?? []).map((oi: any) => ({
-            name: language === "es"
-              ? (oi.menu_item?.name ?? oi.combo?.name ?? "")
-              : (oi.menu_item?.name_en || oi.menu_item?.name || oi.combo?.name_en || oi.combo?.name || ""),
-            quantity: oi.quantity,
-            unit_price: oi.unit_price,
-            discount: oi.discount ?? 0,
-            notes: oi.notes ?? "",
-          })),
-        },
+        snapshot,
       });
 
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });

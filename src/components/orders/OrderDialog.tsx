@@ -731,27 +731,22 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       const subtotal = order.total;
       const gd = order.general_discount ?? 0;
       const total = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+      const { buildTicketSnapshot } = await import("@/utils/ticketSnapshot");
+      const snapshot = await buildTicketSnapshot({
+        table_number: order.table_number,
+        table_name: tableName,
+        waiter_name: waiterName,
+        general_discount: gd,
+        language,
+        items: orderItems,
+      });
       const ticket = await createTicket.mutateAsync({
         order_id: order.id,
         kind: "pre_payment",
         subtotal,
         tip: 0,
         total,
-        snapshot: {
-          table_number: order.table_number,
-          table_name: tableName,
-          waiter_name: waiterName,
-          general_discount: gd,
-          items: orderItems.map((oi: any) => ({
-            name: language === "es"
-              ? (oi.menu_item?.name ?? oi.combo?.name ?? "")
-              : (oi.menu_item?.name_en || oi.menu_item?.name || oi.combo?.name_en || oi.combo?.name || ""),
-            quantity: oi.quantity,
-            unit_price: oi.unit_price,
-            discount: oi.discount ?? 0,
-            notes: oi.notes ?? "",
-          })),
-        },
+        snapshot,
       });
       setPrePaymentTicket(ticket);
       setPrePaymentOpen(true);
