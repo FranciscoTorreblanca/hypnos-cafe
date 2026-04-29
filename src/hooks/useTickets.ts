@@ -7,7 +7,12 @@ export type TicketKind = "pre_payment" | "receipt";
 export interface TicketSnapshotItem {
   name: string;
   quantity: number;
+  /** Price actually charged per unit (already promo if applicable). */
   unit_price: number;
+  /** Original list price BEFORE promo. Same as unit_price when no promo. */
+  original_price?: number;
+  /** Promo price if the item had one at the time of sale. */
+  promo_price?: number | null;
   discount: number;
   notes?: string;
 }
@@ -17,6 +22,8 @@ export interface TicketSnapshot {
   table_name?: string;
   waiter_name?: string;
   general_discount: number;
+  /** IVA percentage included in prices (e.g. 16 for 16%). */
+  tax_rate?: number;
   items: TicketSnapshotItem[];
 }
 
@@ -109,7 +116,23 @@ export const useTickets = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ticket_prints"] }),
   });
 
-  return { ...query, createTicket, logPrint };
+  /**
+   * Returns the most recent ticket for an order (any kind), or null when none exist.
+   * Used by Order History so old orders can be re-printed without creating duplicates.
+   */
+  const getLatestTicketForOrder = async (order_id: string): Promise<Ticket | null> => {
+    const { data, error } = await supabase
+      .from("tickets" as any)
+      .select("*")
+      .eq("order_id", order_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return (data ?? null) as unknown as Ticket | null;
+  };
+
+  return { ...query, createTicket, logPrint, getLatestTicketForOrder };
 };
 
 export const useTicketPrints = (ticket_id: string | undefined) => {

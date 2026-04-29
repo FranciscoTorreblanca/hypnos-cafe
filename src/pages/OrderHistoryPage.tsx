@@ -29,7 +29,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Download, Calendar, Receipt, Clock, Package } from "lucide-react";
+import { Search, Download, Calendar, Receipt, Clock, Package, Printer } from "lucide-react";
+import { useTickets, Ticket } from "@/hooks/useTickets";
+import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
+import { buildTicketSnapshot } from "@/utils/ticketSnapshot";
+import { useToast } from "@/hooks/use-toast";
 
 interface HistoryOrderItem {
   id: string;
@@ -65,6 +69,11 @@ interface HistoryOrder {
 const OrderHistoryPage = () => {
   const { t, language } = useLanguage();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
+  const { createTicket, getLatestTicketForOrder } = useTickets();
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printTicket, setPrintTicket] = useState<Ticket | null>(null);
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState(() => {
@@ -208,6 +217,48 @@ const OrderHistoryPage = () => {
       cancelled: { es: "Cancelada", en: "Cancelled" },
     };
     return map[s]?.[language] ?? s;
+  };
+
+  /** Open print dialog for an order — reuse latest ticket or generate a new one. */
+  const handlePrintOrder = async (order: HistoryOrder) => {
+    setPrintingOrderId(order.id);
+    try {
+      let ticket = await getLatestTicketForOrder(order.id);
+      if (!ticket) {
+        const payment = order.payments?.[0];
+        const gd = order.general_discount ?? 0;
+        const subtotal = order.total;
+        const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const tip = payment?.tip ?? 0;
+        const isPaid = order.status === "paid";
+
+        const snapshot = await buildTicketSnapshot({
+          table_number: order.table_number,
+          waiter_name: order.waiterName || undefined,
+          general_discount: gd,
+          language,
+          items: order.order_items as any,
+        });
+
+        ticket = await createTicket.mutateAsync({
+          order_id: order.id,
+          payment_id: null,
+          kind: isPaid ? "receipt" : "pre_payment",
+          paid_at: isPaid ? (payment?.created_at ?? order.updated_at) : null,
+          subtotal,
+          tip: isPaid ? tip : 0,
+          total: isPaid ? totalNoTip + tip : totalNoTip,
+          payment_method: isPaid ? (payment?.payment_method ?? null) : null,
+          snapshot,
+        });
+      }
+      setPrintTicket(ticket);
+      setPrintOpen(true);
+    } catch (e: any) {
+      toast({ title: t("common.error"), description: e?.message ?? "", variant: "destructive" });
+    } finally {
+      setPrintingOrderId(null);
+    }
   };
 
   return (
@@ -410,6 +461,19 @@ const OrderHistoryPage = () => {
                     {order.notes && (
                       <p className="text-xs text-muted-foreground italic">📝 {order.notes}</p>
                     )}
+
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => handlePrintOrder(order)}
+                        disabled={printingOrderId === order.id || order.order_items.length === 0}
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        {language === "es" ? "Imprimir ticket" : "Print ticket"}
+                      </Button>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );
@@ -417,6 +481,12 @@ const OrderHistoryPage = () => {
           </Accordion>
         </ScrollArea>
       )}
+
+      <PrintTicketDialog
+        open={printOpen}
+        onOpenChange={(v) => { setPrintOpen(v); if (!v) setPrintTicket(null); }}
+        ticket={printTicket}
+      />
     </div>
   );
 };
