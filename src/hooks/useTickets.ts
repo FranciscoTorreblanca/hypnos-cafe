@@ -133,7 +133,7 @@ export const useTickets = () => {
   };
 
   return { ...query, createTicket, logPrint, getLatestTicketForOrder };
-}
+};
 
 export const useTicketPrints = (ticket_id: string | undefined) => {
   return useQuery({
