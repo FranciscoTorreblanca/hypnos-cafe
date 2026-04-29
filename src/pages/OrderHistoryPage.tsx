@@ -461,6 +461,19 @@ const OrderHistoryPage = () => {
                     {order.notes && (
                       <p className="text-xs text-muted-foreground italic">📝 {order.notes}</p>
                     )}
+
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => handlePrintOrder(order)}
+                        disabled={printingOrderId === order.id || order.order_items.length === 0}
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        {language === "es" ? "Imprimir ticket" : "Print ticket"}
+                      </Button>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );
@@ -468,6 +481,12 @@ const OrderHistoryPage = () => {
           </Accordion>
         </ScrollArea>
       )}
+
+      <PrintTicketDialog
+        open={printOpen}
+        onOpenChange={(v) => { setPrintOpen(v); if (!v) setPrintTicket(null); }}
+        ticket={printTicket}
+      />
     </div>
   );
 };
