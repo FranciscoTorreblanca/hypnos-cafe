@@ -49,7 +49,6 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
   }, [business.wifi_ssid, business.wifi_password]);
 
   useEffect(() => {
-    // Future CFDI invoice request URL — based on ticket public_id only (no internal ids exposed)
     const url = `${window.location.origin}/factura/${ticket.public_id}`;
     QRCode.toDataURL(url, { width: 140, margin: 0 }).then(setInvoiceQr).catch(() => setInvoiceQr(""));
   }, [ticket.public_id]);
@@ -60,12 +59,25 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
   const printedAt = new Date().toISOString();
   const isReceipt = ticket.kind === "receipt";
 
-  const tableLabel = snap.table_name || `${t("Mesa", "Table")} ${snap.table_number ?? "-"}`;
+  // Public table identifier: short slice of the ticket public_id (NOT the internal table number).
+  const publicTableId = ticket.public_id.slice(0, 6).toUpperCase();
   const methodLabel = ticket.payment_method === "cash"
     ? t("Efectivo", "Cash")
     : ticket.payment_method === "card"
       ? t("Tarjeta", "Card")
       : ticket.payment_method ?? "-";
+
+  // ─── Totals breakdown ────────────────────────────────────────────────────
+  // ticket.subtotal already reflects per-item discounts (sum of net line amounts).
+  const generalDiscount = snap.general_discount ?? 0;
+  const generalDiscountAmount = ticket.subtotal * (generalDiscount / 100);
+  const totalAfterGeneralDisc = ticket.subtotal - generalDiscountAmount;
+
+  // IVA breakdown — prices INCLUDE IVA. Reverse-calculate to show subtotal w/o IVA + IVA.
+  const taxRate = snap.tax_rate ?? 16;
+  const taxFactor = 1 + taxRate / 100;
+  const subtotalWithoutTax = totalAfterGeneralDisc / taxFactor;
+  const taxAmount = totalAfterGeneralDisc - subtotalWithoutTax;
 
   return (
     <div className="ticket-print">
@@ -92,7 +104,9 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
         <span style={{ fontFamily: "monospace" }}>{ticket.public_id.slice(0, 8).toUpperCase()}</span>
       </div>
       <div className="ticket-row">
-        <span>{tableLabel}</span>
+        <span>
+          {t("Mesa", "Table")}: <strong style={{ fontFamily: "monospace" }}>{publicTableId}</strong>
+        </span>
         <span>{snap.waiter_name ? `${t("Mesero", "Waiter")}: ${snap.waiter_name}` : ""}</span>
       </div>
       {isReceipt && (
@@ -119,8 +133,11 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
         <span>{t("Importe", "Amount")}</span>
       </div>
       {items.map((it: any, idx: number) => {
+        const hasPromo = it.promo_price != null && it.original_price != null && it.promo_price < it.original_price;
         const lineGross = it.quantity * it.unit_price;
         const lineNet = lineGross * (1 - (it.discount ?? 0) / 100);
+        const originalLine = it.quantity * (it.original_price ?? it.unit_price);
+
         return (
           <div key={idx} style={{ marginTop: 2 }}>
             <div className="ticket-row">
@@ -129,11 +146,28 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
               </span>
               <span>{fmtMoney(lineNet)}</span>
             </div>
-            {it.discount > 0 && (
+
+            {/* Promotional pricing breakdown */}
+            {hasPromo && (
               <div style={{ fontSize: 10, paddingLeft: 12 }}>
-                {t("Desc.", "Disc.")} {it.discount}% (−{fmtMoney(lineGross - lineNet)})
+                {t("Precio normal", "Regular")}:{" "}
+                <span style={{ textDecoration: "line-through" }}>{fmtMoney(it.original_price)}</span>{" "}
+                → {t("Promo", "Promo")} {fmtMoney(it.promo_price)}
+                {it.quantity > 1 && (
+                  <> ({t("ahorro", "save")} {fmtMoney(originalLine - lineGross)})</>
+                )}
               </div>
             )}
+
+            {/* Per-item discount breakdown */}
+            {it.discount > 0 && (
+              <div style={{ fontSize: 10, paddingLeft: 12 }}>
+                {t("Descuento", "Discount")} {it.discount}%:{" "}
+                {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineNet)} ={" "}
+                <strong>{fmtMoney(lineNet)}</strong>
+              </div>
+            )}
+
             {it.notes && (
               <div style={{ fontSize: 10, paddingLeft: 12, fontStyle: "italic" }}>
                 {it.notes}
@@ -150,12 +184,33 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
         <span>{t("Subtotal", "Subtotal")}:</span>
         <span>{fmtMoney(ticket.subtotal)}</span>
       </div>
-      {snap.general_discount > 0 && (
-        <div className="ticket-row">
-          <span>{t("Descuento", "Discount")} ({snap.general_discount}%):</span>
-          <span>−{fmtMoney(ticket.subtotal * (snap.general_discount / 100))}</span>
-        </div>
+
+      {/* General discount on the whole order */}
+      {generalDiscount > 0 && (
+        <>
+          <div className="ticket-row">
+            <span>
+              {t("Descuento general", "Order discount")} ({generalDiscount}%):
+            </span>
+            <span>−{fmtMoney(generalDiscountAmount)}</span>
+          </div>
+          <div className="ticket-row">
+            <span>{t("Después de descuento", "After discount")}:</span>
+            <span>{fmtMoney(totalAfterGeneralDisc)}</span>
+          </div>
+        </>
       )}
+
+      {/* IVA breakdown — prices include IVA */}
+      <div className="ticket-row" style={{ fontSize: 10, color: "#444" }}>
+        <span>{t("Subtotal sin IVA", "Subtotal w/o VAT")}:</span>
+        <span>{fmtMoney(subtotalWithoutTax)}</span>
+      </div>
+      <div className="ticket-row" style={{ fontSize: 10, color: "#444" }}>
+        <span>IVA ({taxRate}%):</span>
+        <span>{fmtMoney(taxAmount)}</span>
+      </div>
+
       {ticket.tip > 0 && (
         <div className="ticket-row">
           <span>{t("Propina", "Tip")}:</span>
@@ -165,6 +220,9 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
       <div className="ticket-row" style={{ fontWeight: 700, fontSize: 13 }}>
         <span>TOTAL MXN:</span>
         <span>{fmtMoney(ticket.total)}</span>
+      </div>
+      <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "right" }}>
+        {t("Precios con IVA incluido", "Prices include VAT")}
       </div>
       {isReceipt && ticket.payment_method && (
         <div className="ticket-row">
