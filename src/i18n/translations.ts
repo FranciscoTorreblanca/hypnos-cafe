@@ -225,6 +225,8 @@ export const translations = {
   "common.back": { es: "Volver", en: "Back" },
   "common.error": { es: "Error", en: "Error" },
   "common.success": { es: "Éxito", en: "Success" },
+  "common.close": { es: "Cerrar", en: "Close" },
+  "common.optional": { es: "(opcional)", en: "(optional)" },
 
   // Kitchen
   "kitchen.recipeBook": { es: "Recetario", en: "Recipe Book" },
@@ -433,6 +435,38 @@ export const translations = {
   "res.status.cancelled": { es: "Cancelada", en: "Cancelled" },
   "res.status.no_show": { es: "No se presentó", en: "No-show" },
   "res.status.completed": { es: "Completada", en: "Completed" },
+
+  // Tickets
+  "nav.tickets": { es: "Tickets", en: "Tickets" },
+  "tickets.title": { es: "Tickets", en: "Tickets" },
+  "tickets.preview": { es: "Vista previa del ticket", en: "Ticket preview" },
+  "tickets.print": { es: "Imprimir", en: "Print" },
+  "tickets.reprint": { es: "Reimprimir", en: "Reprint" },
+  "tickets.printedTimes": { es: "Veces impreso", en: "Times printed" },
+  "tickets.printPrebill": { es: "Imprimir cuenta", en: "Print pre-bill" },
+  "tickets.printReceipt": { es: "Imprimir ticket", en: "Print receipt" },
+  "tickets.successPaid": { es: "Pago registrado", en: "Payment registered" },
+  "tickets.askPrintReceipt": { es: "¿Deseas imprimir el ticket de la nota de consumo?", en: "Do you want to print the sales receipt?" },
+  "tickets.skipPrint": { es: "No imprimir", en: "Skip" },
+  "tickets.kind": { es: "Tipo", en: "Kind" },
+  "tickets.kind.pre_payment": { es: "Cuenta previa", en: "Pre-bill" },
+  "tickets.kind.receipt": { es: "Nota de consumo", en: "Sales receipt" },
+  "tickets.folio": { es: "Folio", en: "Folio" },
+  "tickets.searchByFolio": { es: "Buscar por folio o mesa...", en: "Search by folio or table..." },
+  "tickets.empty": { es: "Sin tickets generados", en: "No tickets generated" },
+  "tickets.viewReprint": { es: "Ver / Reimprimir", en: "View / Reprint" },
+  "tickets.invoiceFlag": { es: "Solicitó factura", en: "Invoice requested" },
+  "tickets.deleteConfirm": { es: "¿Eliminar este ticket? Esta acción no se puede deshacer.", en: "Delete this ticket? This cannot be undone." },
+
+  // Settings - business info
+  "settings.businessInfo": { es: "Datos del negocio (para tickets)", en: "Business info (for tickets)" },
+  "settings.businessInfoDescription": { es: "Estos datos aparecen en los tickets impresos.", en: "These details appear on printed tickets." },
+  "settings.businessAddress": { es: "Dirección", en: "Address" },
+  "settings.businessPhone": { es: "Teléfono", en: "Phone" },
+  "settings.businessRfc": { es: "RFC (futuro CFDI)", en: "RFC (future CFDI)" },
+  "settings.wifi": { es: "WiFi para clientes", en: "Customer WiFi" },
+  "settings.wifiSsid": { es: "Nombre de red (SSID)", en: "Network name (SSID)" },
+  "settings.wifiPassword": { es: "Contraseña WiFi", en: "WiFi password" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

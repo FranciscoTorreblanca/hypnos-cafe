@@ -6,9 +6,12 @@ import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useCombos, ComboWithItems } from "@/hooks/useCombos";
 import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
+import { useTickets, Ticket } from "@/hooks/useTickets";
+import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTableNames } from "@/hooks/useTableNames";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +34,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil, CheckCircle, Clock,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil, CheckCircle, Clock, Printer,
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import {
@@ -65,6 +68,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { data: combos = [] } = useCombos();
   const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemStatus, updateGeneralDiscount } = useOrders();
   const { createPayment } = usePayments();
+  const { createTicket } = useTickets();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -86,6 +90,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [editingTableName, setEditingTableName] = useState(false);
   const [localTableName, setLocalTableName] = useState("");
   const [comboChoiceOpen, setComboChoiceOpen] = useState(false);
+  const [prePaymentTicket, setPrePaymentTicket] = useState<Ticket | null>(null);
+  const [prePaymentOpen, setPrePaymentOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
 
@@ -713,6 +719,47 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   // ─── Order action buttons (sticky at bottom) ───
+  const handlePrintPreBill = async () => {
+    if (!order || orderItems.length === 0) return;
+    try {
+      let waiterName: string | undefined;
+      if (order.created_by) {
+        const { data: prof } = await supabase
+          .from("profiles").select("full_name").eq("id", order.created_by).maybeSingle();
+        waiterName = prof?.full_name ?? undefined;
+      }
+      const subtotal = order.total;
+      const gd = order.general_discount ?? 0;
+      const total = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+      const ticket = await createTicket.mutateAsync({
+        order_id: order.id,
+        kind: "pre_payment",
+        subtotal,
+        tip: 0,
+        total,
+        snapshot: {
+          table_number: order.table_number,
+          table_name: tableName,
+          waiter_name: waiterName,
+          general_discount: gd,
+          items: orderItems.map((oi: any) => ({
+            name: language === "es"
+              ? (oi.menu_item?.name ?? oi.combo?.name ?? "")
+              : (oi.menu_item?.name_en || oi.menu_item?.name || oi.combo?.name_en || oi.combo?.name || ""),
+            quantity: oi.quantity,
+            unit_price: oi.unit_price,
+            discount: oi.discount ?? 0,
+            notes: oi.notes ?? "",
+          })),
+        },
+      });
+      setPrePaymentTicket(ticket);
+      setPrePaymentOpen(true);
+    } catch {
+      toast({ title: t("common.error"), variant: "destructive" });
+    }
+  };
+
   const orderActions = orderItems.length > 0 ? (
     <div className="pt-2 border-t space-y-1.5 shrink-0 bg-background">
       {/* General discount */}
@@ -780,9 +827,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </Button>
       )}
       {canPay && (
-        <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
-          <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
-        </Button>
+        <>
+          <Button className="w-full gap-1.5" size="sm" variant="outline" onClick={handlePrintPreBill} disabled={createTicket.isPending}>
+            <Printer className="h-3.5 w-3.5" /> {t("tickets.printPrebill")}
+          </Button>
+          <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
+            <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
+          </Button>
+        </>
       )}
       {canCancelOrder && (
         <AlertDialog>
@@ -1013,6 +1065,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   const comboChoiceDialogElement = selectedCombo && (
+    <>
     <ComboChoiceDialog
       open={comboChoiceOpen}
       onOpenChange={(v) => { setComboChoiceOpen(v); if (!v) setSelectedCombo(null); }}
@@ -1020,6 +1073,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       allItems={items}
       onConfirm={(combo, choices) => addComboToCart(combo, choices)}
     />
+    <PrintTicketDialog
+      open={prePaymentOpen}
+      onOpenChange={(v) => { setPrePaymentOpen(v); if (!v) setPrePaymentTicket(null); }}
+      ticket={prePaymentTicket}
+    />
+    </>
   );
 
   // ─── MOBILE: Drawer ───

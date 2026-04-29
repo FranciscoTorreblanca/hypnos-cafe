@@ -1056,6 +1056,98 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_prints: {
+        Row: {
+          id: string
+          printed_at: string
+          printed_by: string
+          ticket_id: string
+        }
+        Insert: {
+          id?: string
+          printed_at?: string
+          printed_by: string
+          ticket_id: string
+        }
+        Update: {
+          id?: string
+          printed_at?: string
+          printed_by?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_prints_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_email_for_invoice: string
+          customer_rfc: string
+          id: string
+          kind: Database["public"]["Enums"]["ticket_kind"]
+          notes: string
+          order_id: string
+          paid_at: string | null
+          payment_id: string | null
+          payment_method: string | null
+          public_id: string
+          requested_invoice: boolean
+          snapshot: Json
+          subtotal: number
+          tip: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          customer_email_for_invoice?: string
+          customer_rfc?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["ticket_kind"]
+          notes?: string
+          order_id: string
+          paid_at?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          public_id?: string
+          requested_invoice?: boolean
+          snapshot?: Json
+          subtotal?: number
+          tip?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_email_for_invoice?: string
+          customer_rfc?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["ticket_kind"]
+          notes?: string
+          order_id?: string
+          paid_at?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          public_id?: string
+          requested_invoice?: boolean
+          snapshot?: Json
+          subtotal?: number
+          tip?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       till_transactions: {
         Row: {
           amount: number
@@ -1162,6 +1254,7 @@ export type Database = {
         | "cancelled"
         | "no_show"
         | "completed"
+      ticket_kind: "pre_payment" | "receipt"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1316,6 +1409,7 @@ export const Constants = {
         "no_show",
         "completed",
       ],
+      ticket_kind: ["pre_payment", "receipt"],
     },
   },
 } as const

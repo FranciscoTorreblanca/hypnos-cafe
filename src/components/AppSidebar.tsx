@@ -16,6 +16,7 @@ import {
   History,
   Package,
   CalendarDays,
+  Ticket,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,6 +50,7 @@ export const AppSidebar = () => {
     { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
     { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"] },
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
+    { key: "nav.tickets" as const, icon: Ticket, path: "/tickets", roles: ["admin", "billing", "waiter"] },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
     { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"] },
     { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"] },

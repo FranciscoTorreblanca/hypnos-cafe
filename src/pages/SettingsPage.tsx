@@ -23,6 +23,11 @@ interface SettingsMap {
   mp_device_id: string;
   mp_token_set: string;
   push_enabled: string;
+  business_address: string;
+  business_phone: string;
+  business_rfc: string;
+  wifi_ssid: string;
+  wifi_password: string;
 }
 
 const SettingsPage = () => {
@@ -41,6 +46,11 @@ const SettingsPage = () => {
     mp_device_id: "",
     mp_token_set: "false",
     push_enabled: "false",
+    business_address: "",
+    business_phone: "",
+    business_rfc: "",
+    wifi_ssid: "",
+    wifi_password: "",
   });
   const [localTableNames, setLocalTableNames] = useState<TableNamesMap>({});
   const [loading, setLoading] = useState(false);
@@ -203,6 +213,61 @@ const SettingsPage = () => {
           </div>
 
           <Button onClick={handleSave} disabled={loading}>
+            {loading ? t("common.loading") : t("settings.save")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Business info for tickets */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.businessInfo")}</CardTitle>
+          <CardDescription className="text-sm">{t("settings.businessInfoDescription")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>{t("settings.businessAddress")}</Label>
+            <Input
+              value={settings.business_address}
+              onChange={(e) => setSettings((p) => ({ ...p, business_address: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>{t("settings.businessPhone")}</Label>
+              <Input
+                value={settings.business_phone}
+                onChange={(e) => setSettings((p) => ({ ...p, business_phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("settings.businessRfc")}</Label>
+              <Input
+                value={settings.business_rfc}
+                onChange={(e) => setSettings((p) => ({ ...p, business_rfc: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="border-t pt-4 space-y-3">
+            <Label className="text-sm font-semibold">{t("settings.wifi")}</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">{t("settings.wifiSsid")}</Label>
+                <Input
+                  value={settings.wifi_ssid}
+                  onChange={(e) => setSettings((p) => ({ ...p, wifi_ssid: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">{t("settings.wifiPassword")}</Label>
+                <Input
+                  value={settings.wifi_password}
+                  onChange={(e) => setSettings((p) => ({ ...p, wifi_password: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <Button onClick={handleSave} disabled={loading} className="w-full">
             {loading ? t("common.loading") : t("settings.save")}
           </Button>
         </CardContent>

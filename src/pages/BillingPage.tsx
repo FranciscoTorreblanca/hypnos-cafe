@@ -5,6 +5,9 @@ import { usePayments, Payment } from "@/hooks/usePayments";
 import { useTill } from "@/hooks/useTill";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useTickets, Ticket } from "@/hooks/useTickets";
+import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,10 +53,17 @@ const BillingPage = () => {
   const { toast } = useToast();
   const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
+  const { createTicket } = useTickets();
+
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [tipAmount, setTipAmount] = useState<string>("0");
+
+  // Post-payment ticket flow
+  const [paidPromptOpen, setPaidPromptOpen] = useState(false);
+  const [pendingTicket, setPendingTicket] = useState<Ticket | null>(null);
+  const [printOpen, setPrintOpen] = useState(false);
 
   // Admin edit/delete state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -91,14 +101,58 @@ const BillingPage = () => {
   const handleConfirmPayment = async () => {
     if (!selectedOrder) return;
     try {
-      await createPayment.mutateAsync({
+      const tip = parseFloat(tipAmount) || 0;
+      const subtotal = selectedOrder.total;
+      const gd = selectedOrder.general_discount ?? 0;
+      const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+
+      const result = await createPayment.mutateAsync({
         order_id: selectedOrder.id,
-        amount: selectedOrder.total,
-        tip: parseFloat(tipAmount) || 0,
+        amount: totalNoTip,
+        tip,
         payment_method: paymentMethod,
       });
+
+      // Resolve waiter name for snapshot
+      let waiterName: string | undefined;
+      if (selectedOrder.created_by) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", selectedOrder.created_by)
+          .maybeSingle();
+        waiterName = prof?.full_name ?? undefined;
+      }
+
+      const ticket = await createTicket.mutateAsync({
+        order_id: selectedOrder.id,
+        payment_id: result.payment_id,
+        kind: "receipt",
+        paid_at: new Date().toISOString(),
+        subtotal,
+        tip,
+        total: totalNoTip + tip,
+        payment_method: paymentMethod,
+        snapshot: {
+          table_number: selectedOrder.table_number,
+          waiter_name: waiterName,
+          general_discount: gd,
+          items: (selectedOrder.order_items ?? []).map((oi: any) => ({
+            name: language === "es"
+              ? (oi.menu_item?.name ?? oi.combo?.name ?? "")
+              : (oi.menu_item?.name_en || oi.menu_item?.name || oi.combo?.name_en || oi.combo?.name || ""),
+            quantity: oi.quantity,
+            unit_price: oi.unit_price,
+            discount: oi.discount ?? 0,
+            notes: oi.notes ?? "",
+          })),
+        },
+      });
+
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
       setPayDialogOpen(false);
+      setPendingTicket(ticket);
+      setPaidPromptOpen(true);
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
     }
@@ -880,6 +934,38 @@ const BillingPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Post-payment success: ask to print ticket */}
+      <AlertDialog open={paidPromptOpen} onOpenChange={setPaidPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("tickets.successPaid")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("tickets.askPrintReceipt")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPaidPromptOpen(false)}>
+              {t("tickets.skipPrint")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPaidPromptOpen(false);
+                setPrintOpen(true);
+              }}
+            >
+              {t("tickets.printReceipt")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <PrintTicketDialog
+        open={printOpen}
+        onOpenChange={(v) => {
+          setPrintOpen(v);
+          if (!v) setPendingTicket(null);
+        }}
+        ticket={pendingTicket}
+      />
     </div>
   );
 };
