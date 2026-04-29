@@ -116,8 +116,24 @@ export const useTickets = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ticket_prints"] }),
   });
 
-  return { ...query, createTicket, logPrint };
-};
+  /**
+   * Returns the most recent ticket for an order (any kind), or null when none exist.
+   * Used by Order History so old orders can be re-printed without creating duplicates.
+   */
+  const getLatestTicketForOrder = async (order_id: string): Promise<Ticket | null> => {
+    const { data, error } = await supabase
+      .from("tickets" as any)
+      .select("*")
+      .eq("order_id", order_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return (data ?? null) as unknown as Ticket | null;
+  };
+
+  return { ...query, createTicket, logPrint, getLatestTicketForOrder };
+}
 
 export const useTicketPrints = (ticket_id: string | undefined) => {
   return useQuery({
