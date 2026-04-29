@@ -6,9 +6,12 @@ import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useCombos, ComboWithItems } from "@/hooks/useCombos";
 import { Order, useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
+import { useTickets, Ticket } from "@/hooks/useTickets";
+import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTableNames } from "@/hooks/useTableNames";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +34,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil, CheckCircle, Clock,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil, CheckCircle, Clock, Printer,
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import {
@@ -65,6 +68,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { data: combos = [] } = useCombos();
   const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemStatus, updateGeneralDiscount } = useOrders();
   const { createPayment } = usePayments();
+  const { createTicket } = useTickets();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
