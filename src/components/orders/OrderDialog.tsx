@@ -827,9 +827,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </Button>
       )}
       {canPay && (
-        <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
-          <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
-        </Button>
+        <>
+          <Button className="w-full gap-1.5" size="sm" variant="outline" onClick={handlePrintPreBill} disabled={createTicket.isPending}>
+            <Printer className="h-3.5 w-3.5" /> {t("tickets.printPrebill")}
+          </Button>
+          <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
+            <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
+          </Button>
+        </>
       )}
       {canCancelOrder && (
         <AlertDialog>
