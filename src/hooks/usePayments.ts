@@ -139,7 +139,7 @@ export const usePayments = () => {
 
       // Till entry is auto-created by database trigger for cash payments
 
-      return { mpResult };
+      return { mpResult, payment_id: paymentData.id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
