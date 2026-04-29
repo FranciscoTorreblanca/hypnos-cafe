@@ -219,6 +219,48 @@ const OrderHistoryPage = () => {
     return map[s]?.[language] ?? s;
   };
 
+  /** Open print dialog for an order — reuse latest ticket or generate a new one. */
+  const handlePrintOrder = async (order: HistoryOrder) => {
+    setPrintingOrderId(order.id);
+    try {
+      let ticket = await getLatestTicketForOrder(order.id);
+      if (!ticket) {
+        const payment = order.payments?.[0];
+        const gd = order.general_discount ?? 0;
+        const subtotal = order.total;
+        const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const tip = payment?.tip ?? 0;
+        const isPaid = order.status === "paid";
+
+        const snapshot = await buildTicketSnapshot({
+          table_number: order.table_number,
+          waiter_name: order.waiterName || undefined,
+          general_discount: gd,
+          language,
+          items: order.order_items as any,
+        });
+
+        ticket = await createTicket.mutateAsync({
+          order_id: order.id,
+          payment_id: null,
+          kind: isPaid ? "receipt" : "pre_payment",
+          paid_at: isPaid ? (payment?.created_at ?? order.updated_at) : null,
+          subtotal,
+          tip: isPaid ? tip : 0,
+          total: isPaid ? totalNoTip + tip : totalNoTip,
+          payment_method: isPaid ? (payment?.payment_method ?? null) : null,
+          snapshot,
+        });
+      }
+      setPrintTicket(ticket);
+      setPrintOpen(true);
+    } catch (e: any) {
+      toast({ title: t("common.error"), description: e?.message ?? "", variant: "destructive" });
+    } finally {
+      setPrintingOrderId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
