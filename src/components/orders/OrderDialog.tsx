@@ -1065,6 +1065,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   );
 
   const comboChoiceDialogElement = selectedCombo && (
+    <>
     <ComboChoiceDialog
       open={comboChoiceOpen}
       onOpenChange={(v) => { setComboChoiceOpen(v); if (!v) setSelectedCombo(null); }}
@@ -1072,6 +1073,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       allItems={items}
       onConfirm={(combo, choices) => addComboToCart(combo, choices)}
     />
+    <PrintTicketDialog
+      open={prePaymentOpen}
+      onOpenChange={(v) => { setPrePaymentOpen(v); if (!v) setPrePaymentTicket(null); }}
+      ticket={prePaymentTicket}
+    />
+    </>
   );
 
   // ─── MOBILE: Drawer ───
