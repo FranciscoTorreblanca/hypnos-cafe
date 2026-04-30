@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X } from "lucide-react";
+import { Printer, X, RefreshCw } from "lucide-react";
 import { TicketView } from "@/components/tickets/TicketView";
 import { Ticket, useTickets, useTicketPrints } from "@/hooks/useTickets";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildTicketSnapshot } from "@/utils/ticketSnapshot";
 
 interface Props {
   open: boolean;
