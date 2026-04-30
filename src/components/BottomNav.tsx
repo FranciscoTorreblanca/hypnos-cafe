@@ -1,5 +1,5 @@
 import { APP_VERSION } from "@/version";
-import { Grid3X3, ChefHat, Menu, CalendarDays, Ticket } from "lucide-react";
+import { Grid3X3, ChefHat, Menu, CalendarDays, Ticket, Wifi } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,7 +37,7 @@ export const BottomNav = () => {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const showTables = isAdmin || hasRole("waiter") || hasRole("kitchen");
-  const showKitchen = isAdmin || hasRole("waiter") || hasRole("kitchen");
+  const showWifi = !!user;
 
   const moreItems = [
     { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: ["admin"] },
@@ -46,6 +46,7 @@ export const BottomNav = () => {
     { key: "nav.costCalculator" as const, icon: Calculator, path: "/cost-calculator", roles: ["admin"] },
     { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
     { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"] },
+    { key: "nav.wifi" as const, icon: Wifi, path: "/wifi", roles: [] },
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
     { key: "nav.tickets" as const, icon: Ticket, path: "/tickets", roles: ["admin", "billing", "waiter"] },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
@@ -78,15 +79,15 @@ export const BottomNav = () => {
             <span>{t("nav.tables")}</span>
           </button>
         )}
-        {showKitchen && (
+        {showWifi && (
           <button
-            onClick={() => navigate("/kitchen")}
+            onClick={() => navigate("/wifi")}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 text-xs transition-colors ${
-              isActive("/kitchen") ? "text-primary" : "text-muted-foreground"
+              isActive("/wifi") ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <ChefHat className="h-5 w-5" />
-            <span>{t("nav.kitchen")}</span>
+            <Wifi className="h-5 w-5" />
+            <span>{t("nav.wifi")}</span>
           </button>
         )}
         {visibleMore.length > 0 && (
