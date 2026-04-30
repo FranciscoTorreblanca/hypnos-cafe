@@ -117,6 +117,44 @@ export const useTickets = () => {
   });
 
   /**
+   * Refresh a ticket's snapshot + totals + payment metadata from the latest order state.
+   * Used right before (re)printing to guarantee the ticket reflects current order data.
+   */
+  const refreshTicket = useMutation({
+    mutationFn: async (input: {
+      id: string;
+      subtotal: number;
+      total: number;
+      tip: number;
+      payment_id?: string | null;
+      payment_method?: string | null;
+      paid_at?: string | null;
+      kind?: TicketKind;
+      snapshot: TicketSnapshot;
+    }) => {
+      const patch: any = {
+        subtotal: input.subtotal,
+        total: input.total,
+        tip: input.tip,
+        snapshot: input.snapshot as any,
+      };
+      if (input.payment_id !== undefined) patch.payment_id = input.payment_id;
+      if (input.payment_method !== undefined) patch.payment_method = input.payment_method;
+      if (input.paid_at !== undefined) patch.paid_at = input.paid_at;
+      if (input.kind !== undefined) patch.kind = input.kind;
+      const { data, error } = await supabase
+        .from("tickets" as any)
+        .update(patch)
+        .eq("id", input.id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as unknown as Ticket;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tickets"] }),
+  });
+
+  /**
    * Returns the most recent ticket for an order (any kind), or null when none exist.
    * Used by Order History so old orders can be re-printed without creating duplicates.
    */
@@ -132,7 +170,7 @@ export const useTickets = () => {
     return (data ?? null) as unknown as Ticket | null;
   };
 
-  return { ...query, createTicket, logPrint, getLatestTicketForOrder };
+  return { ...query, createTicket, logPrint, getLatestTicketForOrder, refreshTicket };
 };
 
 export const useTicketPrints = (ticket_id: string | undefined) => {
