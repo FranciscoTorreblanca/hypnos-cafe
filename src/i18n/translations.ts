@@ -468,6 +468,22 @@ export const translations = {
   "settings.wifi": { es: "WiFi para clientes", en: "Customer WiFi" },
   "settings.wifiSsid": { es: "Nombre de red (SSID)", en: "Network name (SSID)" },
   "settings.wifiPassword": { es: "Contraseña WiFi", en: "WiFi password" },
+
+  // WiFi share screen
+  "nav.wifi": { es: "WiFi", en: "WiFi" },
+  "wifi.title": { es: "WiFi para clientes", en: "Customer WiFi" },
+  "wifi.scanHint": { es: "Escanea el código para conectarte", en: "Scan the code to connect" },
+  "wifi.network": { es: "Red", en: "Network" },
+  "wifi.password": { es: "Contraseña", en: "Password" },
+  "wifi.credentials": { es: "Credenciales", en: "Credentials" },
+  "wifi.copied": { es: "copiado", en: "copied" },
+  "wifi.share": { es: "Compartir WiFi", en: "Share WiFi" },
+  "wifi.shareText": { es: "Conéctate a nuestra red WiFi:", en: "Connect to our WiFi:" },
+  "wifi.notConfigured": { es: "WiFi no configurado", en: "WiFi not configured" },
+  "wifi.notConfiguredHint": {
+    es: "Pide a un administrador configurar la red WiFi en Ajustes.",
+    en: "Ask an administrator to configure the WiFi network in Settings.",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

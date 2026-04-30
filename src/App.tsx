@@ -30,6 +30,7 @@ import OrderHistoryPage from "@/pages/OrderHistoryPage";
 import StockPage from "@/pages/StockPage";
 import CalendarPage from "@/pages/CalendarPage";
 import TicketsPage from "@/pages/TicketsPage";
+import WifiPage from "@/pages/WifiPage";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
                 <Route path="/stock" element={<StockPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/tickets" element={<TicketsPage />} />
+                <Route path="/wifi" element={<WifiPage />} />
               </Route>
               <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
               <Route path="/loyalty" element={<LoyaltyPublicPage />} />
