@@ -443,6 +443,7 @@ export const translations = {
   "tickets.print": { es: "Imprimir", en: "Print" },
   "tickets.reprint": { es: "Reimprimir", en: "Reprint" },
   "tickets.printedTimes": { es: "Veces impreso", en: "Times printed" },
+  "tickets.refreshed": { es: "Ticket actualizado con la orden actual", en: "Ticket updated with current order" },
   "tickets.printPrebill": { es: "Imprimir cuenta", en: "Print pre-bill" },
   "tickets.printReceipt": { es: "Imprimir ticket", en: "Print receipt" },
   "tickets.successPaid": { es: "Pago registrado", en: "Payment registered" },
