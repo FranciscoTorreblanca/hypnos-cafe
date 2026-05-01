@@ -127,55 +127,88 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
 
       <div className="ticket-divider" />
 
-      {/* Items */}
+      {/* Items — combo items grouped under a single combo line */}
       <div className="ticket-row" style={{ fontWeight: 700 }}>
         <span>{t("Cant. Descripción", "Qty Item")}</span>
         <span>{t("Importe", "Amount")}</span>
       </div>
-      {items.map((it: any, idx: number) => {
-        const hasPromo = it.promo_price != null && it.original_price != null && it.promo_price < it.original_price;
-        const lineGross = it.quantity * it.unit_price;
-        const lineNet = lineGross * (1 - (it.discount ?? 0) / 100);
-        const originalLine = it.quantity * (it.original_price ?? it.unit_price);
+      {(() => {
+        const rendered: JSX.Element[] = [];
+        const seenGroups = new Set<string>();
 
-        return (
-          <div key={idx} style={{ marginTop: 2 }}>
-            <div className="ticket-row">
-              <span style={{ flex: 1, paddingRight: 4 }}>
-                {it.quantity}x {it.name}
-              </span>
-              <span>{fmtMoney(lineNet)}</span>
+        const renderSingle = (it: any, idx: number | string, opts?: { indent?: boolean; hidePrice?: boolean }) => {
+          const indent = opts?.indent ? 12 : 0;
+          const hidePrice = opts?.hidePrice ?? false;
+          const hasPromo = it.promo_price != null && it.original_price != null && it.promo_price < it.original_price;
+          const lineGross = it.quantity * it.unit_price;
+          const lineNet = lineGross * (1 - (it.discount ?? 0) / 100);
+          const originalLine = it.quantity * (it.original_price ?? it.unit_price);
+          return (
+            <div key={`it-${idx}`} style={{ marginTop: 2 }}>
+              <div className="ticket-row">
+                <span style={{ flex: 1, paddingLeft: indent, paddingRight: 4 }}>
+                  {it.quantity}x {it.name}
+                </span>
+                <span>{hidePrice ? "" : fmtMoney(lineNet)}</span>
+              </div>
+              {!hidePrice && hasPromo && (
+                <div style={{ fontSize: 10, paddingLeft: indent + 12 }}>
+                  {t("Precio normal", "Regular")}:{" "}
+                  <span style={{ textDecoration: "line-through" }}>{fmtMoney(it.original_price)}</span>{" "}
+                  → {t("Promo", "Promo")} {fmtMoney(it.promo_price)}
+                  {it.quantity > 1 && (
+                    <> ({t("ahorro", "save")} {fmtMoney(originalLine - lineGross)})</>
+                  )}
+                </div>
+              )}
+              {!hidePrice && it.discount > 0 && (
+                <div style={{ fontSize: 10, paddingLeft: indent + 12 }}>
+                  {t("Descuento", "Discount")} {it.discount}%:{" "}
+                  {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineNet)} ={" "}
+                  <strong>{fmtMoney(lineNet)}</strong>
+                </div>
+              )}
+              {it.notes && (
+                <div style={{ fontSize: 10, paddingLeft: indent + 12, fontStyle: "italic" }}>
+                  {it.notes}
+                </div>
+              )}
             </div>
+          );
+        };
 
-            {/* Promotional pricing breakdown */}
-            {hasPromo && (
-              <div style={{ fontSize: 10, paddingLeft: 12 }}>
-                {t("Precio normal", "Regular")}:{" "}
-                <span style={{ textDecoration: "line-through" }}>{fmtMoney(it.original_price)}</span>{" "}
-                → {t("Promo", "Promo")} {fmtMoney(it.promo_price)}
-                {it.quantity > 1 && (
-                  <> ({t("ahorro", "save")} {fmtMoney(originalLine - lineGross)})</>
+        items.forEach((it: any, idx: number) => {
+          const groupId = it.combo_group_id;
+          if (groupId) {
+            if (seenGroups.has(groupId)) return;
+            seenGroups.add(groupId);
+            const groupItems = items.filter((x: any) => x.combo_group_id === groupId);
+            const comboQty = it.combo_quantity ?? 1;
+            const comboUnit = it.combo_unit_price ?? 0;
+            const comboName = it.combo_name ?? t("Combo", "Combo");
+            const comboTotal = comboQty * comboUnit;
+            rendered.push(
+              <div key={`combo-${groupId}`} style={{ marginTop: 4 }}>
+                <div className="ticket-row" style={{ fontWeight: 700 }}>
+                  <span style={{ flex: 1, paddingRight: 4 }}>
+                    {comboQty}x {comboName}
+                  </span>
+                  <span>{fmtMoney(comboTotal)}</span>
+                </div>
+                <div style={{ fontSize: 10, paddingLeft: 12, fontStyle: "italic" }}>
+                  {t("Incluye", "Includes")}:
+                </div>
+                {groupItems.map((gi: any, gidx: number) =>
+                  renderSingle(gi, `${groupId}-${gidx}`, { indent: true, hidePrice: true })
                 )}
               </div>
-            )}
-
-            {/* Per-item discount breakdown */}
-            {it.discount > 0 && (
-              <div style={{ fontSize: 10, paddingLeft: 12 }}>
-                {t("Descuento", "Discount")} {it.discount}%:{" "}
-                {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineNet)} ={" "}
-                <strong>{fmtMoney(lineNet)}</strong>
-              </div>
-            )}
-
-            {it.notes && (
-              <div style={{ fontSize: 10, paddingLeft: 12, fontStyle: "italic" }}>
-                {it.notes}
-              </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          } else {
+            rendered.push(renderSingle(it, idx));
+          }
+        });
+        return rendered;
+      })()}
 
       <div className="ticket-divider" />
 
