@@ -7,10 +7,12 @@ interface MinimalOrderItem {
   unit_price: number;
   discount: number;
   notes?: string;
+  combo_id?: string | null;
+  combo_group_id?: string | null;
   menu_item?: { name: string; name_en: string } | null;
   menu_items?: { name: string; name_en: string } | null;
-  combo?: { name: string; name_en: string } | null;
-  combos?: { name: string; name_en: string } | null;
+  combo?: { name: string; name_en: string; price?: number } | null;
+  combos?: { name: string; name_en: string; price?: number } | null;
 }
 
 interface BuildSnapshotInput {
