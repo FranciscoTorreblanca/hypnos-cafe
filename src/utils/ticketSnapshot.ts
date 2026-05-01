@@ -7,10 +7,12 @@ interface MinimalOrderItem {
   unit_price: number;
   discount: number;
   notes?: string;
+  combo_id?: string | null;
+  combo_group_id?: string | null;
   menu_item?: { name: string; name_en: string } | null;
   menu_items?: { name: string; name_en: string } | null;
-  combo?: { name: string; name_en: string } | null;
-  combos?: { name: string; name_en: string } | null;
+  combo?: { name: string; name_en: string; price?: number } | null;
+  combos?: { name: string; name_en: string; price?: number } | null;
 }
 
 interface BuildSnapshotInput {
@@ -48,6 +50,27 @@ export async function buildTicketSnapshot(input: BuildSnapshotInput): Promise<Ti
     if (!Number.isNaN(parsed)) taxRate = parsed;
   }
 
+  // Resolve combo metadata (name + price) for any combo_ids present.
+  const comboIds = [...new Set(input.items.map((i) => i.combo_id).filter(Boolean) as string[])];
+  let comboMap: Record<string, { name: string; name_en: string; price: number }> = {};
+  if (comboIds.length > 0) {
+    const { data } = await supabase
+      .from("combos")
+      .select("id, name, name_en, price")
+      .in("id", comboIds);
+    (data ?? []).forEach((c: any) => {
+      comboMap[c.id] = { name: c.name, name_en: c.name_en, price: Number(c.price) };
+    });
+  }
+
+  // Pre-compute how many "combo units" each group represents (max qty across its items).
+  const groupQuantity: Record<string, number> = {};
+  for (const oi of input.items) {
+    if (oi.combo_group_id) {
+      groupQuantity[oi.combo_group_id] = Math.max(groupQuantity[oi.combo_group_id] ?? 0, oi.quantity);
+    }
+  }
+
   const items: TicketSnapshotItem[] = input.items.map((oi) => {
     const mi = oi.menu_item ?? oi.menu_items ?? null;
     const co = oi.combo ?? oi.combos ?? null;
@@ -56,13 +79,17 @@ export async function buildTicketSnapshot(input: BuildSnapshotInput): Promise<Ti
         ? mi?.name ?? co?.name ?? ""
         : mi?.name_en || mi?.name || co?.name_en || co?.name || "";
     const refPrices = priceMap[oi.menu_item_id];
-    // Original (list) price = current menu price; promo = current promo or null.
-    // If the unit_price actually charged differs from the list price, treat list as the original.
     const original_price = refPrices?.price ?? oi.unit_price;
     const promo_price =
       refPrices?.promo_price != null && refPrices.promo_price < original_price
         ? refPrices.promo_price
         : null;
+
+    const comboMeta = oi.combo_id ? comboMap[oi.combo_id] : null;
+    const combo_name = comboMeta
+      ? input.language === "es" ? comboMeta.name : (comboMeta.name_en || comboMeta.name)
+      : (co ? (input.language === "es" ? co.name : (co.name_en || co.name)) : null);
+
     return {
       name,
       quantity: oi.quantity,
@@ -71,6 +98,10 @@ export async function buildTicketSnapshot(input: BuildSnapshotInput): Promise<Ti
       promo_price,
       discount: oi.discount ?? 0,
       notes: oi.notes ?? "",
+      combo_group_id: oi.combo_group_id ?? null,
+      combo_name: oi.combo_group_id ? combo_name ?? null : null,
+      combo_unit_price: oi.combo_group_id && comboMeta ? comboMeta.price : null,
+      combo_quantity: oi.combo_group_id ? groupQuantity[oi.combo_group_id] ?? 1 : null,
     };
   });
 

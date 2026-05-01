@@ -15,6 +15,14 @@ export interface TicketSnapshotItem {
   promo_price?: number | null;
   discount: number;
   notes?: string;
+  /** When set, this item belongs to a combo group and its individual price is hidden in the ticket. */
+  combo_group_id?: string | null;
+  /** Combo display name (Spanish/English already resolved by builder). */
+  combo_name?: string | null;
+  /** Combo unit price at time of sale. The combo line shows this price (× combo quantity). */
+  combo_unit_price?: number | null;
+  /** How many combos this group represents (computed by builder). */
+  combo_quantity?: number | null;
 }
 
 export interface TicketSnapshot {
