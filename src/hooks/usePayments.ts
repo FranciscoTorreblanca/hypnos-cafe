@@ -89,57 +89,81 @@ export const usePayments = () => {
     },
   });
 
+  /**
+   * Create one or more payment rows for a single order.
+   * - Pass a single `parts` entry for a regular payment (cash OR card).
+   * - Pass two entries to split a payment across cash + card.
+   * The DB trigger `auto_till_on_cash_payment` only inserts till entries for cash rows,
+   * so the till naturally reflects only the cash portion.
+   */
   const createPayment = useMutation({
     mutationFn: async ({
       order_id,
-      amount,
-      tip,
-      payment_method,
+      parts,
     }: {
       order_id: string;
-      amount: number;
-      tip: number;
-      payment_method: string;
+      parts: { amount: number; tip: number; payment_method: string }[];
     }) => {
-      // If card payment, check if MP is configured and send to Point Mini
+      if (!parts.length) throw new Error("No payment parts provided");
+
+      // Send card portion to Mercado Pago Point Mini if configured
       let mpResult: any = null;
-      if (payment_method === "card") {
+      const cardPart = parts.find((p) => p.payment_method === "card");
+      if (cardPart && cardPart.amount + cardPart.tip > 0) {
         const mpConfig = await getMpConfig();
         if (mpConfig?.enabled) {
-          mpResult = await sendToPointMini(mpConfig.deviceId, amount + tip, order_id);
+          mpResult = await sendToPointMini(
+            mpConfig.deviceId,
+            cardPart.amount + cardPart.tip,
+            order_id,
+          );
         }
       }
 
-      const { data: paymentData, error } = await supabase.from("payments").insert({
-        order_id,
-        amount,
-        tip,
-        payment_method,
-        created_by: user!.id,
-      }).select("id").single();
+      // Insert all payment rows
+      const { data: inserted, error } = await supabase
+        .from("payments")
+        .insert(
+          parts.map((p) => ({
+            order_id,
+            amount: p.amount,
+            tip: p.tip,
+            payment_method: p.payment_method,
+            created_by: user!.id,
+          })),
+        )
+        .select("id, payment_method");
       if (error) throw error;
 
       // Mark order as paid and reset general discount
-      const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any, general_discount: 0 } as any).eq("id", order_id);
+      const { error: upErr } = await supabase
+        .from("orders")
+        .update({ status: "paid" as any, general_discount: 0 } as any)
+        .eq("id", order_id);
       if (upErr) throw upErr;
 
-      // Get order details for notification
-      const { data: orderData } = await supabase.from("orders").select("table_number").eq("id", order_id).single();
-      const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user!.id).single();
-
-      // Trigger push notification (fire and forget)
+      // Notification (fire and forget) — combine totals
+      const totalAmount = parts.reduce((s, p) => s + p.amount, 0);
+      const totalTip = parts.reduce((s, p) => s + p.tip, 0);
+      const methodLabel = parts.length > 1 ? "split" : parts[0].payment_method;
+      const { data: orderData } = await supabase
+        .from("orders").select("table_number").eq("id", order_id).single();
+      const { data: profile } = await supabase
+        .from("profiles").select("full_name").eq("id", user!.id).single();
       triggerPushNotification("order_paid", {
-        amount,
-        tip,
-        payment_method,
+        amount: totalAmount,
+        tip: totalTip,
+        payment_method: methodLabel,
         waiter_name: profile?.full_name || user!.email || "Mesero",
         table_number: orderData?.table_number ?? "?",
         order_id,
       });
 
-      // Till entry is auto-created by database trigger for cash payments
-
-      return { mpResult, payment_id: paymentData.id };
+      return {
+        mpResult,
+        payment_id: inserted?.[0]?.id ?? null,
+        payment_ids: (inserted ?? []).map((r) => r.id),
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
