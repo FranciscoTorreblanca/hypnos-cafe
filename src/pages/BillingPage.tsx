@@ -59,6 +59,10 @@ const BillingPage = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [tipAmount, setTipAmount] = useState<string>("0");
+  // Split payment state
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitCashAmount, setSplitCashAmount] = useState<string>("0");
+  const [splitTipOn, setSplitTipOn] = useState<"cash" | "card">("card");
 
   // Post-payment ticket flow
   const [paidPromptOpen, setPaidPromptOpen] = useState(false);
@@ -95,6 +99,9 @@ const BillingPage = () => {
     setSelectedOrderId(orderId);
     setPaymentMethod("cash");
     setTipAmount("0");
+    setSplitEnabled(false);
+    setSplitCashAmount("0");
+    setSplitTipOn("card");
     setPayDialogOpen(true);
   };
 
@@ -104,13 +111,30 @@ const BillingPage = () => {
       const tip = parseFloat(tipAmount) || 0;
       const subtotal = selectedOrder.total;
       const gd = selectedOrder.general_discount ?? 0;
-      const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+      const totalNoTip = Math.round((gd > 0 ? subtotal * (1 - gd / 100) : subtotal) * 100) / 100;
+
+      // Build payment parts
+      let parts: { amount: number; tip: number; payment_method: string }[];
+      if (splitEnabled) {
+        const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
+        const cardAmt = Math.round((totalNoTip - cashAmt) * 100) / 100;
+        if (cashAmt <= 0 || cardAmt <= 0) {
+          toast({ title: t("common.error"), description: t("billing.splitInvalid"), variant: "destructive" });
+          return;
+        }
+        const cashTip = splitTipOn === "cash" ? tip : 0;
+        const cardTip = splitTipOn === "card" ? tip : 0;
+        parts = [
+          { amount: Math.round(cashAmt * 100) / 100, tip: cashTip, payment_method: "cash" },
+          { amount: cardAmt, tip: cardTip, payment_method: "card" },
+        ];
+      } else {
+        parts = [{ amount: totalNoTip, tip, payment_method: paymentMethod }];
+      }
 
       const result = await createPayment.mutateAsync({
         order_id: selectedOrder.id,
-        amount: totalNoTip,
-        tip,
-        payment_method: paymentMethod,
+        parts,
       });
 
       // Resolve waiter name for snapshot
@@ -132,7 +156,16 @@ const BillingPage = () => {
         language,
         items: selectedOrder.order_items ?? [],
       });
+      // Attach split breakdown when applicable
+      if (parts.length > 1) {
+        (snapshot as any).payments_breakdown = parts.map((p) => ({
+          method: p.payment_method,
+          amount: p.amount,
+          tip: p.tip,
+        }));
+      }
 
+      const ticketMethod = parts.length > 1 ? "split" : parts[0].payment_method;
       const ticket = await createTicket.mutateAsync({
         order_id: selectedOrder.id,
         payment_id: result.payment_id,
@@ -141,7 +174,7 @@ const BillingPage = () => {
         subtotal,
         tip,
         total: totalNoTip + tip,
-        payment_method: paymentMethod,
+        payment_method: ticketMethod,
         snapshot,
       });
 
@@ -844,21 +877,94 @@ const BillingPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>{t("billing.paymentMethod")}</Label>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
-                    <Banknote className="h-4 w-4" /> {t("billing.cash")}
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="card" id="card" />
-                  <Label htmlFor="card" className="flex items-center gap-1 cursor-pointer">
-                    <CreditCard className="h-4 w-4" /> {t("billing.card")}
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className="flex items-center justify-between">
+                <Label>{t("billing.paymentMethod")}</Label>
+                <Button
+                  type="button"
+                  variant={splitEnabled ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const next = !splitEnabled;
+                    setSplitEnabled(next);
+                    if (next) {
+                      // Default cash to half of total
+                      const half = Math.round(((selectedOrder?.total ?? 0) / 2));
+                      setSplitCashAmount(String(half));
+                    }
+                  }}
+                >
+                  {t("billing.splitPayment")}
+                </Button>
+              </div>
+              {!splitEnabled ? (
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="cash" id="cash" />
+                    <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
+                      <Banknote className="h-4 w-4" /> {t("billing.cash")}
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="flex items-center gap-1 cursor-pointer">
+                      <CreditCard className="h-4 w-4" /> {t("billing.card")}
+                    </Label>
+                  </div>
+                </RadioGroup>
+              ) : (
+                (() => {
+                  const gd = selectedOrder?.general_discount ?? 0;
+                  const totalNoTip = Math.round(((selectedOrder?.total ?? 0) * (gd > 0 ? 1 - gd / 100 : 1)) * 100) / 100;
+                  const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
+                  const cardAmt = Math.max(0, Math.round((totalNoTip - cashAmt) * 100) / 100);
+                  return (
+                    <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                      <div className="space-y-1">
+                        <Label className="text-xs flex items-center gap-1">
+                          <Banknote className="h-3.5 w-3.5" /> {t("billing.cashAmount")}
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={totalNoTip}
+                          step="0.01"
+                          value={splitCashAmount}
+                          onChange={(e) => setSplitCashAmount(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <CreditCard className="h-3.5 w-3.5" /> {t("billing.cardAmount")}
+                        </span>
+                        <span className="font-semibold">${cardAmt.toFixed(2)}</span>
+                      </div>
+                      {(parseFloat(tipAmount) || 0) > 0 && (
+                        <div className="space-y-1 pt-2 border-t">
+                          <Label className="text-xs">{t("billing.tipChargeOn")}</Label>
+                          <RadioGroup
+                            value={splitTipOn}
+                            onValueChange={(v) => setSplitTipOn(v as "cash" | "card")}
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="cash" id="tip-cash" />
+                              <Label htmlFor="tip-cash" className="cursor-pointer text-sm">{t("billing.cash")}</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="card" id="tip-card" />
+                              <Label htmlFor="tip-card" className="cursor-pointer text-sm">{t("billing.card")}</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      )}
+                      {(cashAmt <= 0 || cardAmt <= 0) && (
+                        <p className="text-xs text-destructive">{t("billing.splitInvalid")}</p>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
             </div>
 
             <div className="flex justify-between font-bold border-t pt-2">

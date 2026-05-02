@@ -33,6 +33,11 @@ export interface TicketSnapshot {
   /** IVA percentage included in prices (e.g. 16 for 16%). */
   tax_rate?: number;
   items: TicketSnapshotItem[];
+  /**
+   * Optional breakdown when a payment was split across multiple methods
+   * (e.g. cash + card). When present and length > 1, the ticket renders the split.
+   */
+  payments_breakdown?: { method: string; amount: number; tip: number }[];
 }
 
 export interface Ticket {
