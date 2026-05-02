@@ -59,18 +59,37 @@ async function buildFreshTicketPatch(ticket: Ticket, language: "es" | "en") {
   const gd = order.general_discount ?? 0;
   const subtotal = Number(order.total ?? 0);
   const totalAfterDisc = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
-  const payment = (order.payments ?? [])[0];
-  const isPaid = order.status === "paid";
+  const allPayments = (order.payments ?? []) as any[];
+  const isPaid = order.status === "paid" && allPayments.length > 0;
+
+  // Aggregate across (potentially multiple) payment rows for split payments
+  const totalTip = allPayments.reduce((s, p) => s + Number(p.tip ?? 0), 0);
+  const distinctMethods = new Set(allPayments.map((p) => p.payment_method));
+  const isSplit = distinctMethods.size > 1;
+  const firstPayment = allPayments[0];
+
+  if (isSplit) {
+    (snapshot as any).payments_breakdown = allPayments
+      .slice()
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((p) => ({
+        method: p.payment_method,
+        amount: Number(p.amount ?? 0),
+        tip: Number(p.tip ?? 0),
+      }));
+  }
 
   return {
     id: ticket.id,
     snapshot,
     subtotal,
-    tip: isPaid ? Number(payment?.tip ?? 0) : 0,
-    total: isPaid ? totalAfterDisc + Number(payment?.tip ?? 0) : totalAfterDisc,
-    payment_id: payment?.id ?? null,
-    payment_method: isPaid ? (payment?.payment_method ?? null) : null,
-    paid_at: isPaid ? (payment?.created_at ?? order.updated_at) : null,
+    tip: isPaid ? totalTip : 0,
+    total: isPaid ? totalAfterDisc + totalTip : totalAfterDisc,
+    payment_id: firstPayment?.id ?? null,
+    payment_method: isPaid
+      ? (isSplit ? "split" : (firstPayment?.payment_method ?? null))
+      : null,
+    paid_at: isPaid ? (firstPayment?.created_at ?? order.updated_at) : null,
     kind: (isPaid ? "receipt" : "pre_payment") as "receipt" | "pre_payment",
   };
 }
