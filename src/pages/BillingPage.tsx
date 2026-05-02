@@ -877,21 +877,94 @@ const BillingPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>{t("billing.paymentMethod")}</Label>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
-                    <Banknote className="h-4 w-4" /> {t("billing.cash")}
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="card" id="card" />
-                  <Label htmlFor="card" className="flex items-center gap-1 cursor-pointer">
-                    <CreditCard className="h-4 w-4" /> {t("billing.card")}
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className="flex items-center justify-between">
+                <Label>{t("billing.paymentMethod")}</Label>
+                <Button
+                  type="button"
+                  variant={splitEnabled ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const next = !splitEnabled;
+                    setSplitEnabled(next);
+                    if (next) {
+                      // Default cash to half of total
+                      const half = Math.round(((selectedOrder?.total ?? 0) / 2));
+                      setSplitCashAmount(String(half));
+                    }
+                  }}
+                >
+                  {t("billing.splitPayment")}
+                </Button>
+              </div>
+              {!splitEnabled ? (
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="cash" id="cash" />
+                    <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
+                      <Banknote className="h-4 w-4" /> {t("billing.cash")}
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="flex items-center gap-1 cursor-pointer">
+                      <CreditCard className="h-4 w-4" /> {t("billing.card")}
+                    </Label>
+                  </div>
+                </RadioGroup>
+              ) : (
+                (() => {
+                  const gd = selectedOrder?.general_discount ?? 0;
+                  const totalNoTip = Math.round(((selectedOrder?.total ?? 0) * (gd > 0 ? 1 - gd / 100 : 1)) * 100) / 100;
+                  const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
+                  const cardAmt = Math.max(0, Math.round((totalNoTip - cashAmt) * 100) / 100);
+                  return (
+                    <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                      <div className="space-y-1">
+                        <Label className="text-xs flex items-center gap-1">
+                          <Banknote className="h-3.5 w-3.5" /> {t("billing.cashAmount")}
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={totalNoTip}
+                          step="0.01"
+                          value={splitCashAmount}
+                          onChange={(e) => setSplitCashAmount(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <CreditCard className="h-3.5 w-3.5" /> {t("billing.cardAmount")}
+                        </span>
+                        <span className="font-semibold">${cardAmt.toFixed(2)}</span>
+                      </div>
+                      {(parseFloat(tipAmount) || 0) > 0 && (
+                        <div className="space-y-1 pt-2 border-t">
+                          <Label className="text-xs">{t("billing.tipChargeOn")}</Label>
+                          <RadioGroup
+                            value={splitTipOn}
+                            onValueChange={(v) => setSplitTipOn(v as "cash" | "card")}
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="cash" id="tip-cash" />
+                              <Label htmlFor="tip-cash" className="cursor-pointer text-sm">{t("billing.cash")}</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="card" id="tip-card" />
+                              <Label htmlFor="tip-card" className="cursor-pointer text-sm">{t("billing.card")}</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      )}
+                      {(cashAmt <= 0 || cardAmt <= 0) && (
+                        <p className="text-xs text-destructive">{t("billing.splitInvalid")}</p>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
             </div>
 
             <div className="flex justify-between font-bold border-t pt-2">
