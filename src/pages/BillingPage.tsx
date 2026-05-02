@@ -59,6 +59,10 @@ const BillingPage = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [tipAmount, setTipAmount] = useState<string>("0");
+  // Split payment state
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitCashAmount, setSplitCashAmount] = useState<string>("0");
+  const [splitTipOn, setSplitTipOn] = useState<"cash" | "card">("card");
 
   // Post-payment ticket flow
   const [paidPromptOpen, setPaidPromptOpen] = useState(false);
