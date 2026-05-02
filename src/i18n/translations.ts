@@ -209,7 +209,13 @@ export const translations = {
   "billing.mpError": { es: "Error al enviar al Point Mini", en: "Error sending to Point Mini" },
   "billing.noTillData": { es: "Sin movimientos en caja", en: "No till transactions" },
   "billing.tipsCash": { es: "Propinas en efectivo", en: "Tips (Cash)" },
-  "billing.tipsCard": { es: "Propinas con tarjeta", en: "Tips (Card)" },
+ "billing.tipsCard": { es: "Propinas con tarjeta", en: "Tips (Card)" },
+ "billing.splitPayment": { es: "Pago dividido", en: "Split payment" },
+ "billing.cashAmount": { es: "Monto en efectivo", en: "Cash amount" },
+ "billing.cardAmount": { es: "Monto con tarjeta", en: "Card amount" },
+ "billing.tipChargeOn": { es: "Cobrar propina en", en: "Charge tip to" },
+ "billing.splitInvalid": { es: "Ambos montos deben ser mayores a $0", en: "Both amounts must be greater than $0" },
+ "billing.paymentBreakdown": { es: "Desglose de pago", en: "Payment breakdown" },
 
   // Common
   "common.save": { es: "Guardar", en: "Save" },
