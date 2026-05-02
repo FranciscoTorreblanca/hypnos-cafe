@@ -65,7 +65,9 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
     ? t("Efectivo", "Cash")
     : ticket.payment_method === "card"
       ? t("Tarjeta", "Card")
-      : ticket.payment_method ?? "-";
+      : ticket.payment_method === "split"
+        ? t("Pago dividido", "Split payment")
+        : ticket.payment_method ?? "-";
 
   // ─── Totals breakdown ────────────────────────────────────────────────────
   // ticket.subtotal already reflects per-item discounts (sum of net line amounts).
