@@ -99,6 +99,9 @@ const BillingPage = () => {
     setSelectedOrderId(orderId);
     setPaymentMethod("cash");
     setTipAmount("0");
+    setSplitEnabled(false);
+    setSplitCashAmount("0");
+    setSplitTipOn("card");
     setPayDialogOpen(true);
   };
 
@@ -108,13 +111,30 @@ const BillingPage = () => {
       const tip = parseFloat(tipAmount) || 0;
       const subtotal = selectedOrder.total;
       const gd = selectedOrder.general_discount ?? 0;
-      const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+      const totalNoTip = Math.round((gd > 0 ? subtotal * (1 - gd / 100) : subtotal) * 100) / 100;
+
+      // Build payment parts
+      let parts: { amount: number; tip: number; payment_method: string }[];
+      if (splitEnabled) {
+        const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
+        const cardAmt = Math.round((totalNoTip - cashAmt) * 100) / 100;
+        if (cashAmt <= 0 || cardAmt <= 0) {
+          toast({ title: t("common.error"), description: t("billing.splitInvalid"), variant: "destructive" });
+          return;
+        }
+        const cashTip = splitTipOn === "cash" ? tip : 0;
+        const cardTip = splitTipOn === "card" ? tip : 0;
+        parts = [
+          { amount: Math.round(cashAmt * 100) / 100, tip: cashTip, payment_method: "cash" },
+          { amount: cardAmt, tip: cardTip, payment_method: "card" },
+        ];
+      } else {
+        parts = [{ amount: totalNoTip, tip, payment_method: paymentMethod }];
+      }
 
       const result = await createPayment.mutateAsync({
         order_id: selectedOrder.id,
-        amount: totalNoTip,
-        tip,
-        payment_method: paymentMethod,
+        parts,
       });
 
       // Resolve waiter name for snapshot
@@ -136,7 +156,16 @@ const BillingPage = () => {
         language,
         items: selectedOrder.order_items ?? [],
       });
+      // Attach split breakdown when applicable
+      if (parts.length > 1) {
+        (snapshot as any).payments_breakdown = parts.map((p) => ({
+          method: p.payment_method,
+          amount: p.amount,
+          tip: p.tip,
+        }));
+      }
 
+      const ticketMethod = parts.length > 1 ? "split" : parts[0].payment_method;
       const ticket = await createTicket.mutateAsync({
         order_id: selectedOrder.id,
         payment_id: result.payment_id,
@@ -145,7 +174,7 @@ const BillingPage = () => {
         subtotal,
         tip,
         total: totalNoTip + tip,
-        payment_method: paymentMethod,
+        payment_method: ticketMethod,
         snapshot,
       });
 
