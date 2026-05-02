@@ -289,9 +289,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       const finalAmount = gd > 0 ? order.total * (1 - gd / 100) : order.total;
       await createPayment.mutateAsync({
         order_id: order.id,
-        amount: Math.round(finalAmount * 100) / 100,
-        tip: parseFloat(tipAmount) || 0,
-        payment_method: paymentMethod,
+        parts: [{
+          amount: Math.round(finalAmount * 100) / 100,
+          tip: parseFloat(tipAmount) || 0,
+          payment_method: paymentMethod,
+        }],
       });
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
       setShowPayment(false);
