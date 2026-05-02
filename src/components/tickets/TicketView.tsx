@@ -257,12 +257,45 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
       <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "right" }}>
         {t("Precios con IVA incluido", "Prices include VAT")}
       </div>
-      {isReceipt && ticket.payment_method && (
-        <div className="ticket-row">
-          <span>{t("Método", "Method")}:</span>
-          <span>{methodLabel}</span>
-        </div>
-      )}
+      {isReceipt && ticket.payment_method && (() => {
+        const breakdown = (snap as any).payments_breakdown as
+          | { method: string; amount: number; tip: number }[]
+          | undefined;
+        if (breakdown && breakdown.length > 1) {
+          const labelFor = (m: string) =>
+            m === "cash" ? t("Efectivo", "Cash")
+            : m === "card" ? t("Tarjeta", "Card")
+            : m;
+          return (
+            <>
+              <div className="ticket-row" style={{ fontWeight: 700 }}>
+                <span>{t("Pago dividido", "Split payment")}:</span>
+                <span />
+              </div>
+              {breakdown.map((p, i) => (
+                <div key={i} style={{ marginLeft: 8 }}>
+                  <div className="ticket-row" style={{ fontSize: 11 }}>
+                    <span>• {labelFor(p.method)}:</span>
+                    <span>{fmtMoney(p.amount + p.tip)}</span>
+                  </div>
+                  {p.tip > 0 && (
+                    <div className="ticket-row" style={{ fontSize: 10, color: "#444", marginLeft: 10 }}>
+                      <span>{t("incluye propina", "incl. tip")}:</span>
+                      <span>{fmtMoney(p.tip)}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          );
+        }
+        return (
+          <div className="ticket-row">
+            <span>{t("Método", "Method")}:</span>
+            <span>{methodLabel}</span>
+          </div>
+        );
+      })()}
 
       <div className="ticket-divider" />
 
