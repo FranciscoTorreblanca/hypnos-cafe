@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,35 @@ interface Props {
 
 type Phase = "scanning" | "found" | "unknown";
 
+type NativeBarcodeDetector = {
+  new (options?: { formats?: string[] }): {
+    detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
+  };
+  getSupportedFormats?: () => Promise<string[]>;
+};
+
+const PREFERRED_NATIVE_FORMATS = [
+  "ean_13",
+  "ean_8",
+  "upc_a",
+  "upc_e",
+  "code_128",
+  "code_39",
+  "codabar",
+  "itf",
+] as const;
+
+const PREFERRED_ZXING_FORMATS = [
+  BarcodeFormat.EAN_13,
+  BarcodeFormat.EAN_8,
+  BarcodeFormat.UPC_A,
+  BarcodeFormat.UPC_E,
+  BarcodeFormat.CODE_128,
+  BarcodeFormat.CODE_39,
+  BarcodeFormat.CODABAR,
+  BarcodeFormat.ITF,
+];
+
 export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) => {
   const { t, language } = useLanguage();
   const { toast } = useToast();
@@ -42,6 +72,8 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const scanFrameRef = useRef<number | null>(null);
+  const handlingCodeRef = useRef(false);
   const [code, setCode] = useState("");
   const [phase, setPhase] = useState<Phase>("scanning");
   const [matched, setMatched] = useState<MenuItem | null>(null);
@@ -54,6 +86,10 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const stop = () => {
     try { controlsRef.current?.stop(); } catch { /* ignore */ }
     controlsRef.current = null;
+    if (scanFrameRef.current != null) {
+      cancelAnimationFrame(scanFrameRef.current);
+      scanFrameRef.current = null;
+    }
     try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* ignore */ }
     streamRef.current = null;
     if (videoRef.current) {
@@ -62,13 +98,15 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   };
 
   const reset = () => {
+    handlingCodeRef.current = false;
     setCode(""); setPhase("scanning"); setMatched(null);
     setLinkItemId(""); setSkuLabel(""); setNewName(""); setManual("");
   };
 
   const handleCode = async (raw: string) => {
     const c = raw.trim();
-    if (!c) return;
+    if (!c || handlingCodeRef.current) return;
+    handlingCodeRef.current = true;
     stop();
     setCode(c);
     try {
@@ -81,6 +119,7 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
         setPhase("unknown");
       }
     } catch (e: any) {
+      handlingCodeRef.current = false;
       toast({ title: e.message || "Error", variant: "destructive" });
       setPhase("scanning");
     }
