@@ -351,6 +351,10 @@ export const translations = {
   "stock.unavailable": { es: "No disponible", en: "Unavailable" },
   "stock.saved": { es: "Inventario actualizado", en: "Stock updated" },
   "stock.save": { es: "Guardar", en: "Save" },
+  "stock.startTracking": { es: "Iniciar seguimiento", en: "Start tracking" },
+  "stock.stopTracking": { es: "Detener seguimiento", en: "Stop tracking" },
+  "stock.trackingStarted": { es: "Seguimiento iniciado", en: "Tracking started" },
+  "stock.trackingStopped": { es: "Seguimiento detenido", en: "Tracking stopped" },
 
   // Calendar / Events
   "nav.calendar": { es: "Calendario", en: "Calendar" },
