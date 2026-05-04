@@ -24,6 +24,7 @@ import { startOfDay, subDays, format } from "date-fns";
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const { data: orders = [] } = useOrders();
   const { data: menuItems = [] } = useMenuItems();
 
