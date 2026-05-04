@@ -10,6 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -47,6 +54,7 @@ const StockPage = () => {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "out" | "tracked">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -77,6 +85,10 @@ const StockPage = () => {
     else if (filter === "out") list = outOfStock;
     else if (filter === "low") list = lowStock;
 
+    if (categoryFilter !== "all") {
+      list = list.filter((i) => i.category_id === categoryFilter);
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -86,7 +98,7 @@ const StockPage = () => {
       );
     }
     return list;
-  }, [items, trackedItems, outOfStock, lowStock, filter, search]);
+  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, search]);
 
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "-";
@@ -260,6 +272,19 @@ const StockPage = () => {
             className="pl-9"
           />
         </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full sm:w-[180px] h-9">
+            <SelectValue placeholder={t("menu.category")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("stock.all")}</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {language === "en" && c.name_en ? c.name_en : c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Tabs
           value={filter}
           onValueChange={(v) => setFilter(v as any)}
