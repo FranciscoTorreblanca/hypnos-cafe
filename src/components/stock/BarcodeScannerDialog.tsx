@@ -160,7 +160,7 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const reset = () => {
     handlingCodeRef.current = false;
     setCode(""); setPhase("scanning"); setMatched(null);
-    setLinkItemId(""); setSkuLabel(""); setNewName(""); setManual("");
+    setLinkItemId(""); setSkuLabel(""); setNewName(""); setManual(""); setLinkSearch("");
   };
 
   const handleCode = async (raw: string) => {
