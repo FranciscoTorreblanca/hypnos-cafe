@@ -142,6 +142,29 @@ const StockPage = () => {
     }
   };
 
+  const toggleTracking = async (id: string, currentlyTracked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ inventory_count: currentlyTracked ? null : 0 })
+        .eq("id", id);
+      if (error) throw error;
+      // remove any pending edit for this item
+      setEdits((prev) => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
+      toast({
+        title: currentlyTracked
+          ? t("stock.trackingStopped")
+          : t("stock.trackingStarted"),
+      });
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
   const itemName = (i: { name: string; name_en: string }) =>
     language === "en" && i.name_en ? i.name_en : i.name;
 
