@@ -166,6 +166,19 @@ const StockPage = () => {
     }
   };
 
+  const toggleAvailable = async (id: string, value: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ is_available: value })
+        .eq("id", id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
   const itemName = (i: { name: string; name_en: string }) =>
     language === "en" && i.name_en ? i.name_en : i.name;
 
