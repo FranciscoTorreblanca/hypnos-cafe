@@ -28,10 +28,12 @@ import {
   RotateCcw,
   Play,
   Square,
+  ScanBarcode,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -47,6 +49,7 @@ const StockPage = () => {
   const [filter, setFilter] = useState<"all" | "low" | "out" | "tracked">("all");
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const trackedItems = useMemo(
     () => items.filter((i) => i.inventory_count !== null),
@@ -188,21 +191,26 @@ const StockPage = () => {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Package className="h-6 w-6" /> {t("stock.title")}
         </h1>
-        {isAdmin && hasEdits && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEdits({})}
-              className="gap-1"
-            >
-              <RotateCcw className="h-3 w-3" /> {t("billing.cashCountReset")}
-            </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
-              <Save className="h-3 w-3" /> {t("stock.save")}
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => setScanOpen(true)}>
+            <ScanBarcode className="h-4 w-4" /> {t("stock.scan")}
+          </Button>
+          {isAdmin && hasEdits && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEdits({})}
+                className="gap-1"
+              >
+                <RotateCcw className="h-3 w-3" /> {t("billing.cashCountReset")}
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+                <Save className="h-3 w-3" /> {t("stock.save")}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -407,6 +415,16 @@ const StockPage = () => {
           </Table>
         </CardContent>
       </Card>
+      <BarcodeScannerDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onResolved={(item) => {
+          setSearch(item.name);
+          if (item.inventory_count === null) {
+            toggleTracking(item.id, false);
+          }
+        }}
+      />
     </div>
   );
 };
