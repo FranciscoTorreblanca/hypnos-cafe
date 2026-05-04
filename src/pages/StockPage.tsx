@@ -286,6 +286,11 @@ const StockPage = () => {
                 </TableHead>
                 <TableHead className="text-center">{t("stock.status")}</TableHead>
                 {isAdmin && (
+                  <TableHead className="text-center w-[110px]">
+                    {t("stock.available")}
+                  </TableHead>
+                )}
+                {isAdmin && (
                   <TableHead className="text-center w-[140px]">
                     {t("stock.count")}
                   </TableHead>
