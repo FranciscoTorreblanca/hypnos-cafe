@@ -64,7 +64,7 @@ const Dashboard = () => {
     },
   });
 
-  // Recent paid orders (last 7 days) for trend
+  // Recent paid orders (last 7 days) for top sellers
   const { data: recentPaidOrders = [] } = useQuery({
     queryKey: ["dashboard-recent-orders"],
     queryFn: async () => {
@@ -75,6 +75,19 @@ const Dashboard = () => {
         .in("status", ["paid", "completed"])
         .gte("created_at", since)
         .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  // Recent payments (last 7 days) for revenue/tips trend
+  const { data: recentPayments = [] } = useQuery({
+    queryKey: ["dashboard-recent-payments"],
+    queryFn: async () => {
+      const since = subDays(new Date(), 7).toISOString();
+      const { data } = await supabase
+        .from("payments")
+        .select("amount, tip, created_at")
+        .gte("created_at", since);
       return data ?? [];
     },
   });
