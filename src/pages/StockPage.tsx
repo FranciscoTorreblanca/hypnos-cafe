@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -165,6 +166,19 @@ const StockPage = () => {
     }
   };
 
+  const toggleAvailable = async (id: string, value: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ is_available: value })
+        .eq("id", id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
   const itemName = (i: { name: string; name_en: string }) =>
     language === "en" && i.name_en ? i.name_en : i.name;
 
@@ -272,6 +286,11 @@ const StockPage = () => {
                 </TableHead>
                 <TableHead className="text-center">{t("stock.status")}</TableHead>
                 {isAdmin && (
+                  <TableHead className="text-center w-[110px]">
+                    {t("stock.available")}
+                  </TableHead>
+                )}
+                {isAdmin && (
                   <TableHead className="text-center w-[140px]">
                     {t("stock.count")}
                   </TableHead>
@@ -281,7 +300,7 @@ const StockPage = () => {
             <TableBody>
               {filteredItems.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     {t("stock.noItems")}
                   </TableCell>
                 </TableRow>
@@ -317,6 +336,14 @@ const StockPage = () => {
                         edited ? edits[item.id] : item.inventory_count
                       )}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={item.is_available}
+                          onCheckedChange={(v) => toggleAvailable(item.id, v)}
+                        />
+                      </TableCell>
+                    )}
                     {isAdmin && (
                       <TableCell>
                         {item.inventory_count !== null ? (

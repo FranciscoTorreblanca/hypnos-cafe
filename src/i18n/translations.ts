@@ -349,6 +349,7 @@ export const translations = {
   "stock.count": { es: "Conteo", en: "Count" },
   "stock.noItems": { es: "No se encontraron productos", en: "No items found" },
   "stock.unavailable": { es: "No disponible", en: "Unavailable" },
+  "stock.available": { es: "Disponible", en: "Available" },
   "stock.saved": { es: "Inventario actualizado", en: "Stock updated" },
   "stock.save": { es: "Guardar", en: "Save" },
   "stock.startTracking": { es: "Iniciar seguimiento", en: "Start tracking" },
