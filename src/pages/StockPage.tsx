@@ -85,6 +85,10 @@ const StockPage = () => {
     else if (filter === "out") list = outOfStock;
     else if (filter === "low") list = lowStock;
 
+    if (categoryFilter !== "all") {
+      list = list.filter((i) => i.category_id === categoryFilter);
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -94,7 +98,7 @@ const StockPage = () => {
       );
     }
     return list;
-  }, [items, trackedItems, outOfStock, lowStock, filter, search]);
+  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, search]);
 
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "-";
