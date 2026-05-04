@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
         workbox: {
           navigateFallbackDenylist: [/^\/~oauth/],
           globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           importScripts: ["/push-sw.js"],
         },
         manifest: {
