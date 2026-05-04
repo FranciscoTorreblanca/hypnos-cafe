@@ -337,6 +337,14 @@ const StockPage = () => {
                       )}
                     </TableCell>
                     {isAdmin && (
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={item.is_available}
+                          onCheckedChange={(v) => toggleAvailable(item.id, v)}
+                        />
+                      </TableCell>
+                    )}
+                    {isAdmin && (
                       <TableCell>
                         {item.inventory_count !== null ? (
                           <div className="flex items-center justify-center gap-1">
