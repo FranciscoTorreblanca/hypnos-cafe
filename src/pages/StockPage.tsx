@@ -28,10 +28,12 @@ import {
   RotateCcw,
   Play,
   Square,
+  ScanBarcode,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
 
 const LOW_STOCK_THRESHOLD = 5;
 
