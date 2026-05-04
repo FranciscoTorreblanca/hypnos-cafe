@@ -1,0 +1,245 @@
+import { useEffect, useRef, useState } from "react";
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { useMenuItems, MenuItem } from "@/hooks/useMenuItems";
+import { useMenuItemSkus, lookupSkuByCode } from "@/hooks/useMenuItemSkus";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Camera, X, Search as SearchIcon, Plus, Package, Check } from "lucide-react";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  /** Called when a scan resolves to a known menu item (after link or already-linked). */
+  onResolved?: (item: MenuItem) => void;
+}
+
+type Phase = "scanning" | "found" | "unknown";
+
+export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) => {
+  const { t, language } = useLanguage();
+  const { toast } = useToast();
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: items = [] } = useMenuItems();
+  const { add: addSku } = useMenuItemSkus();
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
+  const [code, setCode] = useState("");
+  const [phase, setPhase] = useState<Phase>("scanning");
+  const [matched, setMatched] = useState<MenuItem | null>(null);
+  const [linkItemId, setLinkItemId] = useState<string>("");
+  const [skuLabel, setSkuLabel] = useState("");
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [manual, setManual] = useState("");
+
+  const stop = () => {
+    try { controlsRef.current?.stop(); } catch { /* ignore */ }
+    controlsRef.current = null;
+  };
+
+  const reset = () => {
+    setCode(""); setPhase("scanning"); setMatched(null);
+    setLinkItemId(""); setSkuLabel(""); setNewName(""); setManual("");
+  };
+
+  const handleCode = async (raw: string) => {
+    const c = raw.trim();
+    if (!c) return;
+    stop();
+    setCode(c);
+    try {
+      const found = await lookupSkuByCode(c);
+      if (found?.menu_items) {
+        setMatched(found.menu_items as MenuItem);
+        setPhase("found");
+        onResolved?.(found.menu_items as MenuItem);
+      } else {
+        setPhase("unknown");
+      }
+    } catch (e: any) {
+      toast({ title: e.message || "Error", variant: "destructive" });
+      setPhase("scanning");
+    }
+  };
+
+  useEffect(() => {
+    if (!open) { stop(); reset(); return; }
+    if (phase !== "scanning") return;
+    const reader = new BrowserMultiFormatReader();
+    let cancelled = false;
+    (async () => {
+      try {
+        const controls = await reader.decodeFromVideoDevice(
+          undefined,
+          videoRef.current!,
+          (result) => {
+            if (cancelled) return;
+            if (result) handleCode(result.getText());
+          }
+        );
+        if (cancelled) { controls.stop(); return; }
+        controlsRef.current = controls;
+      } catch (e: any) {
+        toast({ title: t("stock.cameraError"), description: e.message, variant: "destructive" });
+      }
+    })();
+    return () => { cancelled = true; stop(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, phase]);
+
+  const linkExisting = async () => {
+    if (!linkItemId || !code) return;
+    setBusy(true);
+    try {
+      await addSku.mutateAsync({ menu_item_id: linkItemId, code, label: skuLabel });
+      const item = items.find(i => i.id === linkItemId);
+      toast({ title: t("stock.skuLinked") });
+      if (item) onResolved?.(item);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: e.message || "Error", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+
+  const createAndLink = async () => {
+    if (!newName.trim() || !code) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase
+        .from("menu_items")
+        .insert({ name: newName.trim(), inventory_count: 0 })
+        .select()
+        .single();
+      if (error) throw error;
+      await addSku.mutateAsync({ menu_item_id: data.id, code, label: skuLabel });
+      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
+      toast({ title: t("stock.skuLinked") });
+      onResolved?.(data as MenuItem);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: e.message || "Error", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5" /> {t("stock.scanTitle")}
+          </DialogTitle>
+          <DialogDescription>{t("stock.scanHint")}</DialogDescription>
+        </DialogHeader>
+
+        {phase === "scanning" && (
+          <div className="space-y-3">
+            <div className="relative bg-black rounded-md overflow-hidden aspect-[4/3]">
+              <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+              <div className="absolute inset-x-6 top-1/2 h-px bg-red-500/80" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{t("stock.scanManual")}</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={manual}
+                  onChange={(e) => setManual(e.target.value)}
+                  placeholder="0000000000000"
+                  onKeyDown={(e) => e.key === "Enter" && handleCode(manual)}
+                />
+                <Button size="icon" onClick={() => handleCode(manual)}>
+                  <SearchIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {phase === "found" && matched && (
+          <div className="space-y-3">
+            <Card className="p-3 flex items-center gap-3 border-green-500/50 bg-green-500/5">
+              <Check className="h-5 w-5 text-green-600" />
+              <div className="flex-1">
+                <p className="font-medium">{language === "es" ? matched.name : (matched.name_en || matched.name)}</p>
+                <Badge variant="outline" className="text-[10px] mt-0.5">{code}</Badge>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <Package className="h-3 w-3 inline mr-1" />
+                {matched.inventory_count ?? "—"}
+              </div>
+            </Card>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={reset}>{t("stock.scan")}</Button>
+              <Button onClick={() => onOpenChange(false)}>{t("common.close" as any) || "OK"}</Button>
+            </div>
+          </div>
+        )}
+
+        {phase === "unknown" && (
+          <div className="space-y-4">
+            <Card className="p-3 flex items-center gap-3 border-amber-500/50 bg-amber-500/5">
+              <X className="h-5 w-5 text-amber-600" />
+              <div>
+                <p className="font-medium text-sm">{t("stock.scanNotFound")}</p>
+                <Badge variant="outline" className="text-[10px] mt-0.5">{code}</Badge>
+              </div>
+            </Card>
+
+            <div className="space-y-1">
+              <Label className="text-xs">{t("stock.skuLabel")}</Label>
+              <Input value={skuLabel} onChange={(e) => setSkuLabel(e.target.value)} placeholder="355ml / Six-pack..." />
+            </div>
+
+            <div className="space-y-2 border rounded-md p-3">
+              <Label className="text-xs font-medium">{t("stock.linkToItem")}</Label>
+              <Select value={linkItemId} onValueChange={setLinkItemId}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {items.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {language === "es" ? i.name : (i.name_en || i.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" className="w-full" disabled={!linkItemId || busy} onClick={linkExisting}>
+                <Plus className="h-3 w-3 mr-1" /> {t("stock.linkToItem")}
+              </Button>
+            </div>
+
+            {isAdmin && (
+              <div className="space-y-2 border rounded-md p-3">
+                <Label className="text-xs font-medium">{t("stock.createNewItem")}</Label>
+                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t("menu.name")} />
+                <Button size="sm" variant="secondary" className="w-full" disabled={!newName.trim() || busy} onClick={createAndLink}>
+                  <Plus className="h-3 w-3 mr-1" /> {t("stock.createNewItem")}
+                </Button>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={reset}>{t("stock.scan")}</Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
