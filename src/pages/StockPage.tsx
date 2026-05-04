@@ -415,6 +415,16 @@ const StockPage = () => {
           </Table>
         </CardContent>
       </Card>
+      <BarcodeScannerDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onResolved={(item) => {
+          setSearch(item.name);
+          if (item.inventory_count === null) {
+            toggleTracking(item.id, false);
+          }
+        }}
+      />
     </div>
   );
 };
