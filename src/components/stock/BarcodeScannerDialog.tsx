@@ -334,10 +334,28 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
 
             <div className="space-y-2 border rounded-md p-3">
               <Label className="text-xs font-medium">{t("stock.linkToItem")}</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={linkSearch}
+                  onChange={(e) => setLinkSearch(e.target.value)}
+                  placeholder={t("menu.search" as any) || "Search..."}
+                  className="h-9"
+                />
+                {linkSearch && (
+                  <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => setLinkSearch("")}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <Select value={linkItemId} onValueChange={setLinkItemId}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent className="max-h-72">
-                  {items.map((i) => (
+                  {filteredLinkItems.length === 0 && (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      {t("common.noResults" as any) || "No results"}
+                    </div>
+                  )}
+                  {filteredLinkItems.map((i) => (
                     <SelectItem key={i.id} value={i.id}>
                       {language === "es" ? i.name : (i.name_en || i.name)}
                     </SelectItem>
