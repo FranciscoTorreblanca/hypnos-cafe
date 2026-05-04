@@ -128,23 +128,24 @@ const Dashboard = () => {
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 5);
 
-  // 7-day revenue trend
+  // 7-day revenue + tips trend (from payments — coffee revenue excludes tips)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = subDays(new Date(), 6 - i);
     const dayStart = startOfDay(d);
     const dayEnd = new Date(dayStart);
     dayEnd.setDate(dayEnd.getDate() + 1);
-    const dayOrders = recentPaidOrders.filter((o) => {
-      const created = new Date(o.created_at);
+    const dayPayments = recentPayments.filter((p) => {
+      const created = new Date(p.created_at);
       return created >= dayStart && created < dayEnd;
     });
     return {
       label: format(d, "EEE"),
-      revenue: dayOrders.reduce((s, o) => s + (o.total ?? 0), 0),
-      orders: dayOrders.length,
+      revenue: dayPayments.reduce((s, p) => s + (p.amount ?? 0), 0),
+      tips: dayPayments.reduce((s, p) => s + (p.tip ?? 0), 0),
+      orders: dayPayments.length,
     };
   });
-  const maxRevenue = Math.max(...last7Days.map((d) => d.revenue), 1);
+  const maxStack = Math.max(...last7Days.map((d) => d.revenue + d.tips), 1);
 
   const cashPayments = todayPayments.filter((p) => p.payment_method === "cash").length;
   const cardPayments = todayPayments.filter((p) => p.payment_method === "card").length;
