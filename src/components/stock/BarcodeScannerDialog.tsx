@@ -41,6 +41,7 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [code, setCode] = useState("");
   const [phase, setPhase] = useState<Phase>("scanning");
   const [matched, setMatched] = useState<MenuItem | null>(null);
@@ -53,6 +54,11 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const stop = () => {
     try { controlsRef.current?.stop(); } catch { /* ignore */ }
     controlsRef.current = null;
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* ignore */ }
+    streamRef.current = null;
+    if (videoRef.current) {
+      try { videoRef.current.srcObject = null; } catch { /* ignore */ }
+    }
   };
 
   const reset = () => {
@@ -85,23 +91,37 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
     if (phase !== "scanning") return;
     const reader = new BrowserMultiFormatReader();
     let cancelled = false;
-    (async () => {
+    // Wait a tick so the <video> element is mounted before we attach a stream.
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
+      const videoEl = videoRef.current;
+      if (!videoEl) return;
       try {
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current!,
-          (result) => {
-            if (cancelled) return;
-            if (result) handleCode(result.getText());
-          }
-        );
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        streamRef.current = stream;
+        videoEl.srcObject = stream;
+        videoEl.setAttribute("playsinline", "true");
+        try { await videoEl.play(); } catch { /* ignore autoplay quirks */ }
+
+        const controls = await reader.decodeFromVideoElement(videoEl, (result) => {
+          if (cancelled) return;
+          if (result) handleCode(result.getText());
+        });
         if (cancelled) { controls.stop(); return; }
         controlsRef.current = controls;
       } catch (e: any) {
-        toast({ title: t("stock.cameraError"), description: e.message, variant: "destructive" });
+        toast({
+          title: t("stock.cameraError"),
+          description: e?.message || String(e),
+          variant: "destructive",
+        });
       }
-    })();
-    return () => { cancelled = true; stop(); };
+    }, 50);
+    return () => { cancelled = true; clearTimeout(timer); stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, phase]);
 
@@ -152,7 +172,7 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
         {phase === "scanning" && (
           <div className="space-y-3">
             <div className="relative bg-black rounded-md overflow-hidden aspect-[4/3]">
-              <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+              <video ref={videoRef} className="w-full h-full object-cover" muted playsInline autoPlay />
               <div className="absolute inset-x-6 top-1/2 h-px bg-red-500/80" />
             </div>
             <div className="space-y-1">
