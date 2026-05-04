@@ -25,6 +25,8 @@ import {
   Plus,
   Save,
   RotateCcw,
+  Play,
+  Square,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -137,6 +139,29 @@ const StockPage = () => {
       toast({ title: "Error", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleTracking = async (id: string, currentlyTracked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ inventory_count: currentlyTracked ? null : 0 })
+        .eq("id", id);
+      if (error) throw error;
+      // remove any pending edit for this item
+      setEdits((prev) => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
+      toast({
+        title: currentlyTracked
+          ? t("stock.trackingStopped")
+          : t("stock.trackingStarted"),
+      });
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
     }
   };
 
@@ -323,11 +348,28 @@ const StockPage = () => {
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              title={t("stock.stopTracking")}
+                              onClick={() => toggleTracking(item.id, true)}
+                            >
+                              <Square className="h-3 w-3" />
+                            </Button>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground text-center block">
-                            —
-                          </span>
+                          <div className="flex justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 text-xs"
+                              onClick={() => toggleTracking(item.id, false)}
+                            >
+                              <Play className="h-3 w-3" />
+                              {t("stock.startTracking")}
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     )}
