@@ -178,6 +178,52 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
               </FormItem>
             )} />
+
+            {item?.id && (
+              <div className="space-y-2 border-t pt-3">
+                <div className="text-sm font-medium">{t("stock.skus")}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {skus.length === 0 && (
+                    <p className="text-xs text-muted-foreground">—</p>
+                  )}
+                  {skus.map((s) => (
+                    <Badge key={s.id} variant="secondary" className="gap-1 font-mono text-[11px]">
+                      {s.code}{s.label ? ` · ${s.label}` : ""}
+                      <button
+                        type="button"
+                        onClick={() => removeSku.mutate(s.id)}
+                        className="ml-1 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <Input
+                    placeholder={t("stock.code")}
+                    value={newCode}
+                    onChange={(e) => setNewCode(e.target.value)}
+                  />
+                  <Input
+                    placeholder={t("stock.skuLabel")}
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={async () => {
+                      if (!newCode.trim() || !item?.id) return;
+                      await addSku.mutateAsync({ menu_item_id: item.id, code: newCode, label: newLabel });
+                      setNewCode(""); setNewLabel("");
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />{t("stock.addSku")}
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
               <Button type="submit">{t("common.save")}</Button>
