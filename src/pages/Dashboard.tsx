@@ -18,7 +18,7 @@ import {
   ShoppingBag,
   BarChart3,
 } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { startOfDay, subDays, format } from "date-fns";
 
 const Dashboard = () => {
