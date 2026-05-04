@@ -82,6 +82,16 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState("");
+  const [linkSearch, setLinkSearch] = useState("");
+
+  const filteredLinkItems = items.filter((i) => {
+    const q = linkSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      i.name.toLowerCase().includes(q) ||
+      (i.name_en || "").toLowerCase().includes(q)
+    );
+  });
 
   const startNativeDetection = async (videoEl: HTMLVideoElement) => {
     const NativeDetector = (window as Window & { BarcodeDetector?: NativeBarcodeDetector }).BarcodeDetector;
