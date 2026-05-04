@@ -42,6 +42,9 @@ interface Props {
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { t, language } = useLanguage();
   const { data: categories = [] } = useMenuCategories();
+  const { data: skus = [], add: addSku, remove: removeSku } = useMenuItemSkus(item?.id);
+  const [newCode, setNewCode] = useState("");
+  const [newLabel, setNewLabel] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
