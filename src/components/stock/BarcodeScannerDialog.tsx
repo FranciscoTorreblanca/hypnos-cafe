@@ -83,6 +83,56 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState("");
 
+  const startNativeDetection = async (videoEl: HTMLVideoElement) => {
+    const NativeDetector = (window as Window & { BarcodeDetector?: NativeBarcodeDetector }).BarcodeDetector;
+    if (!NativeDetector) return false;
+
+    const supported = typeof NativeDetector.getSupportedFormats === "function"
+      ? await NativeDetector.getSupportedFormats()
+      : [];
+    const formats = PREFERRED_NATIVE_FORMATS.filter((format) => supported.length === 0 || supported.includes(format));
+    const detector = new NativeDetector(formats.length > 0 ? { formats } : undefined);
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return false;
+
+    const loop = async () => {
+      if (!open || phase !== "scanning" || handlingCodeRef.current) return;
+
+      const width = videoEl.videoWidth;
+      const height = videoEl.videoHeight;
+      if (!width || !height || videoEl.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        scanFrameRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
+      const cropWidth = Math.floor(width * 0.88);
+      const cropHeight = Math.floor(height * 0.34);
+      const cropX = Math.floor((width - cropWidth) / 2);
+      const cropY = Math.floor((height - cropHeight) / 2);
+
+      canvas.width = cropWidth;
+      canvas.height = cropHeight;
+      context.drawImage(videoEl, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+      try {
+        const matches = await detector.detect(canvas);
+        const value = matches.find((match) => match.rawValue?.trim())?.rawValue?.trim();
+        if (value) {
+          await handleCode(value);
+          return;
+        }
+      } catch {
+        // Ignore transient frame decode failures.
+      }
+
+      scanFrameRef.current = requestAnimationFrame(loop);
+    };
+
+    scanFrameRef.current = requestAnimationFrame(loop);
+    return true;
+  };
+
   const stop = () => {
     try { controlsRef.current?.stop(); } catch { /* ignore */ }
     controlsRef.current = null;
@@ -128,7 +178,10 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   useEffect(() => {
     if (!open) { stop(); reset(); return; }
     if (phase !== "scanning") return;
-    const reader = new BrowserMultiFormatReader();
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, PREFERRED_ZXING_FORMATS);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    const reader = new BrowserMultiFormatReader(hints);
     let cancelled = false;
     // Wait a tick so the <video> element is mounted before we attach a stream.
     const timer = setTimeout(async () => {
@@ -145,6 +198,9 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
         videoEl.srcObject = stream;
         videoEl.setAttribute("playsinline", "true");
         try { await videoEl.play(); } catch { /* ignore autoplay quirks */ }
+
+        const usingNativeDetector = await startNativeDetection(videoEl);
+        if (usingNativeDetector) return;
 
         const controls = await reader.decodeFromVideoElement(videoEl, (result) => {
           if (cancelled) return;
