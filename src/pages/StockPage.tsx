@@ -272,6 +272,19 @@ const StockPage = () => {
             className="pl-9"
           />
         </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full sm:w-[180px] h-9">
+            <SelectValue placeholder={t("menu.category")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("stock.all")}</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {language === "en" && c.name_en ? c.name_en : c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Tabs
           value={filter}
           onValueChange={(v) => setFilter(v as any)}
