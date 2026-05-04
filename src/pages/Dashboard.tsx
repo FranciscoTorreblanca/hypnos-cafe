@@ -162,7 +162,10 @@ const Dashboard = () => {
 
       {/* Primary KPIs */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/performance")}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("dash.todayRevenue")}
@@ -177,7 +180,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/performance")}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("dash.todayTips")}
@@ -192,7 +198,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/tables")}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("nav.tables")}
@@ -207,7 +216,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/menu")}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("nav.menu")}
@@ -226,12 +238,16 @@ const Dashboard = () => {
       {/* Active orders breakdown */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: t("orders.pending"), count: pendingOrders, color: "bg-yellow-500" },
-          { label: t("orders.inProgress"), count: inProgressOrders, color: "bg-blue-500" },
-          { label: t("orders.ready"), count: readyOrders, color: "bg-emerald-500" },
-          { label: t("orders.served"), count: servedOrders, color: "bg-purple-500" },
+          { label: t("orders.pending"), count: pendingOrders, color: "bg-yellow-500", to: "/kitchen" },
+          { label: t("orders.inProgress"), count: inProgressOrders, color: "bg-blue-500", to: "/kitchen" },
+          { label: t("orders.ready"), count: readyOrders, color: "bg-emerald-500", to: "/kitchen" },
+          { label: t("orders.served"), count: servedOrders, color: "bg-purple-500", to: "/billing" },
         ].map((s) => (
-          <Card key={s.label}>
+          <Card
+            key={s.label}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate(s.to)}
+          >
             <CardContent className="p-4 flex items-center gap-3">
               <div className={`h-3 w-3 rounded-full ${s.color}`} />
               <div>
@@ -245,34 +261,64 @@ const Dashboard = () => {
 
       {/* Bottom sections */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* 7-day trend (simple bar) */}
-        <Card>
+        {/* 7-day trend (stacked: coffee revenue + tips) */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/performance")}
+        >
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              {t("dash.weekTrend")}
+            <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                {t("dash.weekTrend")}
+              </span>
+              <span className="flex items-center gap-3 text-[10px] font-normal text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-primary/80" />
+                  {t("performance.revenue")}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-amber-500" />
+                  {t("performance.tips")}
+                </span>
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1 h-28">
-              {last7Days.map((d) => (
-                <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground font-medium">
-                    ${d.revenue > 0 ? d.revenue.toFixed(0) : ""}
-                  </span>
-                  <div
-                    className="w-full rounded-t bg-primary/80 min-h-[2px] transition-all"
-                    style={{ height: `${(d.revenue / maxRevenue) * 80}px` }}
-                  />
-                  <span className="text-[10px] text-muted-foreground">{d.label}</span>
-                </div>
-              ))}
+              {last7Days.map((d) => {
+                const total = d.revenue + d.tips;
+                const totalH = (total / maxStack) * 80;
+                const revH = total > 0 ? (d.revenue / total) * totalH : 0;
+                const tipH = total > 0 ? (d.tips / total) * totalH : 0;
+                return (
+                  <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      ${total > 0 ? total.toFixed(0) : ""}
+                    </span>
+                    <div className="w-full flex flex-col-reverse min-h-[2px]">
+                      <div
+                        className="w-full bg-primary/80 transition-all"
+                        style={{ height: `${revH}px` }}
+                      />
+                      <div
+                        className="w-full rounded-t bg-amber-500 transition-all"
+                        style={{ height: `${tipH}px` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{d.label}</span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
 
         {/* Top sellers */}
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/performance")}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
@@ -303,7 +349,10 @@ const Dashboard = () => {
         </Card>
 
         {/* Team & Loyalty */}
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/users")}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -324,7 +373,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/loyalty-admin")}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Heart className="h-4 w-4" />
