@@ -348,11 +348,28 @@ const StockPage = () => {
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              title={t("stock.stopTracking")}
+                              onClick={() => toggleTracking(item.id, true)}
+                            >
+                              <Square className="h-3 w-3" />
+                            </Button>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground text-center block">
-                            —
-                          </span>
+                          <div className="flex justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 text-xs"
+                              onClick={() => toggleTracking(item.id, false)}
+                            >
+                              <Play className="h-3 w-3" />
+                              {t("stock.startTracking")}
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     )}
