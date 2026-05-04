@@ -49,6 +49,7 @@ const StockPage = () => {
   const [filter, setFilter] = useState<"all" | "low" | "out" | "tracked">("all");
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const trackedItems = useMemo(
     () => items.filter((i) => i.inventory_count !== null),
