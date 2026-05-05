@@ -184,6 +184,66 @@ const PerformancePage = () => {
 
   const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories);
 
+  // Category breakdown for current period
+  const categoryBreakdown = useMemo(() => {
+    const rangeOrders = getOrdersInRange(currentPeriod.start, currentPeriod.end);
+    type Agg = { catId: string; name: string; qty: number; revenue: number; uniqueItems: Set<string>; bestItem: string; bestItemQty: number; itemQty: Map<string, { name: string; qty: number }> };
+    const map = new Map<string, Agg>();
+    rangeOrders.forEach((o) =>
+      o.order_items.forEach((item) => {
+        const catId = itemCategoryMap.get(item.menu_item_id) ?? "__none__";
+        const cat = categories.find((c) => c.id === catId);
+        const catName = catId === "__none__"
+          ? t("performance.noCategory")
+          : (language === "en" && cat?.name_en ? cat.name_en : cat?.name ?? "?");
+        const itemName = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
+        const existing = map.get(catId) ?? { catId, name: catName, qty: 0, revenue: 0, uniqueItems: new Set(), bestItem: "", bestItemQty: 0, itemQty: new Map() };
+        existing.qty += item.quantity;
+        existing.revenue += item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
+        existing.uniqueItems.add(item.menu_item_id);
+        const ie = existing.itemQty.get(item.menu_item_id) ?? { name: itemName, qty: 0 };
+        ie.qty += item.quantity;
+        existing.itemQty.set(item.menu_item_id, ie);
+        if (ie.qty > existing.bestItemQty) {
+          existing.bestItemQty = ie.qty;
+          existing.bestItem = itemName;
+        }
+        map.set(catId, existing);
+      })
+    );
+    return [...map.values()]
+      .map((c) => ({
+        catId: c.catId,
+        name: c.name,
+        qty: c.qty,
+        revenue: c.revenue,
+        uniqueItems: c.uniqueItems.size,
+        avgPrice: c.qty > 0 ? c.revenue / c.qty : 0,
+        bestItem: c.bestItem,
+        bestItemQty: c.bestItemQty,
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, currentPeriod, itemCategoryMap, categories, language, t]);
+
+  const totalCategoryRevenue = categoryBreakdown.reduce((s, c) => s + c.revenue, 0);
+
+  const exportCategories = () => {
+    downloadCsv(
+      `categories-${format(currentPeriod.start, "yyyy-MM-dd")}`,
+      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
+      categoryBreakdown.map((c) => [
+        c.name,
+        c.qty,
+        c.revenue.toFixed(2),
+        totalCategoryRevenue > 0 ? `${((c.revenue / totalCategoryRevenue) * 100).toFixed(1)}%` : "0%",
+        c.uniqueItems,
+        c.avgPrice.toFixed(2),
+        `${c.bestItem} (${c.bestItemQty})`,
+      ])
+    );
+  };
+
   // Revenue by period for trend
   const trendData = periods.map((p) => {
     const pPayments = getPaymentsInRange(p.start, p.end);
