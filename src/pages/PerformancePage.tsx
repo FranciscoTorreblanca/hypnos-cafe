@@ -184,6 +184,51 @@ const PerformancePage = () => {
 
   const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories);
 
+  // Category breakdown for current period
+  const categoryBreakdown = useMemo(() => {
+    const rangeOrders = getOrdersInRange(currentPeriod.start, currentPeriod.end);
+    type Agg = { catId: string; name: string; qty: number; revenue: number; uniqueItems: Set<string>; bestItem: string; bestItemQty: number; itemQty: Map<string, { name: string; qty: number }> };
+    const map = new Map<string, Agg>();
+    rangeOrders.forEach((o) =>
+      o.order_items.forEach((item) => {
+        const catId = itemCategoryMap.get(item.menu_item_id) ?? "__none__";
+        const cat = categories.find((c) => c.id === catId);
+        const catName = catId === "__none__"
+          ? t("performance.noCategory")
+          : (language === "en" && cat?.name_en ? cat.name_en : cat?.name ?? "?");
+        const itemName = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
+        const existing = map.get(catId) ?? { catId, name: catName, qty: 0, revenue: 0, uniqueItems: new Set(), bestItem: "", bestItemQty: 0, itemQty: new Map() };
+        existing.qty += item.quantity;
+        existing.revenue += item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
+        existing.uniqueItems.add(item.menu_item_id);
+        const ie = existing.itemQty.get(item.menu_item_id) ?? { name: itemName, qty: 0 };
+        ie.qty += item.quantity;
+        existing.itemQty.set(item.menu_item_id, ie);
+        if (ie.qty > existing.bestItemQty) {
+          existing.bestItemQty = ie.qty;
+          existing.bestItem = itemName;
+        }
+        map.set(catId, existing);
+      })
+    );
+    return [...map.values()]
+      .map((c) => ({
+        catId: c.catId,
+        name: c.name,
+        qty: c.qty,
+        revenue: c.revenue,
+        uniqueItems: c.uniqueItems.size,
+        avgPrice: c.qty > 0 ? c.revenue / c.qty : 0,
+        bestItem: c.bestItem,
+        bestItemQty: c.bestItemQty,
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, currentPeriod, itemCategoryMap, categories, language, t]);
+
+  const totalCategoryRevenue = categoryBreakdown.reduce((s, c) => s + c.revenue, 0);
+
+
   // Revenue by period for trend
   const trendData = periods.map((p) => {
     const pPayments = getPaymentsInRange(p.start, p.end);
@@ -238,6 +283,22 @@ const PerformancePage = () => {
       `top-sellers-${format(currentPeriod.start, "yyyy-MM-dd")}`,
       [t("menu.name"), t("performance.qtySold"), t("billing.income")],
       sellers.map((s) => [s.name, s.qty, s.revenue.toFixed(2)])
+    );
+  };
+
+  const exportCategories = () => {
+    downloadCsv(
+      `categories-${format(currentPeriod.start, "yyyy-MM-dd")}`,
+      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
+      categoryBreakdown.map((c) => [
+        c.name,
+        c.qty,
+        c.revenue.toFixed(2),
+        totalCategoryRevenue > 0 ? `${((c.revenue / totalCategoryRevenue) * 100).toFixed(1)}%` : "0%",
+        c.uniqueItems,
+        c.avgPrice.toFixed(2),
+        `${c.bestItem} (${c.bestItemQty})`,
+      ])
     );
   };
 
@@ -336,6 +397,7 @@ const PerformancePage = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={exportTopSellers}>{t("performance.topSellers")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCategories}>{t("performance.byCategory")}</DropdownMenuItem>
               <DropdownMenuItem onClick={exportTrend}>{t("performance.trend")}</DropdownMenuItem>
               <DropdownMenuItem onClick={exportPayments}>{t("performance.paymentBreakdown")}</DropdownMenuItem>
               <DropdownMenuItem onClick={exportHourly}>{t("performance.hourlyDistribution")}</DropdownMenuItem>
@@ -398,6 +460,7 @@ const PerformancePage = () => {
           <Tabs defaultValue="top-sellers" className="space-y-4">
             <TabsList className="flex flex-wrap h-auto gap-1">
               <TabsTrigger value="top-sellers">{t("performance.topSellers")}</TabsTrigger>
+              <TabsTrigger value="categories">{t("performance.byCategory")}</TabsTrigger>
               <TabsTrigger value="comparison">{t("performance.comparison")}</TabsTrigger>
               <TabsTrigger value="trend">{t("performance.trend")}</TabsTrigger>
               <TabsTrigger value="payment-breakdown">{t("performance.paymentBreakdown")}</TabsTrigger>
@@ -507,6 +570,96 @@ const PerformancePage = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* By Category */}
+            <TabsContent value="categories">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      {t("performance.revenueByCategory")} — {formatLabel(currentPeriod)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {categoryBreakdown.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">{t("billing.noData")}</p>
+                    ) : (
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={categoryBreakdown} layout="vertical" margin={{ left: 10, right: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                            <XAxis type="number" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                            <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} width={110} />
+                            <Tooltip formatter={(value: number, name: string) => name === "revenue" ? [`$${Math.round(value).toLocaleString()}`, t("billing.income")] : [value, t("performance.qtySold")]} />
+                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("performance.qtyByCategory")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {categoryBreakdown.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">{t("billing.noData")}</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{t("performance.category")}</TableHead>
+                              <TableHead className="text-right">{t("performance.qtySold")}</TableHead>
+                              <TableHead className="text-right">{t("billing.income")}</TableHead>
+                              <TableHead className="text-right">{t("performance.share")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.uniqueItems")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.avgPrice")}</TableHead>
+                              <TableHead className="hidden md:table-cell">{t("performance.bestItem")}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {categoryBreakdown.map((c, idx) => {
+                              const share = totalCategoryRevenue > 0 ? (c.revenue / totalCategoryRevenue) * 100 : 0;
+                              return (
+                                <TableRow key={c.catId}>
+                                  <TableCell className="font-medium">
+                                    {idx < 3 ? (
+                                      <Badge variant={idx === 0 ? "default" : "secondary"} className="mr-2">{idx + 1}</Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground mr-2">{idx + 1}</span>
+                                    )}
+                                    {c.name}
+                                  </TableCell>
+                                  <TableCell className="text-right">{c.qty}</TableCell>
+                                  <TableCell className="text-right font-medium">${c.revenue.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
+                                      <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
+                                        <div className="h-full bg-primary" style={{ width: `${share}%` }} />
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">{c.uniqueItems}</TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">${c.avgPrice.toFixed(0)}</TableCell>
+                                  <TableCell className="hidden md:table-cell text-sm">
+                                    {c.bestItem} <span className="text-muted-foreground text-xs">({c.bestItemQty})</span>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Comparison */}

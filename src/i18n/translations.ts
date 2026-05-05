@@ -271,6 +271,14 @@ export const translations = {
   "performance.prevWeekDay": { es: "Mismo día sem. ant.", en: "Same day prev. week" },
   "performance.noDataForPeriod": { es: "Sin datos para este período", en: "No data for this period" },
   "performance.weeklyAvg": { es: "Promedio diario", en: "Daily average" },
+  "performance.byCategory": { es: "Por categoría", en: "By Category" },
+  "performance.category": { es: "Categoría", en: "Category" },
+  "performance.share": { es: "% del total", en: "% of total" },
+  "performance.uniqueItems": { es: "Items únicos", en: "Unique items" },
+  "performance.avgPrice": { es: "Precio prom.", en: "Avg. price" },
+  "performance.bestItem": { es: "Item top", en: "Top item" },
+  "performance.revenueByCategory": { es: "Ingresos por categoría", en: "Revenue by category" },
+  "performance.qtyByCategory": { es: "Unidades por categoría", en: "Units by category" },
 
   // Loyalty
   "loyalty.admin": { es: "Programa de Lealtad", en: "Loyalty Program" },
