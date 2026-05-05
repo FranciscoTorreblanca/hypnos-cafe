@@ -228,21 +228,6 @@ const PerformancePage = () => {
 
   const totalCategoryRevenue = categoryBreakdown.reduce((s, c) => s + c.revenue, 0);
 
-  const exportCategories = () => {
-    downloadCsv(
-      `categories-${format(currentPeriod.start, "yyyy-MM-dd")}`,
-      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
-      categoryBreakdown.map((c) => [
-        c.name,
-        c.qty,
-        c.revenue.toFixed(2),
-        totalCategoryRevenue > 0 ? `${((c.revenue / totalCategoryRevenue) * 100).toFixed(1)}%` : "0%",
-        c.uniqueItems,
-        c.avgPrice.toFixed(2),
-        `${c.bestItem} (${c.bestItemQty})`,
-      ])
-    );
-  };
 
   // Revenue by period for trend
   const trendData = periods.map((p) => {
