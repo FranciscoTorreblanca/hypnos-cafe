@@ -397,6 +397,7 @@ const PerformancePage = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={exportTopSellers}>{t("performance.topSellers")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCategories}>{t("performance.byCategory")}</DropdownMenuItem>
               <DropdownMenuItem onClick={exportTrend}>{t("performance.trend")}</DropdownMenuItem>
               <DropdownMenuItem onClick={exportPayments}>{t("performance.paymentBreakdown")}</DropdownMenuItem>
               <DropdownMenuItem onClick={exportHourly}>{t("performance.hourlyDistribution")}</DropdownMenuItem>
