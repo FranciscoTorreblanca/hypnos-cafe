@@ -572,6 +572,96 @@ const PerformancePage = () => {
               </Card>
             </TabsContent>
 
+            {/* By Category */}
+            <TabsContent value="categories">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      {t("performance.revenueByCategory")} — {formatLabel(currentPeriod)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {categoryBreakdown.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">{t("billing.noData")}</p>
+                    ) : (
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={categoryBreakdown} layout="vertical" margin={{ left: 10, right: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                            <XAxis type="number" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                            <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} width={110} />
+                            <Tooltip formatter={(value: number, name: string) => name === "revenue" ? [`$${Math.round(value).toLocaleString()}`, t("billing.income")] : [value, t("performance.qtySold")]} />
+                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("performance.qtyByCategory")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {categoryBreakdown.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">{t("billing.noData")}</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{t("performance.category")}</TableHead>
+                              <TableHead className="text-right">{t("performance.qtySold")}</TableHead>
+                              <TableHead className="text-right">{t("billing.income")}</TableHead>
+                              <TableHead className="text-right">{t("performance.share")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.uniqueItems")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.avgPrice")}</TableHead>
+                              <TableHead className="hidden md:table-cell">{t("performance.bestItem")}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {categoryBreakdown.map((c, idx) => {
+                              const share = totalCategoryRevenue > 0 ? (c.revenue / totalCategoryRevenue) * 100 : 0;
+                              return (
+                                <TableRow key={c.catId}>
+                                  <TableCell className="font-medium">
+                                    {idx < 3 ? (
+                                      <Badge variant={idx === 0 ? "default" : "secondary"} className="mr-2">{idx + 1}</Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground mr-2">{idx + 1}</span>
+                                    )}
+                                    {c.name}
+                                  </TableCell>
+                                  <TableCell className="text-right">{c.qty}</TableCell>
+                                  <TableCell className="text-right font-medium">${c.revenue.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
+                                      <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
+                                        <div className="h-full bg-primary" style={{ width: `${share}%` }} />
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">{c.uniqueItems}</TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">${c.avgPrice.toFixed(0)}</TableCell>
+                                  <TableCell className="hidden md:table-cell text-sm">
+                                    {c.bestItem} <span className="text-muted-foreground text-xs">({c.bestItemQty})</span>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
             {/* Comparison */}
             <TabsContent value="comparison">
               <div className="space-y-4">
