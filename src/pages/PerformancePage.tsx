@@ -304,6 +304,7 @@ const PerformancePage = () => {
 
   const exportTrend = () => {
     downloadCsv(
+      `trend-${period}`,
       [t("performance.period"), t("billing.income"), t("performance.totalOrders"), t("billing.tipsLabel")],
       trendData.map((r) => [r.label, r.revenue.toFixed(2), r.orders, r.tips.toFixed(2)])
     );
