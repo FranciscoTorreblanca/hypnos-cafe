@@ -3,15 +3,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays, startOfDay, endOfDay } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays, startOfDay, endOfDay, differenceInCalendarDays, addDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, BarChart3, Clock, Award, X, Filter, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, BarChart3, Clock, Award, X, Filter, Download, CalendarIcon } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
