@@ -384,6 +384,9 @@ const OrderHistoryPage = () => {
                       {order.general_discount > 0 && (
                         <span className="text-destructive">{language === "es" ? "Desc. general" : "General disc."}: {order.general_discount}%</span>
                       )}
+                      {(order.general_discount_amount ?? 0) > 0 && (
+                        <span className="text-destructive">{language === "es" ? "Desc. fijo" : "Fixed disc."}: ${order.general_discount_amount?.toFixed(0)}</span>
+                      )}
                     </div>
 
                     {/* Items table */}
