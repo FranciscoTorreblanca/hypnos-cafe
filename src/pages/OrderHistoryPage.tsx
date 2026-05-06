@@ -170,7 +170,7 @@ const OrderHistoryPage = () => {
       const payment = o.payments?.[0];
       o.order_items.forEach((oi) => {
         const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
-        const sub = oi.quantity * oi.unit_price * (1 - (oi.discount ?? 0) / 100);
+        const sub = applyLineDiscount(oi.quantity * oi.unit_price, oi.discount ?? 0, oi.discount_amount ?? 0);
         rows.push([
           format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
           String(o.table_number),
