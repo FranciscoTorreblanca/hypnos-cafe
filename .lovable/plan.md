@@ -1,81 +1,57 @@
+# Add fixed-amount discounts (per item + general)
 
+Today, discounts are percentage-only on `order_items.discount` and `orders.general_discount`. We'll add a parallel **fixed amount (MXN)** discount on both, applied **after** the percentage. Both can be used together; either can be 0.
 
-# Hypnos Cafe — Restaurant Management System
+## Calculation rules
 
-A bilingual (Spanish/English) restaurant management app with a modern, minimal design. Staff manage everything internally, and customers can browse a public digital menu. Currency: MXN pesos.
+- **Per item line total**: `qty * unit_price * (1 - pct/100) - fixedAmount` (clamped ≥ 0)
+- **Order subtotal**: sum of line totals
+- **General discount**: `subtotal * (1 - generalPct/100) - generalFixed` (clamped ≥ 0) → final total
 
----
+## Database
 
-## Phase 1: Foundation & Authentication
+Add two nullable numeric columns (default 0):
+- `order_items.discount_amount NUMERIC NOT NULL DEFAULT 0`
+- `orders.general_discount_amount NUMERIC NOT NULL DEFAULT 0`
 
-### User Management & Roles
-- Signup/login system with role assignment: **Admin**, **Waiter**, **Billing**, **Kitchen**
-- Admin dashboard to create, edit, and deactivate staff accounts
-- Role-based permissions controlling what each user can see and do throughout the app
-- Roles stored securely in a dedicated table (not on the user profile)
+No RLS changes (existing policies cover all columns). Trigger-recomputed totals already happen client-side in `useOrders.ts`, just need updating.
 
-### Settings & Localization
-- App-wide settings page (admin-only) for restaurant name, logo, tax rate, and currency display
-- Language toggle between **Spanish** and **English** throughout the entire app
-- All UI text, labels, and messages fully bilingual
+## UI changes
 
----
+**OrderDialog (`src/components/orders/OrderDialog.tsx`)**
+- Cart row: next to the % popover, add a **$** popover for fixed MXN discount per item.
+- Existing item row (sent to kitchen): same — add **$** popover next to the existing % control.
+- General discount section: add a fixed **$** input next to the existing % input.
+- Update local `cart` state type to include `discountAmount`.
+- Update subtotal/total computations and ticket-snapshot payload.
 
-## Phase 2: Menu Management
+**TablesPage**: show small badge `-$X` next to the `-Y%` badge when fixed discount > 0.
 
-### Menu Items & Categories
-- Create and organize menu items by categories (beverages, food, desserts, etc.)
-- Each item: name, description, image, price (MXN), availability toggle, and inventory count
-- Bulk edit and quick availability toggles
+**BillingPage**: include the new fields when computing what to charge & when snapshotting the ticket.
 
-### Cost Calculator
-- **Simple mode**: manually enter total cost and sale price per item to see margin
-- **Ingredient-based mode**: define ingredients with unit costs, assign quantities to items, auto-calculate total cost and profit margin
-- View cost breakdowns and suggested pricing
+**OrderHistoryPage**: same — apply fixed discounts to the displayed totals and ticket snapshot.
 
-### Menu Generation & Templates
-- Generate a full printable/digital menu from current items
-- Multiple menu templates to choose from (classic, modern, seasonal)
-- Create **special/seasonal menus** by selecting specific items and customizing the design
-- Public-facing digital menu page for customers to browse (no login required)
+**Ticket snapshot/print** (`utils/ticketSnapshot.ts`, `tickets/TicketView.tsx`, `PrintTicketDialog.tsx`): persist & render `discount_amount` per line and `general_discount_amount` on order; show `-$X` line in summary.
 
----
+**Hooks**:
+- `useOrders.ts`: extend `OrderItem` and `Order` types; `addItem` / `updateItemDiscount` accept optional `discount_amount`; recalc total using both pct+fixed; new `updateItemDiscountAmount` and `updateGeneralDiscountAmount` mutations.
+- `usePayments.ts`: when finalizing a paid order, also reset `general_discount_amount` to 0 (matches existing pattern).
 
-## Phase 3: Table & Order Management
+## i18n
+Add labels: "Descuento fijo" / "Fixed discount", "Monto" / "Amount" in `translations.ts`.
 
-### Table Grid View
-- Visual grid of cards representing each table (configurable number of tables in settings)
-- Each card shows: table number, status (available/occupied/reserved), current order summary, and total
-- Color-coded status indicators for quick scanning
+## Out of scope
+- No analytics changes (Performance/Dashboard already use `orders.total` which we'll keep authoritative by recomputing on every mutation, just like today).
 
-### Order Flow
-- Waiters select a table → add items from the menu → submit order
-- Kitchen/staff can see incoming orders
-- Add/remove items from an active table's order
-- Order history per table
-
----
-
-## Phase 4: Billing & Payments
-
-### Bill Management
-- View and manage the bill for each table
-- Split bills (by item or evenly)
-- Apply discounts (admin/billing roles only)
-- Tax calculation based on settings
-
-### Payment Options
-- **Cash**: Mark as paid, calculate change
-- **Card (Debit/Credit)**: Integration with **Mercado Pago**
-  - Admin connects their Mercado Pago account via settings (API keys stored securely)
-  - Generate payment links or process payments through Mercado Pago's API
-- Print/export receipt (digital receipt option)
-
----
-
-## Design & UX
-- **Modern & minimal** aesthetic: clean whites, subtle grays, with a single accent color
-- Responsive layout optimized for tablets (primary staff device) and desktop
-- Public menu page also mobile-friendly for customer phones
-- Clear navigation sidebar for staff with role-appropriate menu items
-
+## Files touched
+- migration (new columns)
+- `src/hooks/useOrders.ts`
+- `src/hooks/usePayments.ts`
+- `src/components/orders/OrderDialog.tsx`
+- `src/components/tickets/PrintTicketDialog.tsx`
+- `src/components/tickets/TicketView.tsx`
+- `src/utils/ticketSnapshot.ts`
+- `src/pages/BillingPage.tsx`
+- `src/pages/TablesPage.tsx`
+- `src/pages/OrderHistoryPage.tsx`
+- `src/i18n/translations.ts`
