@@ -232,14 +232,22 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
       </div>
 
       {/* General discount on the whole order */}
-      {generalDiscount > 0 && (
+      {hasGeneralDisc && (
         <>
-          <div className="ticket-row">
-            <span>
-              {t("Descuento general", "Order discount")} ({generalDiscount}%):
-            </span>
-            <span>−{fmtMoney(generalDiscountAmount)}</span>
-          </div>
+          {generalDiscount > 0 && (
+            <div className="ticket-row">
+              <span>
+                {t("Descuento general", "Order discount")} ({generalDiscount}%):
+              </span>
+              <span>−{fmtMoney(generalPctValue)}</span>
+            </div>
+          )}
+          {generalDiscountAmount > 0 && (
+            <div className="ticket-row">
+              <span>{t("Descuento fijo", "Fixed discount")}:</span>
+              <span>−{fmtMoney(generalDiscountAmount)}</span>
+            </div>
+          )}
           <div className="ticket-row">
             <span>{t("Después de descuento", "After discount")}:</span>
             <span>{fmtMoney(totalAfterGeneralDisc)}</span>
