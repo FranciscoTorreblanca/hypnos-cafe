@@ -6,6 +6,7 @@ interface MinimalOrderItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  discount_amount?: number;
   notes?: string;
   combo_id?: string | null;
   combo_group_id?: string | null;
@@ -20,6 +21,7 @@ interface BuildSnapshotInput {
   table_name?: string;
   waiter_name?: string;
   general_discount: number;
+  general_discount_amount?: number;
   language: "es" | "en";
   items: MinimalOrderItem[];
 }
