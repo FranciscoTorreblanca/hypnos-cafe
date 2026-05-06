@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
@@ -41,6 +42,7 @@ interface HistoryOrderItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  discount_amount?: number;
   notes: string;
   status: string;
   created_at: string;
@@ -57,6 +59,7 @@ interface HistoryOrder {
   notes: string;
   total: number;
   general_discount: number;
+  general_discount_amount?: number;
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -167,7 +170,7 @@ const OrderHistoryPage = () => {
       const payment = o.payments?.[0];
       o.order_items.forEach((oi) => {
         const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
-        const sub = oi.quantity * oi.unit_price * (1 - (oi.discount ?? 0) / 100);
+        const sub = applyLineDiscount(oi.quantity * oi.unit_price, oi.discount ?? 0, oi.discount_amount ?? 0);
         rows.push([
           format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
           String(o.table_number),
@@ -227,8 +230,9 @@ const OrderHistoryPage = () => {
       if (!ticket) {
         const payment = order.payments?.[0];
         const gd = order.general_discount ?? 0;
+        const gda = order.general_discount_amount ?? 0;
         const subtotal = order.total;
-        const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const totalNoTip = applyGeneralDiscount(subtotal, gd, gda);
         const tip = payment?.tip ?? 0;
         const isPaid = order.status === "paid";
 
@@ -236,6 +240,7 @@ const OrderHistoryPage = () => {
           table_number: order.table_number,
           waiter_name: order.waiterName || undefined,
           general_discount: gd,
+          general_discount_amount: gda,
           language,
           items: order.order_items as any,
         });
@@ -345,7 +350,7 @@ const OrderHistoryPage = () => {
               const waiter = order.waiterName || "—";
               const cashier = order.cashierName;
               const itemCount = order.order_items.reduce((s, oi) => s + oi.quantity, 0);
-              const discountedTotal = order.total * (1 - (order.general_discount ?? 0) / 100);
+              const discountedTotal = applyGeneralDiscount(order.total, order.general_discount ?? 0, order.general_discount_amount ?? 0);
 
               return (
                 <AccordionItem key={order.id} value={order.id} className="border rounded-lg px-3">
@@ -378,6 +383,9 @@ const OrderHistoryPage = () => {
                       <span>{itemCount} {language === "es" ? "productos" : "items"}</span>
                       {order.general_discount > 0 && (
                         <span className="text-destructive">{language === "es" ? "Desc. general" : "General disc."}: {order.general_discount}%</span>
+                      )}
+                      {(order.general_discount_amount ?? 0) > 0 && (
+                        <span className="text-destructive">{language === "es" ? "Desc. fijo" : "Fixed disc."}: ${order.general_discount_amount?.toFixed(0)}</span>
                       )}
                     </div>
 
@@ -421,7 +429,10 @@ const OrderHistoryPage = () => {
 
                             const renderRow = (oi: typeof order.order_items[0], indent = false) => {
                               const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "—";
-                              const sub = oi.quantity * oi.unit_price * (1 - (oi.discount ?? 0) / 100);
+                              const sub = applyLineDiscount(oi.quantity * oi.unit_price, oi.discount ?? 0, oi.discount_amount ?? 0);
+                              const discLabel = (oi.discount ?? 0) > 0 || (oi.discount_amount ?? 0) > 0
+                                ? `${(oi.discount ?? 0) > 0 ? `${oi.discount}%` : ""}${(oi.discount ?? 0) > 0 && (oi.discount_amount ?? 0) > 0 ? " + " : ""}${(oi.discount_amount ?? 0) > 0 ? `$${oi.discount_amount?.toFixed(0)}` : ""}`
+                                : "—";
                               return (
                                 <tr key={oi.id} className="border-t border-border/50">
                                   <td className={`p-1.5 ${indent ? "pl-4" : ""}`}>
@@ -430,7 +441,7 @@ const OrderHistoryPage = () => {
                                   </td>
                                   <td className="text-center p-1.5">{oi.quantity}</td>
                                   <td className="text-right p-1.5">${oi.unit_price.toFixed(2)}</td>
-                                  <td className="text-right p-1.5">{oi.discount > 0 ? `${oi.discount}%` : "—"}</td>
+                                  <td className="text-right p-1.5">{discLabel}</td>
                                   <td className="text-right p-1.5 font-medium">${sub.toFixed(2)}</td>
                                 </tr>
                               );

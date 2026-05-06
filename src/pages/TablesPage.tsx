@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useOrders, OrderItem } from "@/hooks/useOrders";
 import { useTableNames } from "@/hooks/useTableNames";
 import { groupOrderItems } from "@/utils/groupOrderItems";
@@ -151,12 +152,13 @@ const SortableTableCard = ({
               <span>{items.length} items</span>
               {(() => {
                 const gd = (table.order as any)?.general_discount ?? 0;
+                const gda = (table.order as any)?.general_discount_amount ?? 0;
                 const subtotal = table.order!.total;
-                const finalTotal =
-                  gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+                const finalTotal = applyGeneralDiscount(subtotal, gd, gda);
+                const hasDisc = gd > 0 || gda > 0;
                 return (
                   <span className="font-medium text-foreground">
-                    {gd > 0 && (
+                    {hasDisc && (
                       <span className="line-through text-muted-foreground mr-1">
                         ${subtotal.toFixed(0)}
                       </span>
@@ -170,7 +172,12 @@ const SortableTableCard = ({
                   -{(table.order as any).general_discount}%
                 </span>
               )}
-              {items.some((i) => (i.discount ?? 0) > 0) && (
+              {((table.order as any)?.general_discount_amount ?? 0) > 0 && (
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
+                  -${((table.order as any).general_discount_amount).toFixed(0)}
+                </span>
+              )}
+              {items.some((i) => (i.discount ?? 0) > 0 || ((i as any).discount_amount ?? 0) > 0) && (
                 <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
                   {t("tables.hasDiscount")}
                 </span>
@@ -224,11 +231,11 @@ const SortableTableCard = ({
         >
           {(() => {
             const renderItem = (item: OrderItem) => {
-              const hasDiscount = (item.discount ?? 0) > 0;
-              const itemTotal =
-                item.quantity *
-                item.unit_price *
-                (1 - (item.discount ?? 0) / 100);
+              const discPct = item.discount ?? 0;
+              const discAmt = (item as any).discount_amount ?? 0;
+              const hasDiscount = discPct > 0 || discAmt > 0;
+              const gross = item.quantity * item.unit_price;
+              const itemTotal = applyLineDiscount(gross, discPct, discAmt);
               return (
                 <div
                   key={item.id}
@@ -265,14 +272,21 @@ const SortableTableCard = ({
                     {hasDiscount ? (
                       <div>
                         <span className="line-through text-muted-foreground mr-1">
-                          ${(item.quantity * item.unit_price).toFixed(0)}
+                          ${gross.toFixed(0)}
                         </span>
                         <span className="text-emerald-600 dark:text-emerald-400">
                           ${itemTotal.toFixed(0)}
                         </span>
-                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
-                          -{item.discount}%
-                        </span>
+                        {discPct > 0 && (
+                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
+                            -{discPct}%
+                          </span>
+                        )}
+                        {discAmt > 0 && (
+                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
+                            -${discAmt.toFixed(0)}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span>${itemTotal.toFixed(0)}</span>
@@ -309,14 +323,15 @@ const SortableTableCard = ({
           {/* Total row */}
           {(() => {
             const gd = (table.order as any)?.general_discount ?? 0;
+            const gda = (table.order as any)?.general_discount_amount ?? 0;
             const subtotal = table.order!.total;
-            const finalTotal =
-              gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+            const finalTotal = applyGeneralDiscount(subtotal, gd, gda);
+            const hasDisc = gd > 0 || gda > 0;
             return (
               <div className="flex justify-between pt-1 border-t text-xs font-medium">
                 <span>{t("billing.total")}</span>
                 <span>
-                  {gd > 0 && (
+                  {hasDisc && (
                     <span className="line-through text-muted-foreground mr-1">
                       ${subtotal.toFixed(0)}
                     </span>
@@ -325,6 +340,11 @@ const SortableTableCard = ({
                   {gd > 0 && (
                     <span className="text-emerald-600 ml-0.5 text-[10px]">
                       -{gd}%
+                    </span>
+                  )}
+                  {gda > 0 && (
+                    <span className="text-emerald-600 ml-0.5 text-[10px]">
+                      -${gda.toFixed(0)}
                     </span>
                   )}
                 </span>

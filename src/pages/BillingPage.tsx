@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTickets, Ticket } from "@/hooks/useTickets";
 import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { applyGeneralDiscount } from "@/lib/discounts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,8 @@ const BillingPage = () => {
       const tip = parseFloat(tipAmount) || 0;
       const subtotal = selectedOrder.total;
       const gd = selectedOrder.general_discount ?? 0;
-      const totalNoTip = Math.round((gd > 0 ? subtotal * (1 - gd / 100) : subtotal) * 100) / 100;
+      const gda = (selectedOrder as any).general_discount_amount ?? 0;
+      const totalNoTip = Math.round(applyGeneralDiscount(subtotal, gd, gda) * 100) / 100;
 
       // Build payment parts
       let parts: { amount: number; tip: number; payment_method: string }[];
@@ -153,6 +155,7 @@ const BillingPage = () => {
         table_number: selectedOrder.table_number,
         waiter_name: waiterName,
         general_discount: gd,
+        general_discount_amount: gda,
         language,
         items: selectedOrder.order_items ?? [],
       });
@@ -915,7 +918,8 @@ const BillingPage = () => {
               ) : (
                 (() => {
                   const gd = selectedOrder?.general_discount ?? 0;
-                  const totalNoTip = Math.round(((selectedOrder?.total ?? 0) * (gd > 0 ? 1 - gd / 100 : 1)) * 100) / 100;
+                  const gda = (selectedOrder as any)?.general_discount_amount ?? 0;
+                  const totalNoTip = Math.round(applyGeneralDiscount(selectedOrder?.total ?? 0, gd, gda) * 100) / 100;
                   const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
                   const cardAmt = Math.max(0, Math.round((totalNoTip - cashAmt) * 100) / 100);
                   return (

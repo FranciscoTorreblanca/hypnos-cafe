@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTableNames } from "@/hooks/useTableNames";
 import { supabase } from "@/integrations/supabase/client";
+import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import {
   Dialog,
   DialogContent,
@@ -641,7 +642,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const renderOrderItem = (oi: typeof orderItems[0], indent = false) => {
     const discountPct = (oi as any).discount ?? 0;
-    const lineTotal = oi.quantity * oi.unit_price * (1 - discountPct / 100);
+    const discountAmt = (oi as any).discount_amount ?? 0;
+    const gross = oi.quantity * oi.unit_price;
+    const lineTotal = applyLineDiscount(gross, discountPct, discountAmt);
+    const hasAnyDiscount = discountPct > 0 || discountAmt > 0;
     return (
       <div key={oi.id} className={`space-y-0.5 ${indent ? "ml-3" : ""}`}>
         <div className="flex items-center justify-between text-sm gap-1">
@@ -653,13 +657,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               {discountPct > 0 && (
                 <span className="text-[10px] text-emerald-600 font-medium shrink-0">-{discountPct}%</span>
               )}
+              {discountAmt > 0 && (
+                <span className="text-[10px] text-emerald-600 font-medium shrink-0">-${discountAmt.toFixed(0)}</span>
+              )}
               {order && order.status !== "pending" && itemStatusBadge(oi.status)}
             </div>
             <p className="text-[10px] text-muted-foreground">
-              {discountPct > 0 ? (
-                <><span className="line-through">${(oi.quantity * oi.unit_price).toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
+              {hasAnyDiscount ? (
+                <><span className="line-through">${gross.toFixed(0)}</span> <span className="text-emerald-600">${lineTotal.toFixed(0)}</span></>
               ) : (
-                <>${(oi.quantity * oi.unit_price).toFixed(0)}</>
+                <>${gross.toFixed(0)}</>
               )}
             </p>
           </div>
@@ -676,14 +683,26 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               </Button>
             )}
             {isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
-              >
-                <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setEditingExistingNotes(editingExistingNotes === `disc-${oi.id}` ? null : `disc-${oi.id}`)}
+                  title={language === "es" ? "Descuento %" : "Discount %"}
+                >
+                  <Percent className={`h-3 w-3 ${discountPct > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setEditingExistingNotes(editingExistingNotes === `discAmt-${oi.id}` ? null : `discAmt-${oi.id}`)}
+                  title={language === "es" ? "Descuento fijo $" : "Fixed discount $"}
+                >
+                  <DollarSign className={`h-3 w-3 ${discountAmt > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                </Button>
+              </>
             )}
             {canDeleteItem(oi.status) && (
               <Button
@@ -718,6 +737,29 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               autoFocus
             />
             <span className="text-[10px] text-muted-foreground">%</span>
+          </div>
+        )}
+        {editingExistingNotes === `discAmt-${oi.id}` && isAdmin && order && (
+          <div className="flex items-center gap-1.5 ml-1">
+            <DollarSign className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              defaultValue={discountAmt || ""}
+              placeholder="0"
+              onBlur={(e) => {
+                const val = Math.max(0, parseFloat(e.target.value) || 0);
+                updateItemDiscountAmount.mutate({ id: oi.id, discount_amount: val, order_id: order.id });
+                setEditingExistingNotes(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              className="h-7 w-20 text-xs"
+              autoFocus
+            />
+            <span className="text-[10px] text-muted-foreground">MXN</span>
           </div>
         )}
         {oi.notes && (
@@ -939,10 +981,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       <div className="space-y-1">
         {orderItems.map((oi) => {
           const disc = (oi as any).discount ?? 0;
-          const lineTotal = oi.quantity * oi.unit_price * (1 - disc / 100);
+          const discAmt = (oi as any).discount_amount ?? 0;
+          const lineTotal = applyLineDiscount(oi.quantity * oi.unit_price, disc, discAmt);
           return (
             <div key={oi.id} className="flex justify-between text-sm">
-              <span>{oi.quantity}x {getName(oi.menu_item)} {disc > 0 && <span className="text-emerald-600 text-xs">(-{disc}%)</span>}</span>
+              <span>{oi.quantity}x {getName(oi.menu_item)}
+                {disc > 0 && <span className="text-emerald-600 text-xs ml-1">(-{disc}%)</span>}
+                {discAmt > 0 && <span className="text-emerald-600 text-xs ml-1">(-${discAmt.toFixed(0)})</span>}
+              </span>
               <span className="text-muted-foreground">${lineTotal.toFixed(0)}</span>
             </div>
           );
@@ -958,10 +1004,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           <span>-${((order?.total ?? 0) * (order?.general_discount ?? 0) / 100).toFixed(0)}</span>
         </div>
       )}
+      {((order as any)?.general_discount_amount ?? 0) > 0 && (
+        <div className="flex justify-between text-sm text-emerald-600">
+          <span>{language === "es" ? "Descuento fijo" : "Fixed discount"}</span>
+          <span>-${((order as any).general_discount_amount).toFixed(0)}</span>
+        </div>
+      )}
       {(() => {
         const subtotal = order?.total ?? 0;
         const gd = order?.general_discount ?? 0;
-        const finalAmount = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const gda = (order as any)?.general_discount_amount ?? 0;
+        const finalAmount = applyGeneralDiscount(subtotal, gd, gda);
         const tip = parseFloat(tipAmount) || 0;
         return (
           <>
