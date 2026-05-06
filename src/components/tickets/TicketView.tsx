@@ -145,7 +145,10 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
           const hidePrice = opts?.hidePrice ?? false;
           const hasPromo = it.promo_price != null && it.original_price != null && it.promo_price < it.original_price;
           const lineGross = it.quantity * it.unit_price;
-          const lineNet = lineGross * (1 - (it.discount ?? 0) / 100);
+          const pct = it.discount ?? 0;
+          const fixed = it.discount_amount ?? 0;
+          const lineAfterPct = lineGross * (1 - pct / 100);
+          const lineNet = Math.max(0, lineAfterPct - fixed);
           const originalLine = it.quantity * (it.original_price ?? it.unit_price);
           return (
             <div key={`it-${idx}`} style={{ marginTop: 2 }}>
@@ -165,10 +168,16 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
                   )}
                 </div>
               )}
-              {!hidePrice && it.discount > 0 && (
+              {!hidePrice && pct > 0 && (
                 <div style={{ fontSize: 10, paddingLeft: indent + 12 }}>
-                  {t("Descuento", "Discount")} {it.discount}%:{" "}
-                  {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineNet)} ={" "}
+                  {t("Descuento", "Discount")} {pct}%:{" "}
+                  {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineAfterPct)} ={" "}
+                  <strong>{fmtMoney(lineAfterPct)}</strong>
+                </div>
+              )}
+              {!hidePrice && fixed > 0 && (
+                <div style={{ fontSize: 10, paddingLeft: indent + 12 }}>
+                  {t("Descuento fijo", "Fixed discount")}: −{fmtMoney(fixed)} ={" "}
                   <strong>{fmtMoney(lineNet)}</strong>
                 </div>
               )}
