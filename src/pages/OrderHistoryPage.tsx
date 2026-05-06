@@ -230,8 +230,9 @@ const OrderHistoryPage = () => {
       if (!ticket) {
         const payment = order.payments?.[0];
         const gd = order.general_discount ?? 0;
+        const gda = order.general_discount_amount ?? 0;
         const subtotal = order.total;
-        const totalNoTip = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const totalNoTip = applyGeneralDiscount(subtotal, gd, gda);
         const tip = payment?.tip ?? 0;
         const isPaid = order.status === "paid";
 
@@ -239,6 +240,7 @@ const OrderHistoryPage = () => {
           table_number: order.table_number,
           waiter_name: order.waiterName || undefined,
           general_discount: gd,
+          general_discount_amount: gda,
           language,
           items: order.order_items as any,
         });
