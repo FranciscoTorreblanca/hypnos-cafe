@@ -780,47 +780,70 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setEditingGeneralDiscount(!editingGeneralDiscount)}
         >
-          <Percent className={`h-3 w-3 ${(order?.general_discount ?? 0) > 0 ? "text-emerald-600" : ""}`} />
+          <Percent className={`h-3 w-3 ${((order?.general_discount ?? 0) > 0 || ((order as any)?.general_discount_amount ?? 0) > 0) ? "text-emerald-600" : ""}`} />
           <span>{language === "es" ? "Descuento general" : "General discount"}</span>
           {(order?.general_discount ?? 0) > 0 && (
             <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
               -{order?.general_discount}%
             </Badge>
           )}
+          {((order as any)?.general_discount_amount ?? 0) > 0 && (
+            <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
+              -${((order as any).general_discount_amount).toFixed(0)}
+            </Badge>
+          )}
         </button>
       </div>
       {editingGeneralDiscount && order && (
-        <div className="flex items-center gap-1.5">
-          <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            defaultValue={order.general_discount || ""}
-            placeholder="0"
-            onBlur={(e) => {
-              const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-              updateGeneralDiscount.mutate({ id: order.id, discount: val });
-              setEditingGeneralDiscount(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-            className="h-7 w-20 text-xs"
-            autoFocus
-          />
-          <span className="text-[10px] text-muted-foreground">%</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              defaultValue={order.general_discount || ""}
+              placeholder="0"
+              onBlur={(e) => {
+                const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                updateGeneralDiscount.mutate({ id: order.id, discount: val });
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              className="h-7 w-16 text-xs"
+              autoFocus
+            />
+            <span className="text-[10px] text-muted-foreground">%</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={(order as any).general_discount_amount || ""}
+              placeholder="0"
+              onBlur={(e) => {
+                const val = Math.max(0, parseFloat(e.target.value) || 0);
+                updateGeneralDiscountAmount.mutate({ id: order.id, discount_amount: val });
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              className="h-7 w-20 text-xs"
+            />
+            <span className="text-[10px] text-muted-foreground">MXN</span>
+          </div>
         </div>
       )}
       {(() => {
         const subtotal = order?.total ?? 0;
         const gd = order?.general_discount ?? 0;
-        const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const gda = (order as any)?.general_discount_amount ?? 0;
+        const finalTotal = Math.max(0, subtotal * (1 - gd / 100) - gda);
+        const hasDisc = gd > 0 || gda > 0;
         return (
           <div className="flex justify-between font-semibold text-sm">
             <span>Total</span>
             <span>
-              {gd > 0 && (
+              {hasDisc && (
                 <span className="line-through text-muted-foreground text-xs mr-1">${subtotal.toFixed(0)}</span>
               )}
               ${finalTotal.toFixed(0)} MXN
