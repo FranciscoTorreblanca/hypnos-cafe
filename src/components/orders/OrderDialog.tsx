@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTableNames } from "@/hooks/useTableNames";
 import { supabase } from "@/integrations/supabase/client";
+import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import {
   Dialog,
   DialogContent,
