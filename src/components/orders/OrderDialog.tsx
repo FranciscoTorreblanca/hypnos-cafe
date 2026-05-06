@@ -298,7 +298,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     if (!order) return;
     try {
       const gd = order.general_discount ?? 0;
-      const finalAmount = gd > 0 ? order.total * (1 - gd / 100) : order.total;
+      const gda = (order as any).general_discount_amount ?? 0;
+      const finalAmount = Math.max(0, order.total * (1 - gd / 100) - gda);
       await createPayment.mutateAsync({
         order_id: order.id,
         parts: [{
