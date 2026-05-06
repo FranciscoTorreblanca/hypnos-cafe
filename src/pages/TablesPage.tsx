@@ -152,12 +152,13 @@ const SortableTableCard = ({
               <span>{items.length} items</span>
               {(() => {
                 const gd = (table.order as any)?.general_discount ?? 0;
+                const gda = (table.order as any)?.general_discount_amount ?? 0;
                 const subtotal = table.order!.total;
-                const finalTotal =
-                  gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+                const finalTotal = applyGeneralDiscount(subtotal, gd, gda);
+                const hasDisc = gd > 0 || gda > 0;
                 return (
                   <span className="font-medium text-foreground">
-                    {gd > 0 && (
+                    {hasDisc && (
                       <span className="line-through text-muted-foreground mr-1">
                         ${subtotal.toFixed(0)}
                       </span>
@@ -171,7 +172,12 @@ const SortableTableCard = ({
                   -{(table.order as any).general_discount}%
                 </span>
               )}
-              {items.some((i) => (i.discount ?? 0) > 0) && (
+              {((table.order as any)?.general_discount_amount ?? 0) > 0 && (
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
+                  -${((table.order as any).general_discount_amount).toFixed(0)}
+                </span>
+              )}
+              {items.some((i) => (i.discount ?? 0) > 0 || ((i as any).discount_amount ?? 0) > 0) && (
                 <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">
                   {t("tables.hasDiscount")}
                 </span>
