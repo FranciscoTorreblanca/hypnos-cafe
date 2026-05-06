@@ -289,10 +289,14 @@ const PerformancePage = () => {
   const trendData = periods.map((p) => {
     const pPayments = getPaymentsInRange(p.start, p.end);
     const pOrders = getOrdersInRange(p.start, p.end);
+    const label =
+      bucketKind === "day"
+        ? format(p.start, "dd/MM", { locale: loc })
+        : bucketKind === "week"
+          ? `${format(p.start, "dd/MM", { locale: loc })}`
+          : format(p.start, "MMM yyyy", { locale: loc });
     return {
-      label: period === "week"
-        ? `${format(p.start, "dd/MM", { locale: loc })}`
-        : format(p.start, "MMM yyyy", { locale: loc }),
+      label,
       revenue: pPayments.reduce((s, pp) => s + pp.amount, 0),
       orders: pOrders.length,
       tips: pPayments.reduce((s, pp) => s + pp.tip, 0),
