@@ -793,6 +793,7 @@ export type Database = {
           combo_id: string | null
           created_at: string
           discount: number
+          discount_amount: number
           id: string
           menu_item_id: string
           notes: string
@@ -806,6 +807,7 @@ export type Database = {
           combo_id?: string | null
           created_at?: string
           discount?: number
+          discount_amount?: number
           id?: string
           menu_item_id: string
           notes?: string
@@ -819,6 +821,7 @@ export type Database = {
           combo_id?: string | null
           created_at?: string
           discount?: number
+          discount_amount?: number
           id?: string
           menu_item_id?: string
           notes?: string
@@ -856,6 +859,7 @@ export type Database = {
           created_at: string
           created_by: string
           general_discount: number
+          general_discount_amount: number
           id: string
           notes: string
           status: Database["public"]["Enums"]["order_status"]
@@ -867,6 +871,7 @@ export type Database = {
           created_at?: string
           created_by: string
           general_discount?: number
+          general_discount_amount?: number
           id?: string
           notes?: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -878,6 +883,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           general_discount?: number
+          general_discount_amount?: number
           id?: string
           notes?: string
           status?: Database["public"]["Enums"]["order_status"]

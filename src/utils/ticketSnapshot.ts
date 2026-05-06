@@ -6,6 +6,7 @@ interface MinimalOrderItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  discount_amount?: number;
   notes?: string;
   combo_id?: string | null;
   combo_group_id?: string | null;
@@ -20,6 +21,7 @@ interface BuildSnapshotInput {
   table_name?: string;
   waiter_name?: string;
   general_discount: number;
+  general_discount_amount?: number;
   language: "es" | "en";
   items: MinimalOrderItem[];
 }
@@ -97,6 +99,7 @@ export async function buildTicketSnapshot(input: BuildSnapshotInput): Promise<Ti
       original_price,
       promo_price,
       discount: oi.discount ?? 0,
+      discount_amount: oi.discount_amount ?? 0,
       notes: oi.notes ?? "",
       combo_group_id: oi.combo_group_id ?? null,
       combo_name: oi.combo_group_id ? combo_name ?? null : null,
@@ -110,6 +113,7 @@ export async function buildTicketSnapshot(input: BuildSnapshotInput): Promise<Ti
     table_name: input.table_name,
     waiter_name: input.waiter_name,
     general_discount: input.general_discount,
+    general_discount_amount: input.general_discount_amount ?? 0,
     tax_rate: taxRate,
     items,
   };

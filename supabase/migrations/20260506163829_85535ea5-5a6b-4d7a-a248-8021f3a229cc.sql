@@ -1,0 +1,2 @@
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS discount_amount NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS general_discount_amount NUMERIC NOT NULL DEFAULT 0;

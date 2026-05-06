@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { applyLineDiscount } from "@/lib/discounts";
 
 export interface OrderItem {
   id: string;
@@ -9,6 +10,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  discount_amount: number;
   notes: string;
   status: string;
   created_at: string;
@@ -26,6 +28,7 @@ export interface Order {
   created_by: string;
   total: number;
   general_discount: number;
+  general_discount_amount: number;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
@@ -94,6 +97,19 @@ export const useOrders = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
+  const recalcOrderTotal = async (order_id: string) => {
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("quantity, unit_price, discount, discount_amount")
+      .eq("order_id", order_id);
+    const total = (items ?? []).reduce(
+      (s, i: any) =>
+        s + applyLineDiscount(i.quantity * i.unit_price, i.discount ?? 0, i.discount_amount ?? 0),
+      0,
+    );
+    await supabase.from("orders").update({ total }).eq("id", order_id);
+  };
+
   const addItem = useMutation({
     mutationFn: async ({
       order_id,
@@ -102,6 +118,7 @@ export const useOrders = () => {
       unit_price,
       notes,
       discount,
+      discount_amount,
       combo_id,
       combo_group_id,
     }: {
@@ -111,19 +128,25 @@ export const useOrders = () => {
       unit_price: number;
       notes?: string;
       discount?: number;
+      discount_amount?: number;
       combo_id?: string;
       combo_group_id?: string;
     }) => {
       const { error } = await supabase
         .from("order_items")
-        .insert({ order_id, menu_item_id, quantity, unit_price, notes: notes ?? "", discount: discount ?? 0, combo_id: combo_id ?? null, combo_group_id: combo_group_id ?? null } as any);
+        .insert({
+          order_id,
+          menu_item_id,
+          quantity,
+          unit_price,
+          notes: notes ?? "",
+          discount: discount ?? 0,
+          discount_amount: discount_amount ?? 0,
+          combo_id: combo_id ?? null,
+          combo_group_id: combo_group_id ?? null,
+        } as any);
       if (error) throw error;
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("quantity, unit_price, discount")
-        .eq("order_id", order_id);
-      const total = (items ?? []).reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
-      await supabase.from("orders").update({ total }).eq("id", order_id);
+      await recalcOrderTotal(order_id);
       // If order was already sent to kitchen, keep it in_progress
       const { data: order } = await supabase.from("orders").select("status").eq("id", order_id).single();
       if (order && (order.status === "ready" || order.status === "served")) {
@@ -137,17 +160,14 @@ export const useOrders = () => {
     mutationFn: async ({ id, order_id }: { id: string; order_id: string }) => {
       const { error } = await supabase.from("order_items").delete().eq("id", id);
       if (error) throw error;
-      // Check remaining items
       const { data: items } = await supabase
         .from("order_items")
-        .select("quantity, unit_price, discount")
+        .select("id")
         .eq("order_id", order_id);
       if (!items || items.length === 0) {
-        // No items left — cancel the order
         await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", order_id);
       } else {
-        const total = items.reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
-        await supabase.from("orders").update({ total }).eq("id", order_id);
+        await recalcOrderTotal(order_id);
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
@@ -157,13 +177,19 @@ export const useOrders = () => {
     mutationFn: async ({ id, discount, order_id }: { id: string; discount: number; order_id: string }) => {
       const { error } = await supabase.from("order_items").update({ discount } as any).eq("id", id);
       if (error) throw error;
-      // Recalculate total
-      const { data: items } = await supabase
+      await recalcOrderTotal(order_id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
+  const updateItemDiscountAmount = useMutation({
+    mutationFn: async ({ id, discount_amount, order_id }: { id: string; discount_amount: number; order_id: string }) => {
+      const { error } = await supabase
         .from("order_items")
-        .select("quantity, unit_price, discount")
-        .eq("order_id", order_id);
-      const total = (items ?? []).reduce((s, i: any) => s + i.quantity * i.unit_price * (1 - (i.discount ?? 0) / 100), 0);
-      await supabase.from("orders").update({ total }).eq("id", order_id);
+        .update({ discount_amount: Math.max(0, discount_amount) } as any)
+        .eq("id", id);
+      if (error) throw error;
+      await recalcOrderTotal(order_id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
@@ -176,9 +202,19 @@ export const useOrders = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
+  const updateGeneralDiscountAmount = useMutation({
+    mutationFn: async ({ id, discount_amount }: { id: string; discount_amount: number }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ general_discount_amount: Math.max(0, discount_amount) } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
   const cancelOrder = useMutation({
     mutationFn: async (id: string) => {
-      // Delete all order items first, then cancel the order
       const { error: itemsError } = await supabase.from("order_items").delete().eq("order_id", id);
       if (itemsError) throw itemsError;
       const { error } = await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", id);
@@ -192,5 +228,18 @@ export const useOrders = () => {
       (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
     );
 
-  return { ...query, createOrder, updateOrderStatus, updateItemStatus, addItem, removeItem, cancelOrder, updateItemDiscount, updateGeneralDiscount, getActiveOrderForTable };
+  return {
+    ...query,
+    createOrder,
+    updateOrderStatus,
+    updateItemStatus,
+    addItem,
+    removeItem,
+    cancelOrder,
+    updateItemDiscount,
+    updateItemDiscountAmount,
+    updateGeneralDiscount,
+    updateGeneralDiscountAmount,
+    getActiveOrderForTable,
+  };
 };

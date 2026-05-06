@@ -72,8 +72,10 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
   // ─── Totals breakdown ────────────────────────────────────────────────────
   // ticket.subtotal already reflects per-item discounts (sum of net line amounts).
   const generalDiscount = snap.general_discount ?? 0;
-  const generalDiscountAmount = ticket.subtotal * (generalDiscount / 100);
-  const totalAfterGeneralDisc = ticket.subtotal - generalDiscountAmount;
+  const generalDiscountAmount = snap.general_discount_amount ?? 0;
+  const generalPctValue = ticket.subtotal * (generalDiscount / 100);
+  const totalAfterGeneralDisc = Math.max(0, ticket.subtotal - generalPctValue - generalDiscountAmount);
+  const hasGeneralDisc = generalDiscount > 0 || generalDiscountAmount > 0;
 
   // IVA breakdown — prices INCLUDE IVA. Reverse-calculate to show subtotal w/o IVA + IVA.
   const taxRate = snap.tax_rate ?? 16;
@@ -143,7 +145,10 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
           const hidePrice = opts?.hidePrice ?? false;
           const hasPromo = it.promo_price != null && it.original_price != null && it.promo_price < it.original_price;
           const lineGross = it.quantity * it.unit_price;
-          const lineNet = lineGross * (1 - (it.discount ?? 0) / 100);
+          const pct = it.discount ?? 0;
+          const fixed = it.discount_amount ?? 0;
+          const lineAfterPct = lineGross * (1 - pct / 100);
+          const lineNet = Math.max(0, lineAfterPct - fixed);
           const originalLine = it.quantity * (it.original_price ?? it.unit_price);
           return (
             <div key={`it-${idx}`} style={{ marginTop: 2 }}>
@@ -163,10 +168,16 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
                   )}
                 </div>
               )}
-              {!hidePrice && it.discount > 0 && (
+              {!hidePrice && pct > 0 && (
                 <div style={{ fontSize: 10, paddingLeft: indent + 12 }}>
-                  {t("Descuento", "Discount")} {it.discount}%:{" "}
-                  {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineNet)} ={" "}
+                  {t("Descuento", "Discount")} {pct}%:{" "}
+                  {fmtMoney(lineGross)} − {fmtMoney(lineGross - lineAfterPct)} ={" "}
+                  <strong>{fmtMoney(lineAfterPct)}</strong>
+                </div>
+              )}
+              {!hidePrice && fixed > 0 && (
+                <div style={{ fontSize: 10, paddingLeft: indent + 12 }}>
+                  {t("Descuento fijo", "Fixed discount")}: −{fmtMoney(fixed)} ={" "}
                   <strong>{fmtMoney(lineNet)}</strong>
                 </div>
               )}
@@ -221,14 +232,22 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
       </div>
 
       {/* General discount on the whole order */}
-      {generalDiscount > 0 && (
+      {hasGeneralDisc && (
         <>
-          <div className="ticket-row">
-            <span>
-              {t("Descuento general", "Order discount")} ({generalDiscount}%):
-            </span>
-            <span>−{fmtMoney(generalDiscountAmount)}</span>
-          </div>
+          {generalDiscount > 0 && (
+            <div className="ticket-row">
+              <span>
+                {t("Descuento general", "Order discount")} ({generalDiscount}%):
+              </span>
+              <span>−{fmtMoney(generalPctValue)}</span>
+            </div>
+          )}
+          {generalDiscountAmount > 0 && (
+            <div className="ticket-row">
+              <span>{t("Descuento fijo", "Fixed discount")}:</span>
+              <span>−{fmtMoney(generalDiscountAmount)}</span>
+            </div>
+          )}
           <div className="ticket-row">
             <span>{t("Después de descuento", "After discount")}:</span>
             <span>{fmtMoney(totalAfterGeneralDisc)}</span>

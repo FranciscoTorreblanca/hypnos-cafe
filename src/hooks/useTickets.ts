@@ -14,6 +14,8 @@ export interface TicketSnapshotItem {
   /** Promo price if the item had one at the time of sale. */
   promo_price?: number | null;
   discount: number;
+  /** Fixed-amount discount per line (MXN), applied AFTER the percentage. */
+  discount_amount?: number;
   notes?: string;
   /** When set, this item belongs to a combo group and its individual price is hidden in the ticket. */
   combo_group_id?: string | null;
@@ -30,6 +32,8 @@ export interface TicketSnapshot {
   table_name?: string;
   waiter_name?: string;
   general_discount: number;
+  /** Fixed-amount whole-order discount (MXN), applied AFTER the percentage. */
+  general_discount_amount?: number;
   /** IVA percentage included in prices (e.g. 16 for 16%). */
   tax_rate?: number;
   items: TicketSnapshotItem[];

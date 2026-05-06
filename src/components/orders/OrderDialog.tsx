@@ -34,7 +34,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, Pencil, CheckCircle, Clock, Printer,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer,
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import {
@@ -57,6 +57,7 @@ interface CartItem {
   quantity: number;
   notes: string;
   discount: number;
+  discountAmount: number;
   comboId?: string;
   comboGroupId?: string;
 }
@@ -66,7 +67,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { data: combos = [] } = useCombos();
-  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemStatus, updateGeneralDiscount } = useOrders();
+  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemDiscountAmount, updateItemStatus, updateGeneralDiscount, updateGeneralDiscountAmount } = useOrders();
   const { createPayment } = usePayments();
   const { createTicket } = useTickets();
   const { user, isAdmin } = useAuth();
@@ -147,7 +148,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   }, [availableCombos, search, activeCategory]);
 
   const cartTotal = useMemo(
-    () => cart.reduce((s, c) => s + getEffectivePrice(c.menuItem) * c.quantity * (1 - (c.discount ?? 0) / 100), 0),
+    () => cart.reduce((s, c) => {
+      const gross = getEffectivePrice(c.menuItem) * c.quantity;
+      const afterPct = gross * (1 - (c.discount ?? 0) / 100);
+      return s + Math.max(0, afterPct - (c.discountAmount ?? 0));
+    }, 0),
     [cart]
   );
 
@@ -165,7 +170,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           c.menuItem.id === menuItem.id ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
-      return [...prev, { menuItem, quantity: 1, notes: "", discount: 0 }];
+      return [...prev, { menuItem, quantity: 1, notes: "", discount: 0, discountAmount: 0 }];
     });
   }, [dismissMobileKeyboard]);
 
@@ -210,7 +215,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         name_en: menuItem.name_en || menuItem.name,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0, comboId: combo.id, comboGroupId }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0, discountAmount: 0, comboId: combo.id, comboGroupId }]);
     });
   }, [items]);
 
@@ -235,6 +240,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     );
   }, []);
 
+  const updateCartDiscountAmount = useCallback((menuItemId: string, amount: number) => {
+    setCart((prev) =>
+      prev.map((c) => (c.menuItem.id === menuItemId ? { ...c, discountAmount: Math.max(0, amount) } : c))
+    );
+  }, []);
+
   const removeFromCart = useCallback((menuItemId: string) => {
     setCart((prev) => prev.filter((c) => c.menuItem.id !== menuItemId));
   }, []);
@@ -254,6 +265,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         unit_price: getEffectivePrice(c.menuItem),
         notes: c.notes || undefined,
         discount: c.discount || 0,
+        discount_amount: c.discountAmount || 0,
         combo_id: c.comboId,
         combo_group_id: c.comboGroupId,
       });
@@ -286,7 +298,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     if (!order) return;
     try {
       const gd = order.general_discount ?? 0;
-      const finalAmount = gd > 0 ? order.total * (1 - gd / 100) : order.total;
+      const gda = (order as any).general_discount_amount ?? 0;
+      const finalAmount = Math.max(0, order.total * (1 - gd / 100) - gda);
       await createPayment.mutateAsync({
         order_id: order.id,
         parts: [{
@@ -515,6 +528,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               {c.discount > 0 && (
                 <span className="text-[10px] text-emerald-600 font-medium">-{c.discount}%</span>
               )}
+              {c.discountAmount > 0 && (
+                <span className="text-[10px] text-emerald-600 font-medium">-${c.discountAmount.toFixed(0)}</span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -530,7 +546,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   className="h-6 w-6 shrink-0"
                   onClick={() => setEditingNotes(editingNotes === `disc-${c.menuItem.id}` ? null : `disc-${c.menuItem.id}`)}
                 >
-                  <Percent className={`h-3 w-3 ${c.discount > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                  <Percent className={`h-3 w-3 ${(c.discount > 0 || c.discountAmount > 0) ? "text-emerald-600" : "text-muted-foreground"}`} />
                 </Button>
               )}
               {!c.comboGroupId && (
@@ -545,18 +561,33 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               )}
             </div>
             {editingNotes === `disc-${c.menuItem.id}` && isAdmin && (
-              <div className="flex items-center gap-1.5 ml-1">
-                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={c.discount || ""}
-                  placeholder="0"
-                  onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
-                  className="h-7 w-20 text-xs"
-                />
-                <span className="text-[10px] text-muted-foreground">%</span>
+              <div className="flex items-center gap-2 ml-1 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={c.discount || ""}
+                    placeholder="0"
+                    onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
+                    className="h-7 w-16 text-xs"
+                  />
+                  <span className="text-[10px] text-muted-foreground">%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={c.discountAmount || ""}
+                    placeholder="0"
+                    onChange={(e) => updateCartDiscountAmount(c.menuItem.id, parseFloat(e.target.value) || 0)}
+                    className="h-7 w-20 text-xs"
+                  />
+                  <span className="text-[10px] text-muted-foreground">MXN</span>
+                </div>
               </div>
             )}
             {editingNotes === c.menuItem.id && (
@@ -732,13 +763,15 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       }
       const subtotal = order.total;
       const gd = order.general_discount ?? 0;
-      const total = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+      const gda = (order as any).general_discount_amount ?? 0;
+      const total = Math.max(0, subtotal * (1 - gd / 100) - gda);
       const { buildTicketSnapshot } = await import("@/utils/ticketSnapshot");
       const snapshot = await buildTicketSnapshot({
         table_number: order.table_number,
         table_name: tableName,
         waiter_name: waiterName,
         general_discount: gd,
+        general_discount_amount: gda,
         language,
         items: orderItems,
       });
@@ -765,47 +798,70 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setEditingGeneralDiscount(!editingGeneralDiscount)}
         >
-          <Percent className={`h-3 w-3 ${(order?.general_discount ?? 0) > 0 ? "text-emerald-600" : ""}`} />
+          <Percent className={`h-3 w-3 ${((order?.general_discount ?? 0) > 0 || ((order as any)?.general_discount_amount ?? 0) > 0) ? "text-emerald-600" : ""}`} />
           <span>{language === "es" ? "Descuento general" : "General discount"}</span>
           {(order?.general_discount ?? 0) > 0 && (
             <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
               -{order?.general_discount}%
             </Badge>
           )}
+          {((order as any)?.general_discount_amount ?? 0) > 0 && (
+            <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-300 text-emerald-700">
+              -${((order as any).general_discount_amount).toFixed(0)}
+            </Badge>
+          )}
         </button>
       </div>
       {editingGeneralDiscount && order && (
-        <div className="flex items-center gap-1.5">
-          <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            defaultValue={order.general_discount || ""}
-            placeholder="0"
-            onBlur={(e) => {
-              const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-              updateGeneralDiscount.mutate({ id: order.id, discount: val });
-              setEditingGeneralDiscount(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-            className="h-7 w-20 text-xs"
-            autoFocus
-          />
-          <span className="text-[10px] text-muted-foreground">%</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              defaultValue={order.general_discount || ""}
+              placeholder="0"
+              onBlur={(e) => {
+                const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                updateGeneralDiscount.mutate({ id: order.id, discount: val });
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              className="h-7 w-16 text-xs"
+              autoFocus
+            />
+            <span className="text-[10px] text-muted-foreground">%</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={(order as any).general_discount_amount || ""}
+              placeholder="0"
+              onBlur={(e) => {
+                const val = Math.max(0, parseFloat(e.target.value) || 0);
+                updateGeneralDiscountAmount.mutate({ id: order.id, discount_amount: val });
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              className="h-7 w-20 text-xs"
+            />
+            <span className="text-[10px] text-muted-foreground">MXN</span>
+          </div>
         </div>
       )}
       {(() => {
         const subtotal = order?.total ?? 0;
         const gd = order?.general_discount ?? 0;
-        const finalTotal = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const gda = (order as any)?.general_discount_amount ?? 0;
+        const finalTotal = Math.max(0, subtotal * (1 - gd / 100) - gda);
+        const hasDisc = gd > 0 || gda > 0;
         return (
           <div className="flex justify-between font-semibold text-sm">
             <span>Total</span>
             <span>
-              {gd > 0 && (
+              {hasDisc && (
                 <span className="line-through text-muted-foreground text-xs mr-1">${subtotal.toFixed(0)}</span>
               )}
               ${finalTotal.toFixed(0)} MXN

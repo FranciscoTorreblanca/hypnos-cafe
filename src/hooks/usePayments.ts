@@ -138,7 +138,7 @@ export const usePayments = () => {
       // Mark order as paid and reset general discount
       const { error: upErr } = await supabase
         .from("orders")
-        .update({ status: "paid" as any, general_discount: 0 } as any)
+        .update({ status: "paid" as any, general_discount: 0, general_discount_amount: 0 } as any)
         .eq("id", order_id);
       if (upErr) throw upErr;
 
