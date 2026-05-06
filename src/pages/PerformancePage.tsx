@@ -362,7 +362,7 @@ const PerformancePage = () => {
 
   const exportTrend = () => {
     downloadCsv(
-      `trend-${period}`,
+      `trend-${bucketKind}-${format(currentPeriod.start, "yyyy-MM-dd")}_${format(currentPeriod.end, "yyyy-MM-dd")}`,
       [t("performance.period"), t("billing.income"), t("performance.totalOrders"), t("billing.tipsLabel")],
       trendData.map((r) => [r.label, r.revenue.toFixed(2), r.orders, r.tips.toFixed(2)])
     );
