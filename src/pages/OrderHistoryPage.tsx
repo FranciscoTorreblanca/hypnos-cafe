@@ -59,6 +59,7 @@ interface HistoryOrder {
   notes: string;
   total: number;
   general_discount: number;
+  general_discount_amount?: number;
   created_at: string;
   updated_at: string;
   created_by: string;
