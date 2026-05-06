@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useOrders, OrderItem } from "@/hooks/useOrders";
 import { useTableNames } from "@/hooks/useTableNames";
 import { groupOrderItems } from "@/utils/groupOrderItems";
