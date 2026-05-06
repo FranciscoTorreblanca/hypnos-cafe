@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { applyLineDiscount } from "@/lib/discounts";
 
 export interface OrderItem {
   id: string;
@@ -9,6 +10,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  discount_amount: number;
   notes: string;
   status: string;
   created_at: string;
