@@ -745,13 +745,15 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       }
       const subtotal = order.total;
       const gd = order.general_discount ?? 0;
-      const total = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+      const gda = (order as any).general_discount_amount ?? 0;
+      const total = Math.max(0, subtotal * (1 - gd / 100) - gda);
       const { buildTicketSnapshot } = await import("@/utils/ticketSnapshot");
       const snapshot = await buildTicketSnapshot({
         table_number: order.table_number,
         table_name: tableName,
         waiter_name: waiterName,
         general_discount: gd,
+        general_discount_amount: gda,
         language,
         items: orderItems,
       });
