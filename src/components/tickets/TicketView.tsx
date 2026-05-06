@@ -72,8 +72,10 @@ export const TicketView = ({ ticket, business, reprintCount = 0, language = "es"
   // ─── Totals breakdown ────────────────────────────────────────────────────
   // ticket.subtotal already reflects per-item discounts (sum of net line amounts).
   const generalDiscount = snap.general_discount ?? 0;
-  const generalDiscountAmount = ticket.subtotal * (generalDiscount / 100);
-  const totalAfterGeneralDisc = ticket.subtotal - generalDiscountAmount;
+  const generalDiscountAmount = snap.general_discount_amount ?? 0;
+  const generalPctValue = ticket.subtotal * (generalDiscount / 100);
+  const totalAfterGeneralDisc = Math.max(0, ticket.subtotal - generalPctValue - generalDiscountAmount);
+  const hasGeneralDisc = generalDiscount > 0 || generalDiscountAmount > 0;
 
   // IVA breakdown — prices INCLUDE IVA. Reverse-calculate to show subtotal w/o IVA + IVA.
   const taxRate = snap.tax_rate ?? 16;
