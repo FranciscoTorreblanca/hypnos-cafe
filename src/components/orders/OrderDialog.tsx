@@ -240,6 +240,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     );
   }, []);
 
+  const updateCartDiscountAmount = useCallback((menuItemId: string, amount: number) => {
+    setCart((prev) =>
+      prev.map((c) => (c.menuItem.id === menuItemId ? { ...c, discountAmount: Math.max(0, amount) } : c))
+    );
+  }, []);
+
   const removeFromCart = useCallback((menuItemId: string) => {
     setCart((prev) => prev.filter((c) => c.menuItem.id !== menuItemId));
   }, []);
