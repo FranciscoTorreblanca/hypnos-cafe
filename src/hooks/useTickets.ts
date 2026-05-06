@@ -32,6 +32,8 @@ export interface TicketSnapshot {
   table_name?: string;
   waiter_name?: string;
   general_discount: number;
+  /** Fixed-amount whole-order discount (MXN), applied AFTER the percentage. */
+  general_discount_amount?: number;
   /** IVA percentage included in prices (e.g. 16 for 16%). */
   tax_rate?: number;
   items: TicketSnapshotItem[];
