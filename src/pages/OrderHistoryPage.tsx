@@ -42,6 +42,7 @@ interface HistoryOrderItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  discount_amount?: number;
   notes: string;
   status: string;
   created_at: string;
