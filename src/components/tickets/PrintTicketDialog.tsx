@@ -32,7 +32,7 @@ async function buildFreshTicketPatch(ticket: Ticket, language: "es" | "en") {
   const { data: order } = await supabase
     .from("orders")
     .select(`
-      id, table_number, status, total, general_discount, created_by, updated_at,
+      id, table_number, status, total, general_discount, general_discount_amount, created_by, updated_at,
       order_items(*, menu_items(name, name_en), combos(name, name_en)),
       payments(id, amount, tip, payment_method, created_at)
     `)
@@ -52,13 +52,15 @@ async function buildFreshTicketPatch(ticket: Ticket, language: "es" | "en") {
     table_name: ticket.snapshot?.table_name,
     waiter_name: waiterName,
     general_discount: order.general_discount ?? 0,
+    general_discount_amount: (order as any).general_discount_amount ?? 0,
     language,
     items: (order.order_items ?? []) as any,
   });
 
   const gd = order.general_discount ?? 0;
+  const gda = (order as any).general_discount_amount ?? 0;
   const subtotal = Number(order.total ?? 0);
-  const totalAfterDisc = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+  const totalAfterDisc = Math.max(0, subtotal * (1 - gd / 100) - gda);
   const allPayments = (order.payments ?? []) as any[];
   const isPaid = order.status === "paid" && allPayments.length > 0;
 
