@@ -528,6 +528,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               {c.discount > 0 && (
                 <span className="text-[10px] text-emerald-600 font-medium">-{c.discount}%</span>
               )}
+              {c.discountAmount > 0 && (
+                <span className="text-[10px] text-emerald-600 font-medium">-${c.discountAmount.toFixed(0)}</span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -543,7 +546,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   className="h-6 w-6 shrink-0"
                   onClick={() => setEditingNotes(editingNotes === `disc-${c.menuItem.id}` ? null : `disc-${c.menuItem.id}`)}
                 >
-                  <Percent className={`h-3 w-3 ${c.discount > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />
+                  <Percent className={`h-3 w-3 ${(c.discount > 0 || c.discountAmount > 0) ? "text-emerald-600" : "text-muted-foreground"}`} />
                 </Button>
               )}
               {!c.comboGroupId && (
@@ -558,18 +561,33 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               )}
             </div>
             {editingNotes === `disc-${c.menuItem.id}` && isAdmin && (
-              <div className="flex items-center gap-1.5 ml-1">
-                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={c.discount || ""}
-                  placeholder="0"
-                  onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
-                  className="h-7 w-20 text-xs"
-                />
-                <span className="text-[10px] text-muted-foreground">%</span>
+              <div className="flex items-center gap-2 ml-1 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={c.discount || ""}
+                    placeholder="0"
+                    onChange={(e) => updateCartDiscount(c.menuItem.id, parseInt(e.target.value) || 0)}
+                    className="h-7 w-16 text-xs"
+                  />
+                  <span className="text-[10px] text-muted-foreground">%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={c.discountAmount || ""}
+                    placeholder="0"
+                    onChange={(e) => updateCartDiscountAmount(c.menuItem.id, parseFloat(e.target.value) || 0)}
+                    className="h-7 w-20 text-xs"
+                  />
+                  <span className="text-[10px] text-muted-foreground">MXN</span>
+                </div>
               </div>
             )}
             {editingNotes === c.menuItem.id && (
