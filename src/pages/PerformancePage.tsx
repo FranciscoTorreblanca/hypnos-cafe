@@ -3,15 +3,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays, startOfDay, endOfDay } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays, startOfDay, endOfDay, differenceInCalendarDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, BarChart3, Clock, Award, X, Filter, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, BarChart3, Clock, Award, X, Filter, Download, CalendarIcon } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,9 +53,41 @@ const PerformancePage = () => {
   const { isAdmin } = useAuth();
   const { t, language } = useLanguage();
   const loc = language === "es" ? es : enUS;
-  const [period, setPeriod] = useState<"week" | "month">("week");
-  const [rangeCount, setRangeCount] = useState(4);
+
+  // Date range state — default to current month
+  type PresetKey =
+    | "today" | "yesterday" | "last7" | "last30"
+    | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth"
+    | "last3Months" | "last6Months" | "custom";
+
+  const buildPreset = (key: PresetKey): { start: Date; end: Date } => {
+    const now = new Date();
+    switch (key) {
+      case "today": return { start: startOfDay(now), end: endOfDay(now) };
+      case "yesterday": { const d = subDays(now, 1); return { start: startOfDay(d), end: endOfDay(d) }; }
+      case "last7": return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
+      case "last30": return { start: startOfDay(subDays(now, 29)), end: endOfDay(now) };
+      case "thisWeek": return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case "lastWeek": { const w = subWeeks(now, 1); return { start: startOfWeek(w, { weekStartsOn: 1 }), end: endOfWeek(w, { weekStartsOn: 1 }) }; }
+      case "thisMonth": return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "lastMonth": { const m = subMonths(now, 1); return { start: startOfMonth(m), end: endOfMonth(m) }; }
+      case "last3Months": return { start: startOfDay(subMonths(now, 3)), end: endOfDay(now) };
+      case "last6Months": return { start: startOfDay(subMonths(now, 6)), end: endOfDay(now) };
+      default: return { start: startOfMonth(now), end: endOfMonth(now) };
+    }
+  };
+
+  const [preset, setPreset] = useState<PresetKey>("thisMonth");
+  const [customStart, setCustomStart] = useState<Date | undefined>();
+  const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const range = useMemo(() => {
+    if (preset === "custom" && customStart && customEnd) {
+      return { start: startOfDay(customStart), end: endOfDay(customEnd) };
+    }
+    return buildPreset(preset === "custom" ? "thisMonth" : preset);
+  }, [preset, customStart, customEnd]);
 
   const menuItemsQuery = useMenuItems();
   const categoriesQuery = useMenuCategories();
@@ -73,15 +107,23 @@ const PerformancePage = () => {
     );
   };
 
+  // Fetch enough history to cover the selected range + previous period for comparison.
+  // Daily-comparison tab also needs at least last 14 days. Always fetch >= 6 months for trend convenience.
+  const fetchSince = useMemo(() => {
+    const rangeSpanDays = differenceInCalendarDays(range.end, range.start) + 1;
+    const needed = subDays(range.start, rangeSpanDays + 14);
+    const sixMonths = subMonths(new Date(), 6);
+    return (needed < sixMonths ? needed : sixMonths).toISOString();
+  }, [range]);
+
   const ordersQuery = useQuery({
-    queryKey: ["performance-orders"],
+    queryKey: ["performance-orders", fetchSince],
     queryFn: async () => {
-      const since = subMonths(new Date(), 6).toISOString();
       const { data, error } = await supabase
         .from("orders")
         .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en))")
         .in("status", ["paid", "completed"])
-        .gte("created_at", since)
+        .gte("created_at", fetchSince)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as PaidOrder[];
@@ -89,13 +131,12 @@ const PerformancePage = () => {
   });
 
   const paymentsQuery = useQuery({
-    queryKey: ["performance-payments"],
+    queryKey: ["performance-payments", fetchSince],
     queryFn: async () => {
-      const since = subMonths(new Date(), 6).toISOString();
       const { data, error } = await supabase
         .from("payments")
         .select("id, order_id, amount, tip, payment_method, created_at")
-        .gte("created_at", since)
+        .gte("created_at", fetchSince)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Payment[];
@@ -105,23 +146,38 @@ const PerformancePage = () => {
   const orders = ordersQuery.data ?? [];
   const payments = paymentsQuery.data ?? [];
 
-  // Build time periods
-  const periods = useMemo(() => {
-    const now = new Date();
-    if (period === "week") {
-      return Array.from({ length: rangeCount }, (_, i) => {
-        const w = subWeeks(now, i);
-        return { start: startOfWeek(w, { weekStartsOn: 1 }), end: endOfWeek(w, { weekStartsOn: 1 }) };
-      }).reverse();
-    }
-    return Array.from({ length: rangeCount }, (_, i) => {
-      const m = subMonths(now, i);
-      return { start: startOfMonth(m), end: endOfMonth(m) };
-    }).reverse();
-  }, [period, rangeCount]);
+  // Current selected range and an equally-sized previous range for comparison
+  const currentPeriod = range;
+  const prevPeriod = useMemo(() => {
+    const spanMs = range.end.getTime() - range.start.getTime();
+    const prevEnd = new Date(range.start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - spanMs);
+    return { start: prevStart, end: prevEnd };
+  }, [range]);
 
-  const currentPeriod = periods[periods.length - 1];
-  const prevPeriod = periods.length > 1 ? periods[periods.length - 2] : null;
+  // Auto-bucketed trend periods: daily ≤45d, weekly ≤183d, monthly otherwise
+  const { periods, bucketKind } = useMemo(() => {
+    const days = differenceInCalendarDays(range.end, range.start) + 1;
+    if (days <= 45) {
+      const ds = eachDayOfInterval({ start: range.start, end: range.end });
+      return {
+        bucketKind: "day" as const,
+        periods: ds.map((d) => ({ start: startOfDay(d), end: endOfDay(d) })),
+      };
+    }
+    if (days <= 183) {
+      const ws = eachWeekOfInterval({ start: range.start, end: range.end }, { weekStartsOn: 1 });
+      return {
+        bucketKind: "week" as const,
+        periods: ws.map((d) => ({ start: startOfWeek(d, { weekStartsOn: 1 }), end: endOfWeek(d, { weekStartsOn: 1 }) })),
+      };
+    }
+    const ms = eachMonthOfInterval({ start: range.start, end: range.end });
+    return {
+      bucketKind: "month" as const,
+      periods: ms.map((d) => ({ start: startOfMonth(d), end: endOfMonth(d) })),
+    };
+  }, [range]);
 
   const getOrdersInRange = (start: Date, end: Date) =>
     orders.filter((o) => {
@@ -233,10 +289,14 @@ const PerformancePage = () => {
   const trendData = periods.map((p) => {
     const pPayments = getPaymentsInRange(p.start, p.end);
     const pOrders = getOrdersInRange(p.start, p.end);
+    const label =
+      bucketKind === "day"
+        ? format(p.start, "dd/MM", { locale: loc })
+        : bucketKind === "week"
+          ? `${format(p.start, "dd/MM", { locale: loc })}`
+          : format(p.start, "MMM yyyy", { locale: loc });
     return {
-      label: period === "week"
-        ? `${format(p.start, "dd/MM", { locale: loc })}`
-        : format(p.start, "MMM yyyy", { locale: loc }),
+      label,
       revenue: pPayments.reduce((s, pp) => s + pp.amount, 0),
       orders: pOrders.length,
       tips: pPayments.reduce((s, pp) => s + pp.tip, 0),
@@ -261,9 +321,7 @@ const PerformancePage = () => {
   const peakHourLabel = peakHour >= 0 ? `${peakHour}:00 - ${peakHour + 1}:00` : "-";
 
   const formatLabel = (p: typeof currentPeriod) =>
-    period === "week"
-      ? `${format(p.start, "dd MMM", { locale: loc })} – ${format(p.end, "dd MMM", { locale: loc })}`
-      : format(p.start, "MMMM yyyy", { locale: loc });
+    `${format(p.start, "dd MMM yyyy", { locale: loc })} – ${format(p.end, "dd MMM yyyy", { locale: loc })}`;
 
   // CSV export helpers
   const downloadCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
@@ -304,7 +362,7 @@ const PerformancePage = () => {
 
   const exportTrend = () => {
     downloadCsv(
-      `trend-${period}`,
+      `trend-${bucketKind}-${format(currentPeriod.start, "yyyy-MM-dd")}_${format(currentPeriod.end, "yyyy-MM-dd")}`,
       [t("performance.period"), t("billing.income"), t("performance.totalOrders"), t("billing.tipsLabel")],
       trendData.map((r) => [r.label, r.revenue.toFixed(2), r.orders, r.tips.toFixed(2)])
     );
@@ -370,25 +428,71 @@ const PerformancePage = () => {
           <p className="text-sm text-muted-foreground">{t("performance.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-            <SelectTrigger className="w-[110px]">
+          <Select value={preset} onValueChange={(v) => setPreset(v as PresetKey)}>
+            <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{t("billing.weekly")}</SelectItem>
-              <SelectItem value="month">{t("billing.monthly")}</SelectItem>
+              <SelectItem value="today">{t("performance.preset.today")}</SelectItem>
+              <SelectItem value="yesterday">{t("performance.preset.yesterday")}</SelectItem>
+              <SelectItem value="last7">{t("performance.preset.last7")}</SelectItem>
+              <SelectItem value="last30">{t("performance.preset.last30")}</SelectItem>
+              <SelectItem value="thisWeek">{t("performance.preset.thisWeek")}</SelectItem>
+              <SelectItem value="lastWeek">{t("performance.preset.lastWeek")}</SelectItem>
+              <SelectItem value="thisMonth">{t("performance.preset.thisMonth")}</SelectItem>
+              <SelectItem value="lastMonth">{t("performance.preset.lastMonth")}</SelectItem>
+              <SelectItem value="last3Months">{t("performance.preset.last3Months")}</SelectItem>
+              <SelectItem value="last6Months">{t("performance.preset.last6Months")}</SelectItem>
+              <SelectItem value="custom">{t("performance.preset.custom")}</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={String(rangeCount)} onValueChange={(v) => setRangeCount(Number(v))}>
-            <SelectTrigger className="w-[90px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="4">{language === "es" ? "Últ. 4" : "Last 4"}</SelectItem>
-              <SelectItem value="8">{language === "es" ? "Últ. 8" : "Last 8"}</SelectItem>
-              <SelectItem value="12">{language === "es" ? "Últ. 12" : "Last 12"}</SelectItem>
-            </SelectContent>
-          </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("gap-2 font-normal", preset === "custom" && "border-primary")}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {format(currentPeriod.start, "dd MMM", { locale: loc })} – {format(currentPeriod.end, "dd MMM yyyy", { locale: loc })}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 max-h-[80vh] overflow-y-auto" align="end">
+              <div className="p-3 border-b">
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t("performance.from")}</p>
+                <Calendar
+                  mode="single"
+                  selected={customStart ?? currentPeriod.start}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    setCustomStart(d);
+                    if (!customEnd || d > customEnd) setCustomEnd(d);
+                    setPreset("custom");
+                  }}
+                  disabled={(date) => date > new Date()}
+                  className={cn("p-0 pointer-events-auto")}
+                />
+              </div>
+              <div className="p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t("performance.to")}</p>
+                <Calendar
+                  mode="single"
+                  selected={customEnd ?? currentPeriod.end}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    setCustomEnd(d);
+                    if (!customStart || d < customStart) setCustomStart(d);
+                    setPreset("custom");
+                  }}
+                  disabled={(date) => date > new Date() || (customStart ? date < customStart : false)}
+                  className={cn("p-0 pointer-events-auto")}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" title={language === "es" ? "Exportar CSV" : "Export CSV"}>
