@@ -350,7 +350,7 @@ const OrderHistoryPage = () => {
               const waiter = order.waiterName || "—";
               const cashier = order.cashierName;
               const itemCount = order.order_items.reduce((s, oi) => s + oi.quantity, 0);
-              const discountedTotal = order.total * (1 - (order.general_discount ?? 0) / 100);
+              const discountedTotal = applyGeneralDiscount(order.total, order.general_discount ?? 0, order.general_discount_amount ?? 0);
 
               return (
                 <AccordionItem key={order.id} value={order.id} className="border rounded-lg px-3">
