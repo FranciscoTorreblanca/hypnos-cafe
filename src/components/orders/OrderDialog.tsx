@@ -265,6 +265,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         unit_price: getEffectivePrice(c.menuItem),
         notes: c.notes || undefined,
         discount: c.discount || 0,
+        discount_amount: c.discountAmount || 0,
         combo_id: c.comboId,
         combo_group_id: c.comboGroupId,
       });
