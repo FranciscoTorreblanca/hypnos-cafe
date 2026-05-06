@@ -211,7 +211,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         name_en: menuItem.name_en || menuItem.name,
       };
 
-      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0, comboId: combo.id, comboGroupId }]);
+      setCart((prev) => [...prev, { menuItem: comboMenuItem, quantity, notes: "", discount: 0, discountAmount: 0, comboId: combo.id, comboGroupId }]);
     });
   }, [items]);
 
