@@ -981,10 +981,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       <div className="space-y-1">
         {orderItems.map((oi) => {
           const disc = (oi as any).discount ?? 0;
-          const lineTotal = oi.quantity * oi.unit_price * (1 - disc / 100);
+          const discAmt = (oi as any).discount_amount ?? 0;
+          const lineTotal = applyLineDiscount(oi.quantity * oi.unit_price, disc, discAmt);
           return (
             <div key={oi.id} className="flex justify-between text-sm">
-              <span>{oi.quantity}x {getName(oi.menu_item)} {disc > 0 && <span className="text-emerald-600 text-xs">(-{disc}%)</span>}</span>
+              <span>{oi.quantity}x {getName(oi.menu_item)}
+                {disc > 0 && <span className="text-emerald-600 text-xs ml-1">(-{disc}%)</span>}
+                {discAmt > 0 && <span className="text-emerald-600 text-xs ml-1">(-${discAmt.toFixed(0)})</span>}
+              </span>
               <span className="text-muted-foreground">${lineTotal.toFixed(0)}</span>
             </div>
           );
@@ -1000,10 +1004,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           <span>-${((order?.total ?? 0) * (order?.general_discount ?? 0) / 100).toFixed(0)}</span>
         </div>
       )}
+      {((order as any)?.general_discount_amount ?? 0) > 0 && (
+        <div className="flex justify-between text-sm text-emerald-600">
+          <span>{language === "es" ? "Descuento fijo" : "Fixed discount"}</span>
+          <span>-${((order as any).general_discount_amount).toFixed(0)}</span>
+        </div>
+      )}
       {(() => {
         const subtotal = order?.total ?? 0;
         const gd = order?.general_discount ?? 0;
-        const finalAmount = gd > 0 ? subtotal * (1 - gd / 100) : subtotal;
+        const gda = (order as any)?.general_discount_amount ?? 0;
+        const finalAmount = applyGeneralDiscount(subtotal, gd, gda);
         const tip = parseFloat(tipAmount) || 0;
         return (
           <>
