@@ -145,7 +145,10 @@ const Dashboard = () => {
       orders: dayPayments.length,
     };
   });
-  const maxStack = Math.max(...last7Days.map((d) => d.revenue + d.tips), 1);
+  const maxRevenue = Math.max(...last7Days.map((d) => d.revenue), 1);
+  const maxTips = Math.max(...last7Days.map((d) => d.tips), 1);
+  const totalWeekTips = last7Days.reduce((s, d) => s + d.tips, 0);
+  const avgDailyTips = totalWeekTips / 7;
 
   const cashPayments = todayPayments.filter((p) => p.payment_method === "cash").length;
   const cardPayments = todayPayments.filter((p) => p.payment_method === "card").length;
@@ -261,7 +264,7 @@ const Dashboard = () => {
 
       {/* Bottom sections */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* 7-day trend (stacked: coffee revenue + tips) */}
+        {/* 7-day coffee revenue trend */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => navigate("/performance")}
@@ -270,40 +273,62 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
-                {t("dash.weekTrend")}
-              </span>
-              <span className="flex items-center gap-3 text-[10px] font-normal text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-primary/80" />
-                  {t("performance.revenue")}
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-amber-500" />
-                  {t("performance.tips")}
-                </span>
+                {t("dash.weekTrend")} · {t("performance.revenue")}
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1 h-28">
               {last7Days.map((d) => {
-                const total = d.revenue + d.tips;
-                const totalH = (total / maxStack) * 80;
-                const revH = total > 0 ? (d.revenue / total) * totalH : 0;
-                const tipH = total > 0 ? (d.tips / total) * totalH : 0;
+                const h = (d.revenue / maxRevenue) * 80;
                 return (
                   <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-[10px] text-muted-foreground font-medium">
-                      ${total > 0 ? total.toFixed(0) : ""}
+                      {d.revenue > 0 ? `$${d.revenue.toFixed(0)}` : ""}
                     </span>
                     <div className="w-full flex flex-col-reverse min-h-[2px]">
                       <div
-                        className="w-full bg-primary/80 transition-all"
-                        style={{ height: `${revH}px` }}
+                        className="w-full rounded-t bg-primary/80 transition-all"
+                        style={{ height: `${h}px` }}
                       />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{d.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 7-day tips trend (own scale) */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/performance")}
+        >
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-amber-600" />
+                {t("dash.weekTrend")} · {t("performance.tips")}
+              </span>
+              <span className="text-[10px] font-normal text-muted-foreground">
+                ${totalWeekTips.toFixed(0)} · ${avgDailyTips.toFixed(0)}/d
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-1 h-28">
+              {last7Days.map((d) => {
+                const h = (d.tips / maxTips) * 80;
+                return (
+                  <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {d.tips > 0 ? `$${d.tips.toFixed(0)}` : ""}
+                    </span>
+                    <div className="w-full flex flex-col-reverse min-h-[2px]">
                       <div
                         className="w-full rounded-t bg-amber-500 transition-all"
-                        style={{ height: `${tipH}px` }}
+                        style={{ height: `${h}px` }}
                       />
                     </div>
                     <span className="text-[10px] text-muted-foreground">{d.label}</span>
