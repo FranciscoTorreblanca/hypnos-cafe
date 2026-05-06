@@ -166,7 +166,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           c.menuItem.id === menuItem.id ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
-      return [...prev, { menuItem, quantity: 1, notes: "", discount: 0 }];
+      return [...prev, { menuItem, quantity: 1, notes: "", discount: 0, discountAmount: 0 }];
     });
   }, [dismissMobileKeyboard]);
 
