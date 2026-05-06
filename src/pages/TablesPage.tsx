@@ -231,11 +231,11 @@ const SortableTableCard = ({
         >
           {(() => {
             const renderItem = (item: OrderItem) => {
-              const hasDiscount = (item.discount ?? 0) > 0;
-              const itemTotal =
-                item.quantity *
-                item.unit_price *
-                (1 - (item.discount ?? 0) / 100);
+              const discPct = item.discount ?? 0;
+              const discAmt = (item as any).discount_amount ?? 0;
+              const hasDiscount = discPct > 0 || discAmt > 0;
+              const gross = item.quantity * item.unit_price;
+              const itemTotal = applyLineDiscount(gross, discPct, discAmt);
               return (
                 <div
                   key={item.id}
@@ -272,14 +272,21 @@ const SortableTableCard = ({
                     {hasDiscount ? (
                       <div>
                         <span className="line-through text-muted-foreground mr-1">
-                          ${(item.quantity * item.unit_price).toFixed(0)}
+                          ${gross.toFixed(0)}
                         </span>
                         <span className="text-emerald-600 dark:text-emerald-400">
                           ${itemTotal.toFixed(0)}
                         </span>
-                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
-                          -{item.discount}%
-                        </span>
+                        {discPct > 0 && (
+                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
+                            -{discPct}%
+                          </span>
+                        )}
+                        {discAmt > 0 && (
+                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 ml-0.5">
+                            -${discAmt.toFixed(0)}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span>${itemTotal.toFixed(0)}</span>
