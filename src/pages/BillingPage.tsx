@@ -112,7 +112,8 @@ const BillingPage = () => {
       const tip = parseFloat(tipAmount) || 0;
       const subtotal = selectedOrder.total;
       const gd = selectedOrder.general_discount ?? 0;
-      const totalNoTip = Math.round((gd > 0 ? subtotal * (1 - gd / 100) : subtotal) * 100) / 100;
+      const gda = (selectedOrder as any).general_discount_amount ?? 0;
+      const totalNoTip = Math.round(applyGeneralDiscount(subtotal, gd, gda) * 100) / 100;
 
       // Build payment parts
       let parts: { amount: number; tip: number; payment_method: string }[];
