@@ -429,7 +429,10 @@ const OrderHistoryPage = () => {
 
                             const renderRow = (oi: typeof order.order_items[0], indent = false) => {
                               const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "—";
-                              const sub = oi.quantity * oi.unit_price * (1 - (oi.discount ?? 0) / 100);
+                              const sub = applyLineDiscount(oi.quantity * oi.unit_price, oi.discount ?? 0, oi.discount_amount ?? 0);
+                              const discLabel = (oi.discount ?? 0) > 0 || (oi.discount_amount ?? 0) > 0
+                                ? `${(oi.discount ?? 0) > 0 ? `${oi.discount}%` : ""}${(oi.discount ?? 0) > 0 && (oi.discount_amount ?? 0) > 0 ? " + " : ""}${(oi.discount_amount ?? 0) > 0 ? `$${oi.discount_amount?.toFixed(0)}` : ""}`
+                                : "—";
                               return (
                                 <tr key={oi.id} className="border-t border-border/50">
                                   <td className={`p-1.5 ${indent ? "pl-4" : ""}`}>
@@ -438,7 +441,7 @@ const OrderHistoryPage = () => {
                                   </td>
                                   <td className="text-center p-1.5">{oi.quantity}</td>
                                   <td className="text-right p-1.5">${oi.unit_price.toFixed(2)}</td>
-                                  <td className="text-right p-1.5">{oi.discount > 0 ? `${oi.discount}%` : "—"}</td>
+                                  <td className="text-right p-1.5">{discLabel}</td>
                                   <td className="text-right p-1.5 font-medium">${sub.toFixed(2)}</td>
                                 </tr>
                               );
