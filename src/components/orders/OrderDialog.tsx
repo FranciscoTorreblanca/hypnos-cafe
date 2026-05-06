@@ -57,6 +57,7 @@ interface CartItem {
   quantity: number;
   notes: string;
   discount: number;
+  discountAmount: number;
   comboId?: string;
   comboGroupId?: string;
 }
