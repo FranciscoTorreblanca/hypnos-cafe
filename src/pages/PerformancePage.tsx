@@ -428,25 +428,71 @@ const PerformancePage = () => {
           <p className="text-sm text-muted-foreground">{t("performance.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-            <SelectTrigger className="w-[110px]">
+          <Select value={preset} onValueChange={(v) => setPreset(v as PresetKey)}>
+            <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{t("billing.weekly")}</SelectItem>
-              <SelectItem value="month">{t("billing.monthly")}</SelectItem>
+              <SelectItem value="today">{t("performance.preset.today")}</SelectItem>
+              <SelectItem value="yesterday">{t("performance.preset.yesterday")}</SelectItem>
+              <SelectItem value="last7">{t("performance.preset.last7")}</SelectItem>
+              <SelectItem value="last30">{t("performance.preset.last30")}</SelectItem>
+              <SelectItem value="thisWeek">{t("performance.preset.thisWeek")}</SelectItem>
+              <SelectItem value="lastWeek">{t("performance.preset.lastWeek")}</SelectItem>
+              <SelectItem value="thisMonth">{t("performance.preset.thisMonth")}</SelectItem>
+              <SelectItem value="lastMonth">{t("performance.preset.lastMonth")}</SelectItem>
+              <SelectItem value="last3Months">{t("performance.preset.last3Months")}</SelectItem>
+              <SelectItem value="last6Months">{t("performance.preset.last6Months")}</SelectItem>
+              <SelectItem value="custom">{t("performance.preset.custom")}</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={String(rangeCount)} onValueChange={(v) => setRangeCount(Number(v))}>
-            <SelectTrigger className="w-[90px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="4">{language === "es" ? "Últ. 4" : "Last 4"}</SelectItem>
-              <SelectItem value="8">{language === "es" ? "Últ. 8" : "Last 8"}</SelectItem>
-              <SelectItem value="12">{language === "es" ? "Últ. 12" : "Last 12"}</SelectItem>
-            </SelectContent>
-          </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("gap-2 font-normal", preset === "custom" && "border-primary")}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {format(currentPeriod.start, "dd MMM", { locale: loc })} – {format(currentPeriod.end, "dd MMM yyyy", { locale: loc })}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 max-h-[80vh] overflow-y-auto" align="end">
+              <div className="p-3 border-b">
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t("performance.from")}</p>
+                <Calendar
+                  mode="single"
+                  selected={customStart ?? currentPeriod.start}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    setCustomStart(d);
+                    if (!customEnd || d > customEnd) setCustomEnd(d);
+                    setPreset("custom");
+                  }}
+                  disabled={(date) => date > new Date()}
+                  className={cn("p-0 pointer-events-auto")}
+                />
+              </div>
+              <div className="p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t("performance.to")}</p>
+                <Calendar
+                  mode="single"
+                  selected={customEnd ?? currentPeriod.end}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    setCustomEnd(d);
+                    if (!customStart || d < customStart) setCustomStart(d);
+                    setPreset("custom");
+                  }}
+                  disabled={(date) => date > new Date() || (customStart ? date < customStart : false)}
+                  className={cn("p-0 pointer-events-auto")}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" title={language === "es" ? "Exportar CSV" : "Export CSV"}>
