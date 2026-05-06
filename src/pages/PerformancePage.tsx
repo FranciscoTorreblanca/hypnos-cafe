@@ -53,9 +53,41 @@ const PerformancePage = () => {
   const { isAdmin } = useAuth();
   const { t, language } = useLanguage();
   const loc = language === "es" ? es : enUS;
-  const [period, setPeriod] = useState<"week" | "month">("week");
-  const [rangeCount, setRangeCount] = useState(4);
+
+  // Date range state — default to current month
+  type PresetKey =
+    | "today" | "yesterday" | "last7" | "last30"
+    | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth"
+    | "last3Months" | "last6Months" | "custom";
+
+  const buildPreset = (key: PresetKey): { start: Date; end: Date } => {
+    const now = new Date();
+    switch (key) {
+      case "today": return { start: startOfDay(now), end: endOfDay(now) };
+      case "yesterday": { const d = subDays(now, 1); return { start: startOfDay(d), end: endOfDay(d) }; }
+      case "last7": return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
+      case "last30": return { start: startOfDay(subDays(now, 29)), end: endOfDay(now) };
+      case "thisWeek": return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case "lastWeek": { const w = subWeeks(now, 1); return { start: startOfWeek(w, { weekStartsOn: 1 }), end: endOfWeek(w, { weekStartsOn: 1 }) }; }
+      case "thisMonth": return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "lastMonth": { const m = subMonths(now, 1); return { start: startOfMonth(m), end: endOfMonth(m) }; }
+      case "last3Months": return { start: startOfDay(subMonths(now, 3)), end: endOfDay(now) };
+      case "last6Months": return { start: startOfDay(subMonths(now, 6)), end: endOfDay(now) };
+      default: return { start: startOfMonth(now), end: endOfMonth(now) };
+    }
+  };
+
+  const [preset, setPreset] = useState<PresetKey>("thisMonth");
+  const [customStart, setCustomStart] = useState<Date | undefined>();
+  const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const range = useMemo(() => {
+    if (preset === "custom" && customStart && customEnd) {
+      return { start: startOfDay(customStart), end: endOfDay(customEnd) };
+    }
+    return buildPreset(preset === "custom" ? "thisMonth" : preset);
+  }, [preset, customStart, customEnd]);
 
   const menuItemsQuery = useMenuItems();
   const categoriesQuery = useMenuCategories();
@@ -75,15 +107,23 @@ const PerformancePage = () => {
     );
   };
 
+  // Fetch enough history to cover the selected range + previous period for comparison.
+  // Daily-comparison tab also needs at least last 14 days. Always fetch >= 6 months for trend convenience.
+  const fetchSince = useMemo(() => {
+    const rangeSpanDays = differenceInCalendarDays(range.end, range.start) + 1;
+    const needed = subDays(range.start, rangeSpanDays + 14);
+    const sixMonths = subMonths(new Date(), 6);
+    return (needed < sixMonths ? needed : sixMonths).toISOString();
+  }, [range]);
+
   const ordersQuery = useQuery({
-    queryKey: ["performance-orders"],
+    queryKey: ["performance-orders", fetchSince],
     queryFn: async () => {
-      const since = subMonths(new Date(), 6).toISOString();
       const { data, error } = await supabase
         .from("orders")
         .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en))")
         .in("status", ["paid", "completed"])
-        .gte("created_at", since)
+        .gte("created_at", fetchSince)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as PaidOrder[];
@@ -91,13 +131,12 @@ const PerformancePage = () => {
   });
 
   const paymentsQuery = useQuery({
-    queryKey: ["performance-payments"],
+    queryKey: ["performance-payments", fetchSince],
     queryFn: async () => {
-      const since = subMonths(new Date(), 6).toISOString();
       const { data, error } = await supabase
         .from("payments")
         .select("id, order_id, amount, tip, payment_method, created_at")
-        .gte("created_at", since)
+        .gte("created_at", fetchSince)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Payment[];
@@ -107,23 +146,38 @@ const PerformancePage = () => {
   const orders = ordersQuery.data ?? [];
   const payments = paymentsQuery.data ?? [];
 
-  // Build time periods
-  const periods = useMemo(() => {
-    const now = new Date();
-    if (period === "week") {
-      return Array.from({ length: rangeCount }, (_, i) => {
-        const w = subWeeks(now, i);
-        return { start: startOfWeek(w, { weekStartsOn: 1 }), end: endOfWeek(w, { weekStartsOn: 1 }) };
-      }).reverse();
-    }
-    return Array.from({ length: rangeCount }, (_, i) => {
-      const m = subMonths(now, i);
-      return { start: startOfMonth(m), end: endOfMonth(m) };
-    }).reverse();
-  }, [period, rangeCount]);
+  // Current selected range and an equally-sized previous range for comparison
+  const currentPeriod = range;
+  const prevPeriod = useMemo(() => {
+    const spanMs = range.end.getTime() - range.start.getTime();
+    const prevEnd = new Date(range.start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - spanMs);
+    return { start: prevStart, end: prevEnd };
+  }, [range]);
 
-  const currentPeriod = periods[periods.length - 1];
-  const prevPeriod = periods.length > 1 ? periods[periods.length - 2] : null;
+  // Auto-bucketed trend periods: daily ≤45d, weekly ≤183d, monthly otherwise
+  const { periods, bucketKind } = useMemo(() => {
+    const days = differenceInCalendarDays(range.end, range.start) + 1;
+    if (days <= 45) {
+      const ds = eachDayOfInterval({ start: range.start, end: range.end });
+      return {
+        bucketKind: "day" as const,
+        periods: ds.map((d) => ({ start: startOfDay(d), end: endOfDay(d) })),
+      };
+    }
+    if (days <= 183) {
+      const ws = eachWeekOfInterval({ start: range.start, end: range.end }, { weekStartsOn: 1 });
+      return {
+        bucketKind: "week" as const,
+        periods: ws.map((d) => ({ start: startOfWeek(d, { weekStartsOn: 1 }), end: endOfWeek(d, { weekStartsOn: 1 }) })),
+      };
+    }
+    const ms = eachMonthOfInterval({ start: range.start, end: range.end });
+    return {
+      bucketKind: "month" as const,
+      periods: ms.map((d) => ({ start: startOfMonth(d), end: endOfMonth(d) })),
+    };
+  }, [range]);
 
   const getOrdersInRange = (start: Date, end: Date) =>
     orders.filter((o) => {
