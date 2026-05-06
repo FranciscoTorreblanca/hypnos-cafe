@@ -14,6 +14,8 @@ export interface TicketSnapshotItem {
   /** Promo price if the item had one at the time of sale. */
   promo_price?: number | null;
   discount: number;
+  /** Fixed-amount discount per line (MXN), applied AFTER the percentage. */
+  discount_amount?: number;
   notes?: string;
   /** When set, this item belongs to a combo group and its individual price is hidden in the ticket. */
   combo_group_id?: string | null;
