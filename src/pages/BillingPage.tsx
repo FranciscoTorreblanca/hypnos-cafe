@@ -918,7 +918,8 @@ const BillingPage = () => {
               ) : (
                 (() => {
                   const gd = selectedOrder?.general_discount ?? 0;
-                  const totalNoTip = Math.round(((selectedOrder?.total ?? 0) * (gd > 0 ? 1 - gd / 100 : 1)) * 100) / 100;
+                  const gda = (selectedOrder as any)?.general_discount_amount ?? 0;
+                  const totalNoTip = Math.round(applyGeneralDiscount(selectedOrder?.total ?? 0, gd, gda) * 100) / 100;
                   const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
                   const cardAmt = Math.max(0, Math.round((totalNoTip - cashAmt) * 100) / 100);
                   return (
