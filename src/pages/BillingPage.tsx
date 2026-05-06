@@ -155,6 +155,7 @@ const BillingPage = () => {
         table_number: selectedOrder.table_number,
         waiter_name: waiterName,
         general_discount: gd,
+        general_discount_amount: gda,
         language,
         items: selectedOrder.order_items ?? [],
       });
