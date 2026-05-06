@@ -148,7 +148,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   }, [availableCombos, search, activeCategory]);
 
   const cartTotal = useMemo(
-    () => cart.reduce((s, c) => s + getEffectivePrice(c.menuItem) * c.quantity * (1 - (c.discount ?? 0) / 100), 0),
+    () => cart.reduce((s, c) => {
+      const gross = getEffectivePrice(c.menuItem) * c.quantity;
+      const afterPct = gross * (1 - (c.discount ?? 0) / 100);
+      return s + Math.max(0, afterPct - (c.discountAmount ?? 0));
+    }, 0),
     [cart]
   );
 
