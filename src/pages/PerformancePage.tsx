@@ -321,9 +321,7 @@ const PerformancePage = () => {
   const peakHourLabel = peakHour >= 0 ? `${peakHour}:00 - ${peakHour + 1}:00` : "-";
 
   const formatLabel = (p: typeof currentPeriod) =>
-    period === "week"
-      ? `${format(p.start, "dd MMM", { locale: loc })} – ${format(p.end, "dd MMM", { locale: loc })}`
-      : format(p.start, "MMMM yyyy", { locale: loc });
+    `${format(p.start, "dd MMM yyyy", { locale: loc })} – ${format(p.end, "dd MMM yyyy", { locale: loc })}`;
 
   // CSV export helpers
   const downloadCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
