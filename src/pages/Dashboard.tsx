@@ -277,10 +277,24 @@ const Dashboard = () => {
                 <BarChart3 className="h-4 w-4" />
                 {t("dash.weekTrend")} · {t("performance.revenue")}
               </span>
+              <span className="text-[10px] font-normal text-muted-foreground">
+                ${totalWeekRevenue.toFixed(0)} · ${avgDailyRevenue.toFixed(0)}/d
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end gap-1 h-28">
+            <div className="relative flex items-end gap-1 h-28">
+              {/* Average line */}
+              {avgDailyRevenue > 0 && (
+                <div
+                  className="absolute left-0 right-0 border-t border-dashed border-emerald-500/60 z-10 pointer-events-none"
+                  style={{ bottom: `${(avgDailyRevenue / maxRevenue) * 80}px` }}
+                >
+                  <span className="absolute right-0 -top-2.5 text-[9px] text-emerald-600 font-medium bg-background px-1 rounded">
+                    avg
+                  </span>
+                </div>
+              )}
               {last7Days.map((d) => {
                 const h = (d.revenue / maxRevenue) * 80;
                 return (
