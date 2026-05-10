@@ -147,6 +147,8 @@ const Dashboard = () => {
   });
   const maxRevenue = Math.max(...last7Days.map((d) => d.revenue), 1);
   const maxTips = Math.max(...last7Days.map((d) => d.tips), 1);
+  const totalWeekRevenue = last7Days.reduce((s, d) => s + d.revenue, 0);
+  const avgDailyRevenue = totalWeekRevenue / 7;
   const totalWeekTips = last7Days.reduce((s, d) => s + d.tips, 0);
   const avgDailyTips = totalWeekTips / 7;
 
