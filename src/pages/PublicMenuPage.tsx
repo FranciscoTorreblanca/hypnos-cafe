@@ -162,10 +162,12 @@ const PublicMenuPage = () => {
     return sections
       .filter((s) => !selectedCategory || s.key === selectedCategory)
       .map((s) => {
-        if (!q) return s;
         const filtered = s.entries.filter((entry) => {
           const item = entry.menu_items || entry.combos;
           if (!item) return false;
+          // Hide unavailable items from public view (always shown in preview mode)
+          if (!isPreview && !item.is_available) return false;
+          if (!q) return true;
           const name = getName(item).toLowerCase();
           const desc = getDesc(item).toLowerCase();
           return name.includes(q) || desc.includes(q);
@@ -173,7 +175,7 @@ const PublicMenuPage = () => {
         return { ...s, entries: filtered };
       })
       .filter((s) => s.entries.length > 0);
-  }, [sections, selectedCategory, search, lang]);
+  }, [sections, selectedCategory, search, lang, isPreview]);
 
   if (loading) {
     return (
