@@ -61,6 +61,7 @@ interface Category {
 }
 
 const OTHERS_KEY = "__others__";
+const COMBOS_KEY = "__combos__";
 
 const PublicMenuPage = () => {
   const { menuId } = useParams<{ menuId: string }>();
@@ -129,19 +130,28 @@ const PublicMenuPage = () => {
     const grouped = new Map<string, { label: string; entries: PublicEntry[] }>();
 
     entries.forEach((entry) => {
-      const catId = entry.menu_items?.category_id;
-      const key = catId ?? OTHERS_KEY;
+      let key: string;
+      let label: string;
+      if (entry.combos) {
+        key = COMBOS_KEY;
+        label = lang === "es" ? "Combos" : "Combos";
+      } else {
+        const catId = entry.menu_items?.category_id;
+        key = catId ?? OTHERS_KEY;
+        const cat = catId ? catMap.get(catId) : null;
+        label = cat ? getName(cat) : lang === "es" ? "Otros" : "Others";
+      }
 
       if (!grouped.has(key)) {
-        const cat = catId ? catMap.get(catId) : null;
-        const label = cat ? getName(cat) : lang === "es" ? "Otros" : "Others";
         grouped.set(key, { label, entries: [] });
       }
       grouped.get(key)!.entries.push(entry);
     });
 
-    // Sort: categorized items by category display_order, "others" at the end
+    // Sort: combos first, categorized items by display_order, "others" last
     const sortedKeys = [...grouped.keys()].sort((a, b) => {
+      if (a === COMBOS_KEY) return -1;
+      if (b === COMBOS_KEY) return 1;
       if (a === OTHERS_KEY) return 1;
       if (b === OTHERS_KEY) return -1;
       const ca = catMap.get(a);
