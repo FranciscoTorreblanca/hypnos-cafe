@@ -61,6 +61,7 @@ interface Category {
 }
 
 const OTHERS_KEY = "__others__";
+const COMBOS_KEY = "__combos__";
 
 const PublicMenuPage = () => {
   const { menuId } = useParams<{ menuId: string }>();
