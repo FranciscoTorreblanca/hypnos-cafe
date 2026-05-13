@@ -283,28 +283,28 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative flex items-end gap-1 h-28">
-              {/* Average line */}
-              {avgDailyRevenue > 0 && (
-                <div
-                  className="absolute left-0 right-0 border-t border-dashed border-emerald-500/60 z-10 pointer-events-none"
-                  style={{ bottom: `${(avgDailyRevenue / maxRevenue) * 80}px` }}
-                >
-                  <span className="absolute left-0 -top-2.5 text-[9px] text-emerald-600 font-medium bg-background px-1 rounded">
-                    avg
-                  </span>
-                </div>
-              )}
+            <div className="flex gap-1">
               {last7Days.map((d) => {
                 const h = (d.revenue / maxRevenue) * 80;
                 return (
                   <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground font-medium">
+                    <span className="text-[10px] text-muted-foreground font-medium h-3.5">
                       {d.revenue > 0 ? `$${d.revenue.toFixed(0)}` : ""}
                     </span>
-                    <div className="w-full flex flex-col-reverse min-h-[2px]">
+                    <div className="relative w-full h-20">
+                      {/* Average line aligned with bar coordinate system */}
+                      {avgDailyRevenue > 0 && d.label === last7Days[0].label && (
+                        <div
+                          className="absolute -left-1 right-0 border-t border-dashed border-emerald-500/60 z-10 pointer-events-none"
+                          style={{ bottom: `${(avgDailyRevenue / maxRevenue) * 80}px`, width: `calc(700% + 24px)` }}
+                        >
+                          <span className="absolute left-0 -top-2.5 text-[9px] text-emerald-600 font-medium bg-background px-1 rounded">
+                            avg
+                          </span>
+                        </div>
+                      )}
                       <div
-                        className="w-full rounded-t bg-primary/80 transition-all"
+                        className="absolute bottom-0 left-0 right-0 rounded-t bg-primary/80 transition-all"
                         style={{ height: `${h}px` }}
                       />
                     </div>
