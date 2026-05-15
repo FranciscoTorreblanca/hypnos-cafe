@@ -92,15 +92,30 @@ const Dashboard = () => {
     },
   });
 
-  // Heatmap: payments for last 8 weeks (56 days, ending today)
+  // Heatmap: payments for last 4 weeks (28 days, ending today)
+  const HEATMAP_WEEKS = 4;
+  const HEATMAP_DAYS = HEATMAP_WEEKS * 7;
   const { data: heatmapPayments = [] } = useQuery({
     queryKey: ["dashboard-heatmap-payments"],
     queryFn: async () => {
-      const since = startOfDay(subDays(new Date(), 55)).toISOString();
+      const since = startOfDay(subDays(new Date(), HEATMAP_DAYS - 1)).toISOString();
       const { data } = await supabase
         .from("payments")
         .select("amount, created_at")
         .gte("created_at", since);
+      return data ?? [];
+    },
+  });
+
+  // Events in heatmap window — to mark days with special events
+  const { data: heatmapEvents = [] } = useQuery({
+    queryKey: ["dashboard-heatmap-events"],
+    queryFn: async () => {
+      const since = startOfDay(subDays(new Date(), HEATMAP_DAYS - 1)).toISOString();
+      const { data } = await supabase
+        .from("events")
+        .select("id, name, color, starts_at, ends_at")
+        .gte("starts_at", since);
       return data ?? [];
     },
   });
