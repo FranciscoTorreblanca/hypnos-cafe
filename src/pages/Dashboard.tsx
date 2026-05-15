@@ -92,6 +92,19 @@ const Dashboard = () => {
     },
   });
 
+  // Heatmap: payments for last 8 weeks (56 days, ending today)
+  const { data: heatmapPayments = [] } = useQuery({
+    queryKey: ["dashboard-heatmap-payments"],
+    queryFn: async () => {
+      const since = startOfDay(subDays(new Date(), 55)).toISOString();
+      const { data } = await supabase
+        .from("payments")
+        .select("amount, created_at")
+        .gte("created_at", since);
+      return data ?? [];
+    },
+  });
+
   if (!isAdmin) return <Navigate to="/tables" replace />;
 
   // Computed stats
@@ -154,6 +167,48 @@ const Dashboard = () => {
 
   const cashPayments = todayPayments.filter((p) => p.payment_method === "cash").length;
   const cardPayments = todayPayments.filter((p) => p.payment_method === "card").length;
+
+  // Heatmap data: 8 weeks × 7 days. Cell = sum of payments that day.
+  const HEATMAP_WEEKS = 8;
+  const totalDays = HEATMAP_WEEKS * 7;
+  const today = startOfDay(new Date());
+  const heatmapDays = Array.from({ length: totalDays }, (_, i) => {
+    const d = subDays(today, totalDays - 1 - i);
+    const dayEnd = new Date(d);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+    const revenue = heatmapPayments
+      .filter((p) => {
+        const c = new Date(p.created_at);
+        return c >= d && c < dayEnd;
+      })
+      .reduce((s, p) => s + (p.amount ?? 0), 0);
+    return { date: d, revenue };
+  });
+  const maxHeatmapRevenue = Math.max(...heatmapDays.map((d) => d.revenue), 1);
+  const dayLabels = language === "en"
+    ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    : ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  // Build grid by weekday: rows = weekdays (Mon..Sun), cols = weeks (oldest -> newest)
+  const heatmapGrid: Array<Array<typeof heatmapDays[number] | null>> = Array.from(
+    { length: 7 },
+    () => Array(HEATMAP_WEEKS).fill(null),
+  );
+  // Determine starting Monday of the grid: align rightmost column to the week containing today
+  // We'll just place each day into (weekdayRow, weekCol) where weekCol is computed from offset.
+  // Simpler: iterate days; the column index = floor((daysSinceFirstMonday)/7).
+  // Find offset to align: shift so that today sits in last column.
+  const todayWeekdayMon0 = (today.getDay() + 6) % 7; // 0=Mon
+  // Last column should contain today; today's row = todayWeekdayMon0
+  // So days are arranged into a virtual grid where column of today = HEATMAP_WEEKS-1.
+  // Compute start date of grid (top-left) = today - (HEATMAP_WEEKS-1)*7 - todayWeekdayMon0 days
+  const gridStart = subDays(today, (HEATMAP_WEEKS - 1) * 7 + todayWeekdayMon0);
+  for (const day of heatmapDays) {
+    const diffDays = Math.round((day.date.getTime() - gridStart.getTime()) / 86400000);
+    if (diffDays < 0 || diffDays >= HEATMAP_WEEKS * 7) continue;
+    const col = Math.floor(diffDays / 7);
+    const row = diffDays % 7;
+    heatmapGrid[row][col] = day;
+  }
 
   return (
     <div className="space-y-6">
@@ -263,6 +318,82 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* Heatmap: revenue by day across recent weeks */}
+      <Card
+        className="cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => navigate("/performance")}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-emerald-600" />
+              {t("dash.heatmap")}
+            </span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {t("dash.heatmapSub")}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {/* Day labels column */}
+            <div className="flex flex-col gap-1 pt-0">
+              {dayLabels.map((d) => (
+                <div
+                  key={d}
+                  className="text-[9px] text-muted-foreground h-4 leading-4 w-6 text-right"
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+            {/* Grid */}
+            <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${HEATMAP_WEEKS}, minmax(0, 1fr))` }}>
+              {Array.from({ length: HEATMAP_WEEKS }, (_, col) => (
+                <div key={col} className="flex flex-col gap-1">
+                  {heatmapGrid.map((row, rowIdx) => {
+                    const cell = row[col];
+                    const intensity = cell ? cell.revenue / maxHeatmapRevenue : 0;
+                    const isFuture = cell && cell.date > today;
+                    return (
+                      <div
+                        key={rowIdx}
+                        title={
+                          cell
+                            ? `${format(cell.date, "EEE d MMM")}: $${cell.revenue.toFixed(0)}`
+                            : ""
+                        }
+                        className="h-4 rounded-sm border border-border/40"
+                        style={{
+                          backgroundColor:
+                            !cell || isFuture
+                              ? "transparent"
+                              : intensity === 0
+                              ? "hsl(var(--muted))"
+                              : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-1 mt-3 text-[10px] text-muted-foreground">
+            <span>$0</span>
+            {[0.15, 0.4, 0.65, 0.9, 1].map((v) => (
+              <div
+                key={v}
+                className="h-3 w-3 rounded-sm border border-border/40"
+                style={{ backgroundColor: `hsl(var(--primary) / ${v})` }}
+              />
+            ))}
+            <span>${maxHeatmapRevenue.toFixed(0)}</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Bottom sections */}
       <div className="grid gap-4 lg:grid-cols-2">
