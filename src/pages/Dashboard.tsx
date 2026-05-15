@@ -183,12 +183,10 @@ const Dashboard = () => {
   const cashPayments = todayPayments.filter((p) => p.payment_method === "cash").length;
   const cardPayments = todayPayments.filter((p) => p.payment_method === "card").length;
 
-  // Heatmap data: 8 weeks × 7 days. Cell = sum of payments that day.
-  const HEATMAP_WEEKS = 8;
-  const totalDays = HEATMAP_WEEKS * 7;
+  // Heatmap data: 28 days as a single row, today aligned right.
   const today = startOfDay(new Date());
-  const heatmapDays = Array.from({ length: totalDays }, (_, i) => {
-    const d = subDays(today, totalDays - 1 - i);
+  const heatmapDays = Array.from({ length: HEATMAP_DAYS }, (_, i) => {
+    const d = subDays(today, HEATMAP_DAYS - 1 - i);
     const dayEnd = new Date(d);
     dayEnd.setDate(dayEnd.getDate() + 1);
     const revenue = heatmapPayments
@@ -197,33 +195,17 @@ const Dashboard = () => {
         return c >= d && c < dayEnd;
       })
       .reduce((s, p) => s + (p.amount ?? 0), 0);
-    return { date: d, revenue };
+    const dayEvents = heatmapEvents.filter((e) => {
+      const s = new Date(e.starts_at);
+      const en = new Date(e.ends_at);
+      return s < dayEnd && en >= d;
+    });
+    return { date: d, revenue, events: dayEvents };
   });
   const maxHeatmapRevenue = Math.max(...heatmapDays.map((d) => d.revenue), 1);
-  const dayLabels = language === "en"
-    ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    : ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-  // Build grid by weekday: rows = weekdays (Mon..Sun), cols = weeks (oldest -> newest)
-  const heatmapGrid: Array<Array<typeof heatmapDays[number] | null>> = Array.from(
-    { length: 7 },
-    () => Array(HEATMAP_WEEKS).fill(null),
-  );
-  // Determine starting Monday of the grid: align rightmost column to the week containing today
-  // We'll just place each day into (weekdayRow, weekCol) where weekCol is computed from offset.
-  // Simpler: iterate days; the column index = floor((daysSinceFirstMonday)/7).
-  // Find offset to align: shift so that today sits in last column.
-  const todayWeekdayMon0 = (today.getDay() + 6) % 7; // 0=Mon
-  // Last column should contain today; today's row = todayWeekdayMon0
-  // So days are arranged into a virtual grid where column of today = HEATMAP_WEEKS-1.
-  // Compute start date of grid (top-left) = today - (HEATMAP_WEEKS-1)*7 - todayWeekdayMon0 days
-  const gridStart = subDays(today, (HEATMAP_WEEKS - 1) * 7 + todayWeekdayMon0);
-  for (const day of heatmapDays) {
-    const diffDays = Math.round((day.date.getTime() - gridStart.getTime()) / 86400000);
-    if (diffDays < 0 || diffDays >= HEATMAP_WEEKS * 7) continue;
-    const col = Math.floor(diffDays / 7);
-    const row = diffDays % 7;
-    heatmapGrid[row][col] = day;
-  }
+  const dayLetters = language === "en"
+    ? ["S", "M", "T", "W", "T", "F", "S"]
+    : ["D", "L", "M", "M", "J", "V", "S"];
 
   return (
     <div className="space-y-6">
