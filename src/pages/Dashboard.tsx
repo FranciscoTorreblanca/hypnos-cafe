@@ -319,6 +319,82 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* Heatmap: revenue by day across recent weeks */}
+      <Card
+        className="cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => navigate("/performance")}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-emerald-600" />
+              {t("dash.heatmap")}
+            </span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {t("dash.heatmapSub")}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {/* Day labels column */}
+            <div className="flex flex-col gap-1 pt-0">
+              {dayLabels.map((d) => (
+                <div
+                  key={d}
+                  className="text-[9px] text-muted-foreground h-4 leading-4 w-6 text-right"
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+            {/* Grid */}
+            <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${HEATMAP_WEEKS}, minmax(0, 1fr))` }}>
+              {Array.from({ length: HEATMAP_WEEKS }, (_, col) => (
+                <div key={col} className="flex flex-col gap-1">
+                  {heatmapGrid.map((row, rowIdx) => {
+                    const cell = row[col];
+                    const intensity = cell ? cell.revenue / maxHeatmapRevenue : 0;
+                    const isFuture = cell && cell.date > today;
+                    return (
+                      <div
+                        key={rowIdx}
+                        title={
+                          cell
+                            ? `${format(cell.date, "EEE d MMM")}: $${cell.revenue.toFixed(0)}`
+                            : ""
+                        }
+                        className="h-4 rounded-sm border border-border/40"
+                        style={{
+                          backgroundColor:
+                            !cell || isFuture
+                              ? "transparent"
+                              : intensity === 0
+                              ? "hsl(var(--muted))"
+                              : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-1 mt-3 text-[10px] text-muted-foreground">
+            <span>$0</span>
+            {[0.15, 0.4, 0.65, 0.9, 1].map((v) => (
+              <div
+                key={v}
+                className="h-3 w-3 rounded-sm border border-border/40"
+                style={{ backgroundColor: `hsl(var(--primary) / ${v})` }}
+              />
+            ))}
+            <span>${maxHeatmapRevenue.toFixed(0)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Bottom sections */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* 7-day coffee revenue trend */}
