@@ -51,7 +51,7 @@ export const translations = {
   "dash.totalUsers": { es: "total", en: "total" },
   "dash.activeMembers": { es: "miembros activos", en: "active members" },
   "dash.heatmap": { es: "Mapa de calor de ventas", en: "Sales Heatmap" },
-  "dash.heatmapSub": { es: "Últimas 8 semanas", en: "Last 8 weeks" },
+  "dash.heatmapSub": { es: "Últimas 4 semanas", en: "Last 4 weeks" },
 
   // Tables
   "tables.title": { es: "Mesas", en: "Tables" },
