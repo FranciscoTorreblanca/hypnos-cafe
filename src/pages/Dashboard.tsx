@@ -92,6 +92,19 @@ const Dashboard = () => {
     },
   });
 
+  // Heatmap: payments for last 8 weeks (56 days, ending today)
+  const { data: heatmapPayments = [] } = useQuery({
+    queryKey: ["dashboard-heatmap-payments"],
+    queryFn: async () => {
+      const since = startOfDay(subDays(new Date(), 55)).toISOString();
+      const { data } = await supabase
+        .from("payments")
+        .select("amount, created_at")
+        .gte("created_at", since);
+      return data ?? [];
+    },
+  });
+
   if (!isAdmin) return <Navigate to="/tables" replace />;
 
   // Computed stats
