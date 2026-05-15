@@ -333,61 +333,66 @@ const Dashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            {/* Day labels column */}
-            <div className="flex flex-col gap-1 pt-0">
-              {dayLabels.map((d) => (
-                <div
-                  key={d}
-                  className="text-[9px] text-muted-foreground h-4 leading-4 w-6 text-right"
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-            {/* Grid */}
-            <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${HEATMAP_WEEKS}, minmax(0, 1fr))` }}>
-              {Array.from({ length: HEATMAP_WEEKS }, (_, col) => (
-                <div key={col} className="flex flex-col gap-1">
-                  {heatmapGrid.map((row, rowIdx) => {
-                    const cell = row[col];
-                    const intensity = cell ? cell.revenue / maxHeatmapRevenue : 0;
-                    const isFuture = cell && cell.date > today;
-                    return (
-                      <div
-                        key={rowIdx}
-                        title={
-                          cell
-                            ? `${format(cell.date, "EEE d MMM")}: $${cell.revenue.toFixed(0)}`
-                            : ""
-                        }
-                        className="h-4 rounded-sm border border-border/40"
-                        style={{
-                          backgroundColor:
-                            !cell || isFuture
-                              ? "transparent"
-                              : intensity === 0
-                              ? "hsl(var(--muted))"
-                              : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`,
-                        }}
+          <div className="flex gap-[3px]">
+            {heatmapDays.map((cell, i) => {
+              const intensity = cell.revenue / maxHeatmapRevenue;
+              const isFuture = cell.date > today;
+              const isToday = cell.date.getTime() === today.getTime();
+              const hasEvent = cell.events.length > 0;
+              const eventColor = hasEvent ? cell.events[0].color : null;
+              const dow = cell.date.getDay();
+              const showLabel = i % 2 === 0 || isToday;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div
+                    title={`${format(cell.date, "EEE d MMM")}: $${cell.revenue.toFixed(0)}${
+                      hasEvent ? ` · ${cell.events.map((e) => e.name).join(", ")}` : ""
+                    }`}
+                    className={`relative w-full h-10 rounded-sm border ${
+                      isToday ? "border-primary border-2" : "border-border/40"
+                    }`}
+                    style={{
+                      backgroundColor: isFuture
+                        ? "transparent"
+                        : cell.revenue === 0
+                        ? "hsl(var(--muted))"
+                        : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`,
+                    }}
+                  >
+                    {hasEvent && (
+                      <span
+                        className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-background"
+                        style={{ backgroundColor: eventColor ?? "hsl(var(--accent))" }}
                       />
-                    );
-                  })}
+                    )}
+                  </div>
+                  <span className="text-[8px] text-muted-foreground leading-none">
+                    {dayLetters[dow]}
+                  </span>
+                  <span className="text-[8px] text-muted-foreground leading-none h-2">
+                    {showLabel ? format(cell.date, "d") : ""}
+                  </span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
           {/* Legend */}
-          <div className="flex items-center justify-end gap-1 mt-3 text-[10px] text-muted-foreground">
-            <span>$0</span>
-            {[0.15, 0.4, 0.65, 0.9, 1].map((v) => (
-              <div
-                key={v}
-                className="h-3 w-3 rounded-sm border border-border/40"
-                style={{ backgroundColor: `hsl(var(--primary) / ${v})` }}
-              />
-            ))}
-            <span>${maxHeatmapRevenue.toFixed(0)}</span>
+          <div className="flex items-center justify-between gap-2 mt-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent ring-1 ring-background" />
+              <span>{language === "en" ? "Event day" : "Día con evento"}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span>$0</span>
+              {[0.15, 0.4, 0.65, 0.9, 1].map((v) => (
+                <div
+                  key={v}
+                  className="h-3 w-3 rounded-sm border border-border/40"
+                  style={{ backgroundColor: `hsl(var(--primary) / ${v})` }}
+                />
+              ))}
+              <span>${maxHeatmapRevenue.toFixed(0)}</span>
+            </div>
           </div>
         </CardContent>
       </Card>
