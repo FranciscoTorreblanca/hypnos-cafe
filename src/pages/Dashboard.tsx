@@ -183,29 +183,37 @@ const Dashboard = () => {
   const cashPayments = todayPayments.filter((p) => p.payment_method === "cash").length;
   const cardPayments = todayPayments.filter((p) => p.payment_method === "card").length;
 
-  // Heatmap data: 28 days as a single row, today aligned right.
+  // Heatmap data: 4 weeks × 7 weekdays grid.
+  // Columns = weekdays with today's weekday in the rightmost column.
+  // Rows = weeks (top = oldest, bottom = current week containing today).
   const today = startOfDay(new Date());
-  const heatmapDays = Array.from({ length: HEATMAP_DAYS }, (_, i) => {
-    const d = subDays(today, HEATMAP_DAYS - 1 - i);
-    const dayEnd = new Date(d);
-    dayEnd.setDate(dayEnd.getDate() + 1);
-    const revenue = heatmapPayments
-      .filter((p) => {
-        const c = new Date(p.created_at);
-        return c >= d && c < dayEnd;
-      })
-      .reduce((s, p) => s + (p.amount ?? 0), 0);
-    const dayEvents = heatmapEvents.filter((e) => {
-      const s = new Date(e.starts_at);
-      const en = new Date(e.ends_at);
-      return s < dayEnd && en >= d;
-    });
-    return { date: d, revenue, events: dayEvents };
+  const heatmapGrid = Array.from({ length: HEATMAP_WEEKS }, (_, r) =>
+    Array.from({ length: 7 }, (_, c) => {
+      const daysBack = (HEATMAP_WEEKS - 1 - r) * 7 + (6 - c);
+      const d = subDays(today, daysBack);
+      const dayEnd = new Date(d);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const revenue = heatmapPayments
+        .filter((p) => {
+          const cr = new Date(p.created_at);
+          return cr >= d && cr < dayEnd;
+        })
+        .reduce((s, p) => s + (p.amount ?? 0), 0);
+      const dayEvents = heatmapEvents.filter((e) => {
+        const s = new Date(e.starts_at);
+        const en = new Date(e.ends_at);
+        return s < dayEnd && en >= d;
+      });
+      return { date: d, revenue, events: dayEvents };
+    })
+  );
+  const allCells = heatmapGrid.flat();
+  const maxHeatmapRevenue = Math.max(...allCells.map((d) => d.revenue), 1);
+  // Column headers = weekdays in rotated order (today's weekday last).
+  const weekdayHeaders = Array.from({ length: 7 }, (_, c) => {
+    const d = subDays(today, 6 - c);
+    return { letter: format(d, "EEEEE"), dow: d.getDay() };
   });
-  const maxHeatmapRevenue = Math.max(...heatmapDays.map((d) => d.revenue), 1);
-  const dayLetters = language === "en"
-    ? ["S", "M", "T", "W", "T", "F", "S"]
-    : ["D", "L", "M", "M", "J", "V", "S"];
 
   return (
     <div className="space-y-6">
