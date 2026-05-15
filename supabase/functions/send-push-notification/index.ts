@@ -218,6 +218,16 @@ Deno.serve(async (req) => {
         };
         break;
       }
+      case "out_of_stock": {
+        const { item_name, item_id } = data;
+        payload = {
+          title: `⚠️ Producto agotado`,
+          body: `Se vendió la última unidad de "${item_name}". Reabastece o márcalo como no disponible.`,
+          tag: `out-of-stock-${item_id}`,
+          data: { type: "out_of_stock", item_id },
+        };
+        break;
+      }
       default:
         payload = { title: data.title || "Notificación", body: data.body || "", tag: type };
     }
