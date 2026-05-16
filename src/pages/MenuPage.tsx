@@ -296,6 +296,20 @@ const MenuPage = () => {
         item={editing}
         onSave={handleSave}
       />
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onResolved={(item) => {
+          setScannerOpen(false);
+          setEditing(item);
+          setDialogOpen(true);
+        }}
+      />
+    </div>
+  );
+};
+
+export default MenuPage;
     </div>
   );
 };
