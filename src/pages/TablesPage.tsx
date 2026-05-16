@@ -210,7 +210,7 @@ const SortableTableCard = ({
           >
             {table.order ? t("orders.viewOrder") : t("orders.newOrder")}
           </Button>
-          {!table.order && (
+          {(!table.order || items.length === 0 || (table.order?.total ?? 0) === 0) && (
             <Button
               variant="ghost"
               size="icon"
