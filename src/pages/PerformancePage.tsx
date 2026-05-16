@@ -1121,6 +1121,132 @@ const PerformancePage = () => {
               </Card>
             </TabsContent>
 
+            {/* Heatmap: revenue by day across last 4 weeks */}
+            <TabsContent value="heatmap">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      {t("dash.heatmap")}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {t("dash.heatmapSub")}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <div className="flex flex-col gap-[3px] pt-[18px]">
+                      {heatmapGrid.map((row, r) => {
+                        const first = row[0].date;
+                        const last = row[6].date;
+                        const sameMonth = first.getMonth() === last.getMonth();
+                        const label = sameMonth
+                          ? `${format(first, "MMM d", { locale: loc })}–${format(last, "d", { locale: loc })}`
+                          : `${format(first, "MMM d", { locale: loc })}–${format(last, "MMM d", { locale: loc })}`;
+                        return (
+                          <div
+                            key={r}
+                            className="h-12 flex items-center text-[10px] text-muted-foreground whitespace-nowrap pr-1"
+                          >
+                            {label}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex-1 flex flex-col gap-[3px]">
+                      <div className="flex gap-[3px]">
+                        {weekdayHeaders.map((h, c) => (
+                          <span
+                            key={c}
+                            className={`flex-1 text-center text-xs leading-none ${
+                              c === 6 ? "text-primary font-semibold" : "text-muted-foreground"
+                            }`}
+                          >
+                            {h.letter}
+                          </span>
+                        ))}
+                      </div>
+                      {heatmapGrid.map((row, r) => (
+                        <div key={r} className="flex gap-[3px]">
+                          {row.map((cell, c) => {
+                            const intensity = cell.revenue / maxHeatmapRevenue;
+                            const isFuture = cell.date > heatmapToday;
+                            const isToday = cell.date.getTime() === heatmapToday.getTime();
+                            const hasEvent = cell.events.length > 0;
+                            const eventColor = hasEvent ? (cell.events[0] as any).color : null;
+                            return (
+                              <div
+                                key={c}
+                                title={`${format(cell.date, "EEE d MMM", { locale: loc })}: $${cell.revenue.toFixed(0)}${
+                                  hasEvent ? ` · ${cell.events.map((e: any) => e.name).join(", ")}` : ""
+                                }`}
+                                className={`relative flex-1 h-12 rounded-sm border flex flex-col items-start justify-between p-1 ${
+                                  isToday ? "border-primary border-2" : "border-border/40"
+                                }`}
+                                style={{
+                                  backgroundColor: isFuture
+                                    ? "transparent"
+                                    : cell.revenue === 0
+                                    ? "hsl(var(--muted))"
+                                    : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`,
+                                }}
+                              >
+                                {!isFuture && (
+                                  <>
+                                    <span
+                                      className={`text-[10px] leading-none font-medium ${
+                                        intensity > 0.55 ? "text-primary-foreground" : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {format(cell.date, "d")}
+                                    </span>
+                                    {cell.revenue > 0 && (
+                                      <span
+                                        className={`text-[9px] leading-none ${
+                                          intensity > 0.55 ? "text-primary-foreground" : "text-foreground"
+                                        }`}
+                                      >
+                                        ${Math.round(cell.revenue)}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {hasEvent && (
+                                  <span
+                                    className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full ring-1 ring-background"
+                                    style={{ backgroundColor: eventColor ?? "hsl(var(--accent))" }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-accent ring-1 ring-background" />
+                      <span>{language === "en" ? "Event day" : "Día con evento"}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>$0</span>
+                      {[0.15, 0.4, 0.65, 0.9, 1].map((v) => (
+                        <div
+                          key={v}
+                          className="h-3 w-3 rounded-sm border border-border/40"
+                          style={{ backgroundColor: `hsl(var(--primary) / ${v})` }}
+                        />
+                      ))}
+                      <span>${maxHeatmapRevenue.toFixed(0)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Payment Breakdown */}
             <TabsContent value="payment-breakdown">
               <Card>
