@@ -162,9 +162,14 @@ const MenuPage = () => {
               {language === "es" ? "Artículos del Menú" : "Menu Items"}
             </h2>
             {isAdmin && (
-              <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)}>
+                  <ScanLine className="h-4 w-4 mr-1" /> {language === "es" ? "Escanear" : "Scan"}
+                </Button>
+                <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
+                </Button>
+              </div>
             )}
           </div>
 
