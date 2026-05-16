@@ -351,8 +351,8 @@ const Dashboard = () => {
                 const last = row[6].date;
                 const sameMonth = first.getMonth() === last.getMonth();
                 const label = sameMonth
-                  ? `${format(first, "MMM d")}–${format(last, "d")}`
-                  : `${format(first, "MMM d")}–${format(last, "MMM d")}`;
+                  ? `${format(first, "MMM d", { locale: dateLocale })}–${format(last, "d", { locale: dateLocale })}`
+                  : `${format(first, "MMM d", { locale: dateLocale })}–${format(last, "MMM d", { locale: dateLocale })}`;
                 return (
                   <div
                     key={r}
