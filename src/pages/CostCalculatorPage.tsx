@@ -11,16 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Search, ChevronsUpDown, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Search, ChevronsUpDown, Check, Copy } from "lucide-react";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
 import { MenuItem } from "@/hooks/useMenuItems";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { MenuItemFilters, emptyFilters, applyMenuItemFilters, MenuItemFilterState } from "@/components/menu/MenuItemFilters";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ── Price suggestion logic ──────────────────────────────── */
 function suggestPrice(rawCost: number) {
@@ -161,9 +164,43 @@ const CostCalculatorPage = () => {
   const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; source_menu_item_id: string; quantity: string }[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
 
-  // Load recipe when item changes
+  // Picker filters (for selecting which item to cost)
+  const [pickerFilters, setPickerFilters] = useState<MenuItemFilterState>(emptyFilters);
+  const filteredPickerItems = useMemo(
+    () => applyMenuItemFilters(menuItems, pickerFilters, (m) => m.name),
+    [menuItems, pickerFilters]
+  );
+
+  // Copy-from-item dialog
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyFilters, setCopyFilters] = useState<MenuItemFilterState>(emptyFilters);
+  const filteredCopyItems = useMemo(
+    () => applyMenuItemFilters(menuItems.filter((m) => m.id !== selectedItemId), copyFilters, (m) => m.name),
+    [menuItems, copyFilters, selectedItemId]
+  );
+
   const handleSelectItem = (id: string) => {
     setSelectedItemId(id);
+  };
+
+  const handleCopyFromItem = async (sourceId: string) => {
+    const { data, error } = await supabase
+      .from("menu_item_ingredients")
+      .select("*")
+      .eq("menu_item_id", sourceId);
+    if (error) {
+      toast({ title: "Error al copiar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRecipeRows(
+      (data || []).map((r: any) => ({
+        ingredient_id: r.ingredient_id ?? "",
+        source_menu_item_id: r.source_menu_item_id ?? "",
+        quantity: String(r.quantity),
+      }))
+    );
+    setCopyDialogOpen(false);
+    toast({ title: "Costos copiados", description: "Revisa y guarda para aplicar los cambios" });
   };
 
   // Sync existing recipe into local state when data arrives
@@ -341,21 +378,43 @@ const CostCalculatorPage = () => {
               <CardTitle className="text-base">Costear platillo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Selecciona un platillo del menú</Label>
-                <div className="flex gap-2">
-                  <Select value={selectedItemId} onValueChange={handleSelectItem}>
-                    <SelectTrigger><SelectValue placeholder="— Seleccionar platillo —" /></SelectTrigger>
-                    <SelectContent>
-                      {menuItems.map((mi) => (
-                        <SelectItem key={mi.id} value={mi.id}>{mi.name} — ${Number(mi.price).toFixed(0)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="icon" className="shrink-0" onClick={() => setNewItemDialogOpen(true)}>
-                    <Plus className="h-4 w-4" />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Selecciona un platillo del menú</Label>
+                  <Button variant="outline" size="sm" className="shrink-0" onClick={() => setNewItemDialogOpen(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />Nuevo
                   </Button>
                 </div>
+                <MenuItemFilters value={pickerFilters} onChange={setPickerFilters} compact />
+                <ScrollArea className="h-56 rounded-md border">
+                  <div className="divide-y">
+                    {filteredPickerItems.map((mi) => {
+                      const isSelected = mi.id === selectedItemId;
+                      return (
+                        <button
+                          key={mi.id}
+                          type="button"
+                          onClick={() => handleSelectItem(mi.id)}
+                          className={cn(
+                            "flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors",
+                            isSelected && "bg-primary/10"
+                          )}
+                        >
+                          <span className="flex items-center gap-2 truncate">
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                            <span className="truncate">{mi.name}</span>
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground shrink-0">
+                            ${Number(mi.price).toFixed(0)} · costo ${Number(mi.cost).toFixed(2)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {filteredPickerItems.length === 0 && (
+                      <p className="text-center text-xs text-muted-foreground py-6">Sin resultados</p>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
               <MenuItemDialog
                 open={newItemDialogOpen}
@@ -371,9 +430,14 @@ const CostCalculatorPage = () => {
               {selectedItemId && (
                 <>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Ingredientes de la receta</Label>
-                      <Button size="sm" variant="outline" onClick={addRecipeRow}><Plus className="h-3.5 w-3.5 mr-1" />Ingrediente</Button>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <Label>Ingredientes de la receta — {selectedItem?.name}</Label>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => { setCopyFilters(emptyFilters); setCopyDialogOpen(true); }}>
+                          <Copy className="h-3.5 w-3.5 mr-1" />Copiar de…
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={addRecipeRow}><Plus className="h-3.5 w-3.5 mr-1" />Ingrediente</Button>
+                      </div>
                     </div>
                     <Table>
                       <TableHeader>
@@ -686,6 +750,38 @@ const CostCalculatorPage = () => {
         initial={editingIng}
         onSave={handleSaveIngredient}
       />
+
+      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Copiar costos de otro platillo</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Los ingredientes se cargarán como base. Los cambios solo se guardarán cuando presiones "Guardar receta".
+          </p>
+          <MenuItemFilters value={copyFilters} onChange={setCopyFilters} compact />
+          <ScrollArea className="h-72 rounded-md border">
+            <div className="divide-y">
+              {filteredCopyItems.map((mi) => (
+                <button
+                  key={mi.id}
+                  type="button"
+                  onClick={() => handleCopyFromItem(mi.id)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors"
+                >
+                  <span className="truncate">{mi.name}</span>
+                  <span className="font-mono text-xs text-muted-foreground shrink-0">
+                    costo ${Number(mi.cost).toFixed(2)}
+                  </span>
+                </button>
+              ))}
+              {filteredCopyItems.length === 0 && (
+                <p className="text-center text-xs text-muted-foreground py-6">Sin resultados</p>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
