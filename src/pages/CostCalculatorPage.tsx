@@ -164,9 +164,43 @@ const CostCalculatorPage = () => {
   const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; source_menu_item_id: string; quantity: string }[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
 
-  // Load recipe when item changes
+  // Picker filters (for selecting which item to cost)
+  const [pickerFilters, setPickerFilters] = useState<MenuItemFilterState>(emptyFilters);
+  const filteredPickerItems = useMemo(
+    () => applyMenuItemFilters(menuItems, pickerFilters, (m) => m.name),
+    [menuItems, pickerFilters]
+  );
+
+  // Copy-from-item dialog
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyFilters, setCopyFilters] = useState<MenuItemFilterState>(emptyFilters);
+  const filteredCopyItems = useMemo(
+    () => applyMenuItemFilters(menuItems.filter((m) => m.id !== selectedItemId), copyFilters, (m) => m.name),
+    [menuItems, copyFilters, selectedItemId]
+  );
+
   const handleSelectItem = (id: string) => {
     setSelectedItemId(id);
+  };
+
+  const handleCopyFromItem = async (sourceId: string) => {
+    const { data, error } = await supabase
+      .from("menu_item_ingredients")
+      .select("*")
+      .eq("menu_item_id", sourceId);
+    if (error) {
+      toast({ title: "Error al copiar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRecipeRows(
+      (data || []).map((r: any) => ({
+        ingredient_id: r.ingredient_id ?? "",
+        source_menu_item_id: r.source_menu_item_id ?? "",
+        quantity: String(r.quantity),
+      }))
+    );
+    setCopyDialogOpen(false);
+    toast({ title: "Costos copiados", description: "Revisa y guarda para aplicar los cambios" });
   };
 
   // Sync existing recipe into local state when data arrives
