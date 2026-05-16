@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { startOfDay, subDays, format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
