@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { startOfDay, subDays, format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
@@ -209,10 +210,11 @@ const Dashboard = () => {
   );
   const allCells = heatmapGrid.flat();
   const maxHeatmapRevenue = Math.max(...allCells.map((d) => d.revenue), 1);
+  const dateLocale = language === "es" ? es : enUS;
   // Column headers = weekdays in rotated order (today's weekday last).
   const weekdayHeaders = Array.from({ length: 7 }, (_, c) => {
     const d = subDays(today, 6 - c);
-    return { letter: format(d, "EEEEE"), dow: d.getDay() };
+    return { letter: format(d, "EEEEE", { locale: dateLocale }), dow: d.getDay() };
   });
 
   return (
@@ -349,8 +351,8 @@ const Dashboard = () => {
                 const last = row[6].date;
                 const sameMonth = first.getMonth() === last.getMonth();
                 const label = sameMonth
-                  ? `${format(first, "MMM d")}–${format(last, "d")}`
-                  : `${format(first, "MMM d")}–${format(last, "MMM d")}`;
+                  ? `${format(first, "MMM d", { locale: dateLocale })}–${format(last, "d", { locale: dateLocale })}`
+                  : `${format(first, "MMM d", { locale: dateLocale })}–${format(last, "MMM d", { locale: dateLocale })}`;
                 return (
                   <div
                     key={r}
@@ -387,7 +389,7 @@ const Dashboard = () => {
                     return (
                       <div
                         key={c}
-                        title={`${format(cell.date, "EEE d MMM")}: $${cell.revenue.toFixed(0)}${
+                        title={`${format(cell.date, "EEE d MMM", { locale: dateLocale })}: $${cell.revenue.toFixed(0)}${
                           hasEvent ? ` · ${cell.events.map((e) => e.name).join(", ")}` : ""
                         }`}
                         className={`relative flex-1 h-10 rounded-sm border flex items-end justify-start p-0.5 ${
