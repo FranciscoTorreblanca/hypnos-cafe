@@ -611,6 +611,7 @@ const PerformancePage = () => {
               <TabsTrigger value="categories">{t("performance.byCategory")}</TabsTrigger>
               <TabsTrigger value="comparison">{t("performance.comparison")}</TabsTrigger>
               <TabsTrigger value="trend">{t("performance.trend")}</TabsTrigger>
+              <TabsTrigger value="heatmap">{t("dash.heatmap")}</TabsTrigger>
               <TabsTrigger value="payment-breakdown">{t("performance.paymentBreakdown")}</TabsTrigger>
               <TabsTrigger value="hours">{t("performance.hourlyDistribution")}</TabsTrigger>
             </TabsList>
