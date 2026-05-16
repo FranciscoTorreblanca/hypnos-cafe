@@ -210,10 +210,11 @@ const Dashboard = () => {
   );
   const allCells = heatmapGrid.flat();
   const maxHeatmapRevenue = Math.max(...allCells.map((d) => d.revenue), 1);
+  const dateLocale = language === "es" ? es : enUS;
   // Column headers = weekdays in rotated order (today's weekday last).
   const weekdayHeaders = Array.from({ length: 7 }, (_, c) => {
     const d = subDays(today, 6 - c);
-    return { letter: format(d, "EEEEE"), dow: d.getDay() };
+    return { letter: format(d, "EEEEE", { locale: dateLocale }), dow: d.getDay() };
   });
 
   return (
