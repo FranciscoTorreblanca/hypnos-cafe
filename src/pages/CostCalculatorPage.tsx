@@ -15,12 +15,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Search, ChevronsUpDown, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Search, ChevronsUpDown, Check, Copy } from "lucide-react";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
 import { MenuItem } from "@/hooks/useMenuItems";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { MenuItemFilters, emptyFilters, applyMenuItemFilters, MenuItemFilterState } from "@/components/menu/MenuItemFilters";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ── Price suggestion logic ──────────────────────────────── */
 function suggestPrice(rawCost: number) {
