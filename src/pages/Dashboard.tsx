@@ -389,7 +389,7 @@ const Dashboard = () => {
                     return (
                       <div
                         key={c}
-                        title={`${format(cell.date, "EEE d MMM")}: $${cell.revenue.toFixed(0)}${
+                        title={`${format(cell.date, "EEE d MMM", { locale: dateLocale })}: $${cell.revenue.toFixed(0)}${
                           hasEvent ? ` · ${cell.events.map((e) => e.name).join(", ")}` : ""
                         }`}
                         className={`relative flex-1 h-10 rounded-sm border flex items-end justify-start p-0.5 ${
