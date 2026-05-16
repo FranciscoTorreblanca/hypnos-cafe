@@ -378,21 +378,43 @@ const CostCalculatorPage = () => {
               <CardTitle className="text-base">Costear platillo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Selecciona un platillo del menú</Label>
-                <div className="flex gap-2">
-                  <Select value={selectedItemId} onValueChange={handleSelectItem}>
-                    <SelectTrigger><SelectValue placeholder="— Seleccionar platillo —" /></SelectTrigger>
-                    <SelectContent>
-                      {menuItems.map((mi) => (
-                        <SelectItem key={mi.id} value={mi.id}>{mi.name} — ${Number(mi.price).toFixed(0)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="icon" className="shrink-0" onClick={() => setNewItemDialogOpen(true)}>
-                    <Plus className="h-4 w-4" />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Selecciona un platillo del menú</Label>
+                  <Button variant="outline" size="sm" className="shrink-0" onClick={() => setNewItemDialogOpen(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />Nuevo
                   </Button>
                 </div>
+                <MenuItemFilters value={pickerFilters} onChange={setPickerFilters} compact />
+                <ScrollArea className="h-56 rounded-md border">
+                  <div className="divide-y">
+                    {filteredPickerItems.map((mi) => {
+                      const isSelected = mi.id === selectedItemId;
+                      return (
+                        <button
+                          key={mi.id}
+                          type="button"
+                          onClick={() => handleSelectItem(mi.id)}
+                          className={cn(
+                            "flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors",
+                            isSelected && "bg-primary/10"
+                          )}
+                        >
+                          <span className="flex items-center gap-2 truncate">
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                            <span className="truncate">{mi.name}</span>
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground shrink-0">
+                            ${Number(mi.price).toFixed(0)} · costo ${Number(mi.cost).toFixed(2)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {filteredPickerItems.length === 0 && (
+                      <p className="text-center text-xs text-muted-foreground py-6">Sin resultados</p>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
               <MenuItemDialog
                 open={newItemDialogOpen}
@@ -408,9 +430,14 @@ const CostCalculatorPage = () => {
               {selectedItemId && (
                 <>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Ingredientes de la receta</Label>
-                      <Button size="sm" variant="outline" onClick={addRecipeRow}><Plus className="h-3.5 w-3.5 mr-1" />Ingrediente</Button>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <Label>Ingredientes de la receta — {selectedItem?.name}</Label>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => { setCopyFilters(emptyFilters); setCopyDialogOpen(true); }}>
+                          <Copy className="h-3.5 w-3.5 mr-1" />Copiar de…
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={addRecipeRow}><Plus className="h-3.5 w-3.5 mr-1" />Ingrediente</Button>
+                      </div>
                     </div>
                     <Table>
                       <TableHeader>
