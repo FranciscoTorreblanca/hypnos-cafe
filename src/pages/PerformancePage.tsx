@@ -146,6 +146,50 @@ const PerformancePage = () => {
   const orders = ordersQuery.data ?? [];
   const payments = paymentsQuery.data ?? [];
 
+  // Heatmap: last 4 weeks of events (payments already fetched above)
+  const HEATMAP_WEEKS = 4;
+  const HEATMAP_DAYS = HEATMAP_WEEKS * 7;
+  const heatmapEventsQuery = useQuery({
+    queryKey: ["performance-heatmap-events"],
+    queryFn: async () => {
+      const since = startOfDay(subDays(new Date(), HEATMAP_DAYS - 1)).toISOString();
+      const { data } = await supabase
+        .from("events")
+        .select("id, name, color, starts_at, ends_at")
+        .gte("starts_at", since);
+      return data ?? [];
+    },
+  });
+  const heatmapEvents = heatmapEventsQuery.data ?? [];
+
+  const heatmapToday = startOfDay(new Date());
+  const heatmapGrid = Array.from({ length: HEATMAP_WEEKS }, (_, r) =>
+    Array.from({ length: 7 }, (_, c) => {
+      const daysBack = (HEATMAP_WEEKS - 1 - r) * 7 + (6 - c);
+      const d = subDays(heatmapToday, daysBack);
+      const dayEnd = new Date(d);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const revenue = payments
+        .filter((p) => {
+          const cr = new Date(p.created_at);
+          return cr >= d && cr < dayEnd;
+        })
+        .reduce((s, p) => s + (p.amount ?? 0), 0);
+      const dayEvents = heatmapEvents.filter((e: any) => {
+        const s = new Date(e.starts_at);
+        const en = new Date(e.ends_at);
+        return s < dayEnd && en >= d;
+      });
+      return { date: d, revenue, events: dayEvents };
+    })
+  );
+  const heatmapCells = heatmapGrid.flat();
+  const maxHeatmapRevenue = Math.max(...heatmapCells.map((d) => d.revenue), 1);
+  const weekdayHeaders = Array.from({ length: 7 }, (_, c) => {
+    const d = subDays(heatmapToday, 6 - c);
+    return { letter: format(d, "EEEEE", { locale: loc }), dow: d.getDay() };
+  });
+
   // Current selected range and an equally-sized previous range for comparison
   const currentPeriod = range;
   const prevPeriod = useMemo(() => {
