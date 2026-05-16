@@ -12,10 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Pencil, Trash2, Calculator, Download } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Calculator, Download, ScanLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useCombos } from "@/hooks/useCombos";
+import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
 
 const MenuPage = () => {
   const { t, language } = useLanguage();
@@ -95,6 +96,7 @@ const MenuPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
 
@@ -160,9 +162,14 @@ const MenuPage = () => {
               {language === "es" ? "Artículos del Menú" : "Menu Items"}
             </h2>
             {isAdmin && (
-              <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)}>
+                  <ScanLine className="h-4 w-4 mr-1" /> {language === "es" ? "Escanear" : "Scan"}
+                </Button>
+                <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> {t("menu.addItem")}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -288,6 +295,15 @@ const MenuPage = () => {
         onOpenChange={setDialogOpen}
         item={editing}
         onSave={handleSave}
+      />
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onResolved={(item) => {
+          setScannerOpen(false);
+          setEditing(item);
+          setDialogOpen(true);
+        }}
       />
     </div>
   );
