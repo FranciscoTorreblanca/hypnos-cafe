@@ -310,8 +310,3 @@ const MenuPage = () => {
 };
 
 export default MenuPage;
-    </div>
-  );
-};
-
-export default MenuPage;
