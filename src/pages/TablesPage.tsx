@@ -458,7 +458,16 @@ const TablesPage = () => {
     setShowNewTable(false);
   };
 
-  const handleDeleteTable = (num: number) => {
+  const handleDeleteTable = async (num: number) => {
+    // If table has an empty/zero-total order, cancel it first so the table can be freed
+    const lingering = activeOrders.find((o) => o.table_number === num);
+    if (lingering) {
+      try {
+        await cancelOrder.mutateAsync(lingering.id);
+      } catch (e) {
+        console.error("Failed to cancel lingering order:", e);
+      }
+    }
     const updated = { ...tableNames };
     delete updated[String(num)];
     updateNames.mutate(updated);
