@@ -87,8 +87,11 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
     setRecipeDirty(false);
   }, [item, open]);
 
-  // Sync loaded recipe into local state
+  // Sync loaded recipe into local state only when the dialog opens for a new
+  // item — not on every query refetch (which would clobber unsaved edits and
+  // can trigger infinite update loops).
   useEffect(() => {
+    if (!open) return;
     if (item?.id) {
       setRecipeRows(
         existingRecipe.map((r) => ({
@@ -101,7 +104,8 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
     } else {
       setRecipeRows([]);
     }
-  }, [existingRecipe, item?.id, open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.id, open, existingRecipe.length]);
 
   const handleRecipeChange = (rows: RecipeRow[]) => {
     setRecipeRows(rows);
