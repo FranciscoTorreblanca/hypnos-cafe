@@ -796,10 +796,13 @@ const PerformancePage = () => {
                               <TableHead>{t("performance.category")}</TableHead>
                               <TableHead className="text-right">{t("performance.qtySold")}</TableHead>
                               <TableHead className="text-right">{t("billing.income")}</TableHead>
-                              <TableHead className="text-right">{t("performance.share")}</TableHead>
-                              <TableHead className="text-right hidden sm:table-cell">{t("performance.uniqueItems")}</TableHead>
-                              <TableHead className="text-right hidden sm:table-cell">{t("performance.avgPrice")}</TableHead>
-                              <TableHead className="hidden md:table-cell">{t("performance.bestItem")}</TableHead>
+                              <TableHead className="text-right">{t("performance.itemCost")}</TableHead>
+                              <TableHead className="text-right">{t("performance.netProfit")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.margin")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.share")}</TableHead>
+                              <TableHead className="text-right hidden md:table-cell">{t("performance.uniqueItems")}</TableHead>
+                              <TableHead className="text-right hidden md:table-cell">{t("performance.avgPrice")}</TableHead>
+                              <TableHead className="hidden lg:table-cell">{t("performance.bestItem")}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -817,7 +820,14 @@ const PerformancePage = () => {
                                   </TableCell>
                                   <TableCell className="text-right">{c.qty}</TableCell>
                                   <TableCell className="text-right font-medium">${c.revenue.toLocaleString()}</TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-right text-muted-foreground">${Math.round(c.cost).toLocaleString()}</TableCell>
+                                  <TableCell className={`text-right font-medium ${c.netProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                                    ${Math.round(c.netProfit).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">
+                                    <span className={c.margin >= 0 ? "text-green-600" : "text-destructive"}>{c.margin.toFixed(1)}%</span>
+                                  </TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">
                                     <div className="flex items-center justify-end gap-2">
                                       <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
                                       <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -825,9 +835,9 @@ const PerformancePage = () => {
                                       </div>
                                     </div>
                                   </TableCell>
-                                  <TableCell className="text-right hidden sm:table-cell">{c.uniqueItems}</TableCell>
-                                  <TableCell className="text-right hidden sm:table-cell">${c.avgPrice.toFixed(0)}</TableCell>
-                                  <TableCell className="hidden md:table-cell text-sm">
+                                  <TableCell className="text-right hidden md:table-cell">{c.uniqueItems}</TableCell>
+                                  <TableCell className="text-right hidden md:table-cell">${c.avgPrice.toFixed(0)}</TableCell>
+                                  <TableCell className="hidden lg:table-cell text-sm">
                                     {c.bestItem} <span className="text-muted-foreground text-xs">({c.bestItemQty})</span>
                                   </TableCell>
                                 </TableRow>
