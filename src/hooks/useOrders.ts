@@ -274,6 +274,7 @@ export const useOrders = () => {
     updateOrderStatus,
     updateItemStatus,
     addItem,
+    addItemsBulk,
     removeItem,
     cancelOrder,
     updateItemDiscount,
