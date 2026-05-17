@@ -1,57 +1,44 @@
-# Add fixed-amount discounts (per item + general)
+# Integrate Cost Calculator into Menu Item Dialog
 
-Today, discounts are percentage-only on `order_items.discount` and `orders.general_discount`. We'll add a parallel **fixed amount (MXN)** discount on both, applied **after** the percentage. Both can be used together; either can be 0.
+Add a tabbed interface inside `MenuItemDialog` so admins can edit name/description/price **and** build the recipe / costing in the same modal, then save everything in one action.
 
-## Calculation rules
+## Scope
 
-- **Per item line total**: `qty * unit_price * (1 - pct/100) - fixedAmount` (clamped ≥ 0)
-- **Order subtotal**: sum of line totals
-- **General discount**: `subtotal * (1 - generalPct/100) - generalFixed` (clamped ≥ 0) → final total
+- Convert `MenuItemDialog` body into Tabs: **General** (current fields) + **Costos** (new, admin-only, only visible when editing an existing item).
+- The Costos tab embeds the recipe builder currently on `CostCalculatorPage`: ingredient/sub-item rows, totals, suggested price, copy-from-another-item.
+- Keep the standalone `CostCalculatorPage` unchanged — it remains the place for bulk work, ingredient catalog, CSV import, and cross-item costing comparisons.
 
-## Database
+## UX
 
-Add two nullable numeric columns (default 0):
-- `order_items.discount_amount NUMERIC NOT NULL DEFAULT 0`
-- `orders.general_discount_amount NUMERIC NOT NULL DEFAULT 0`
+- Dialog grows to `max-w-2xl` to fit the recipe table comfortably; keeps `max-h-[90vh]` scroll.
+- Tabs: `General` (default) · `Costos` (badge with computed cost). Hidden for new items (need an `id` to attach ingredients).
+- Inside Costos tab:
+  - Header row: current cost vs. live recipe cost, suggested price, "Aplicar a precio" button.
+  - Recipe rows: ingredient picker (popover+command), quantity, unit cost, line total, delete.
+  - Actions: `+ Agregar fila`, `Copiar de otro platillo` (opens existing copy dialog logic).
+  - The `cost` field in the General tab becomes read-only when there is a recipe (auto-derived); manual entry still allowed if no recipe rows.
+- Single bottom "Guardar" button persists: (a) menu item fields, (b) recipe rows via `saveAll`, (c) updates `cost` from recipe total. Pending recipe edits (including a copy-from-source) are kept in local state — nothing is written until Save, matching the existing "copy then save" behavior.
 
-No RLS changes (existing policies cover all columns). Trigger-recomputed totals already happen client-side in `useOrders.ts`, just need updating.
+## Technical notes
 
-## UI changes
-
-**OrderDialog (`src/components/orders/OrderDialog.tsx`)**
-- Cart row: next to the % popover, add a **$** popover for fixed MXN discount per item.
-- Existing item row (sent to kitchen): same — add **$** popover next to the existing % control.
-- General discount section: add a fixed **$** input next to the existing % input.
-- Update local `cart` state type to include `discountAmount`.
-- Update subtotal/total computations and ticket-snapshot payload.
-
-**TablesPage**: show small badge `-$X` next to the `-Y%` badge when fixed discount > 0.
-
-**BillingPage**: include the new fields when computing what to charge & when snapshotting the ticket.
-
-**OrderHistoryPage**: same — apply fixed discounts to the displayed totals and ticket snapshot.
-
-**Ticket snapshot/print** (`utils/ticketSnapshot.ts`, `tickets/TicketView.tsx`, `PrintTicketDialog.tsx`): persist & render `discount_amount` per line and `general_discount_amount` on order; show `-$X` line in summary.
-
-**Hooks**:
-- `useOrders.ts`: extend `OrderItem` and `Order` types; `addItem` / `updateItemDiscount` accept optional `discount_amount`; recalc total using both pct+fixed; new `updateItemDiscountAmount` and `updateGeneralDiscountAmount` mutations.
-- `usePayments.ts`: when finalizing a paid order, also reset `general_discount_amount` to 0 (matches existing pattern).
-
-## i18n
-Add labels: "Descuento fijo" / "Fixed discount", "Monto" / "Amount" in `translations.ts`.
+- Extract the recipe UI from `CostCalculatorPage.tsx` into a new reusable component `src/components/menu/MenuItemCostTab.tsx` accepting `{ itemId, recipeRows, onRecipeChange, ingredients, menuItems }`. The page and the dialog both render it; the page keeps owning the picker/copy filters around it.
+- Lift the `recipeRows` state and `suggestPrice` helper into the new component file; export `suggestPrice` for reuse.
+- `MenuItemDialog`:
+  - Add `useMenuItemIngredients(item?.id)` to load existing recipe and `saveAll` mutation.
+  - Local `recipeRows` state mirrors loaded recipe; reset on `open`/`item` change like the form.
+  - On submit: `await saveAll.mutateAsync(...)` first when recipe changed, then upsert the menu item with computed `cost` (or the manual value if no rows).
+  - Pass `cost` form field as derived when recipe rows exist; show small hint "Calculado desde receta".
+- Permissions: Costos tab only rendered when `isAdmin` (from `useAuth`) and `item?.id` exists.
+- No DB schema changes. No changes to `CostCalculatorPage` logic beyond importing the extracted component.
 
 ## Out of scope
-- No analytics changes (Performance/Dashboard already use `orders.total` which we'll keep authoritative by recomputing on every mutation, just like today).
 
-## Files touched
-- migration (new columns)
-- `src/hooks/useOrders.ts`
-- `src/hooks/usePayments.ts`
-- `src/components/orders/OrderDialog.tsx`
-- `src/components/tickets/PrintTicketDialog.tsx`
-- `src/components/tickets/TicketView.tsx`
-- `src/utils/ticketSnapshot.ts`
-- `src/pages/BillingPage.tsx`
-- `src/pages/TablesPage.tsx`
-- `src/pages/OrderHistoryPage.tsx`
-- `src/i18n/translations.ts`
+- Combos cost editing (already handled in ComboManager).
+- Ingredient CRUD inside the dialog — still done on the calculator page.
+- Bulk margin overview / dashboard mode for the standalone page.
+
+## Files
+
+- new `src/components/menu/MenuItemCostTab.tsx`
+- edit `src/components/menu/MenuItemDialog.tsx` (tabs, recipe state, save flow, widen dialog)
+- edit `src/pages/CostCalculatorPage.tsx` (use the extracted component to avoid duplication)
