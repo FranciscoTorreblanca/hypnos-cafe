@@ -69,18 +69,24 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-md border bg-muted/30 p-2">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Package className="h-3 w-3" /> {t("potential.invested")}
+            </div>
+            <div className="text-base font-bold">{fmt(totalInvested)}</div>
+          </div>
           <div className="rounded-md border bg-muted/30 p-2">
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <Coins className="h-3 w-3" /> {t("potential.revenue")}
             </div>
-            <div className="text-lg font-bold">{fmt(totalRevenue)}</div>
+            <div className="text-base font-bold">{fmt(totalRevenue)}</div>
           </div>
           <div className="rounded-md border bg-muted/30 p-2">
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <TrendingUp className="h-3 w-3" /> {t("potential.netProfit")}
             </div>
-            <div className="text-lg font-bold text-primary">{fmt(totalProfit)}</div>
+            <div className="text-base font-bold text-primary">{fmt(totalProfit)}</div>
           </div>
         </div>
 
@@ -93,12 +99,21 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
             <div className="space-y-1">
+              <div className="flex items-center text-[10px] text-muted-foreground pb-1 px-1 border-b">
+                <span className="flex-1" />
+                <span className="w-16 text-right">{t("potential.invested")}</span>
+                <span className="w-10 text-right">#</span>
+                <span className="w-20 text-right">{t("potential.revenue")}</span>
+                <span className="w-20 text-right">{t("potential.netProfit")}</span>
+              </div>
               {byCategory.map((c) => (
                 <div
                   key={c.name}
-                  className="flex items-center justify-between text-xs py-1 border-b last:border-b-0"
+                  className="flex items-center text-xs py-1 border-b last:border-b-0"
                 >
-                  <span className="font-medium truncate flex-1">{c.name}</span>
+                  <span className="font-medium truncate flex-1 pr-1">{c.name}</span>
+                  <span className="tabular-nums w-16 text-right">{fmt(c.invested)}</span>
+                  <span className="text-muted-foreground tabular-nums w-10 text-right">{c.items}</span>
                   <span className="text-muted-foreground tabular-nums w-20 text-right">
                     {fmt(c.revenue)}
                   </span>
@@ -107,11 +122,6 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
                   </span>
                 </div>
               ))}
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 px-1">
-                <span className="flex-1" />
-                <span className="w-20 text-right">{t("potential.revenue")}</span>
-                <span className="w-20 text-right">{t("potential.netProfit")}</span>
-              </div>
             </div>
             <p className="text-[10px] text-muted-foreground mt-2 italic">
               {t("potential.hint")}
