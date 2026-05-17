@@ -19,7 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { MenuItemFilters, emptyFilters, applyMenuItemFilters, MenuItemFilterState } from "@/components/menu/MenuItemFilters";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
+import { MenuItemCostTab, RecipeRow, computeRecipeCost, suggestPrice } from "@/components/menu/MenuItemCostTab";
 
 /* ── Ingredient Form Dialog ──────────────────────────────── */
 interface IngFormValues {
