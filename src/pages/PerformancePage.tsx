@@ -579,7 +579,7 @@ const PerformancePage = () => {
       ) : (
         <>
           {/* KPI Cards */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{t("billing.income")}</CardTitle>
