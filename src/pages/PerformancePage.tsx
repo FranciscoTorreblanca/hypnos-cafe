@@ -36,7 +36,7 @@ interface PaidOrder {
     quantity: number;
     unit_price: number;
     discount: number;
-    menu_items: { name: string; name_en: string } | null;
+    menu_items: { name: string; name_en: string; cost: number | null } | null;
   }[];
 }
 
@@ -121,7 +121,7 @@ const PerformancePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en))")
+        .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en, cost))")
         .in("status", ["paid", "completed"])
         .gte("created_at", fetchSince)
         .order("created_at", { ascending: false });
@@ -273,6 +273,15 @@ const PerformancePage = () => {
   const prevAvgTicket = prevTotalOrders > 0 ? prevRevenue / prevTotalOrders : 0;
   const totalTips = currentPayments.reduce((s, p) => s + p.tip, 0);
 
+  // Production-cost-based net profit (excludes tips). Item cost comes from menu_items.cost.
+  const sumItemCost = (os: PaidOrder[]) =>
+    os.reduce((s, o) => s + o.order_items.reduce((ss, i) => ss + i.quantity * (i.menu_items?.cost ?? 0), 0), 0);
+  const totalItemCost = sumItemCost(currentOrders);
+  const prevItemCost = sumItemCost(prevOrders);
+  const netProfit = totalRevenue - totalItemCost;
+  const prevNetProfit = prevRevenue - prevItemCost;
+  const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
   const pctChange = (curr: number, prev: number) => {
     if (prev === 0) return curr > 0 ? 100 : 0;
     return ((curr - prev) / prev) * 100;
@@ -281,13 +290,14 @@ const PerformancePage = () => {
   const revChange = pctChange(totalRevenue, prevRevenue);
   const ordersChange = pctChange(totalOrders, prevTotalOrders);
   const ticketChange = pctChange(avgTicket, prevAvgTicket);
+  const netProfitChange = pctChange(netProfit, prevNetProfit);
 
   const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories);
 
   // Category breakdown for current period
   const categoryBreakdown = useMemo(() => {
     const rangeOrders = getOrdersInRange(currentPeriod.start, currentPeriod.end);
-    type Agg = { catId: string; name: string; qty: number; revenue: number; uniqueItems: Set<string>; bestItem: string; bestItemQty: number; itemQty: Map<string, { name: string; qty: number }> };
+    type Agg = { catId: string; name: string; qty: number; revenue: number; cost: number; uniqueItems: Set<string>; bestItem: string; bestItemQty: number; itemQty: Map<string, { name: string; qty: number }> };
     const map = new Map<string, Agg>();
     rangeOrders.forEach((o) =>
       o.order_items.forEach((item) => {
@@ -297,9 +307,10 @@ const PerformancePage = () => {
           ? t("performance.noCategory")
           : (language === "en" && cat?.name_en ? cat.name_en : cat?.name ?? "?");
         const itemName = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
-        const existing = map.get(catId) ?? { catId, name: catName, qty: 0, revenue: 0, uniqueItems: new Set(), bestItem: "", bestItemQty: 0, itemQty: new Map() };
+        const existing = map.get(catId) ?? { catId, name: catName, qty: 0, revenue: 0, cost: 0, uniqueItems: new Set(), bestItem: "", bestItemQty: 0, itemQty: new Map() };
         existing.qty += item.quantity;
         existing.revenue += item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
+        existing.cost += item.quantity * (item.menu_items?.cost ?? 0);
         existing.uniqueItems.add(item.menu_item_id);
         const ie = existing.itemQty.get(item.menu_item_id) ?? { name: itemName, qty: 0 };
         ie.qty += item.quantity;
@@ -317,6 +328,9 @@ const PerformancePage = () => {
         name: c.name,
         qty: c.qty,
         revenue: c.revenue,
+        cost: c.cost,
+        netProfit: c.revenue - c.cost,
+        margin: c.revenue > 0 ? ((c.revenue - c.cost) / c.revenue) * 100 : 0,
         uniqueItems: c.uniqueItems.size,
         avgPrice: c.qty > 0 ? c.revenue / c.qty : 0,
         bestItem: c.bestItem,
@@ -391,11 +405,14 @@ const PerformancePage = () => {
   const exportCategories = () => {
     downloadCsv(
       `categories-${format(currentPeriod.start, "yyyy-MM-dd")}`,
-      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
+      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.itemCost"), t("performance.netProfit"), t("performance.margin"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
       categoryBreakdown.map((c) => [
         c.name,
         c.qty,
         c.revenue.toFixed(2),
+        c.cost.toFixed(2),
+        c.netProfit.toFixed(2),
+        `${c.margin.toFixed(1)}%`,
         totalCategoryRevenue > 0 ? `${((c.revenue / totalCategoryRevenue) * 100).toFixed(1)}%` : "0%",
         c.uniqueItems,
         c.avgPrice.toFixed(2),
@@ -562,7 +579,7 @@ const PerformancePage = () => {
       ) : (
         <>
           {/* KPI Cards */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{t("billing.income")}</CardTitle>
@@ -591,6 +608,20 @@ const PerformancePage = () => {
               <CardContent>
                 <div className="text-2xl font-bold">${avgTicket.toFixed(0)}</div>
                 <ChangeIndicator value={ticketChange} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("performance.netProfit")}</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${Math.round(netProfit).toLocaleString()}</div>
+                <div className="flex items-center gap-2">
+                  <ChangeIndicator value={netProfitChange} />
+                  <span className="text-xs text-muted-foreground">{netMargin.toFixed(1)}%</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{t("performance.netProfitHint")}</p>
               </CardContent>
             </Card>
             <Card>
@@ -765,10 +796,13 @@ const PerformancePage = () => {
                               <TableHead>{t("performance.category")}</TableHead>
                               <TableHead className="text-right">{t("performance.qtySold")}</TableHead>
                               <TableHead className="text-right">{t("billing.income")}</TableHead>
-                              <TableHead className="text-right">{t("performance.share")}</TableHead>
-                              <TableHead className="text-right hidden sm:table-cell">{t("performance.uniqueItems")}</TableHead>
-                              <TableHead className="text-right hidden sm:table-cell">{t("performance.avgPrice")}</TableHead>
-                              <TableHead className="hidden md:table-cell">{t("performance.bestItem")}</TableHead>
+                              <TableHead className="text-right">{t("performance.itemCost")}</TableHead>
+                              <TableHead className="text-right">{t("performance.netProfit")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.margin")}</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">{t("performance.share")}</TableHead>
+                              <TableHead className="text-right hidden md:table-cell">{t("performance.uniqueItems")}</TableHead>
+                              <TableHead className="text-right hidden md:table-cell">{t("performance.avgPrice")}</TableHead>
+                              <TableHead className="hidden lg:table-cell">{t("performance.bestItem")}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -786,7 +820,14 @@ const PerformancePage = () => {
                                   </TableCell>
                                   <TableCell className="text-right">{c.qty}</TableCell>
                                   <TableCell className="text-right font-medium">${c.revenue.toLocaleString()}</TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-right text-muted-foreground">${Math.round(c.cost).toLocaleString()}</TableCell>
+                                  <TableCell className={`text-right font-medium ${c.netProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                                    ${Math.round(c.netProfit).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">
+                                    <span className={c.margin >= 0 ? "text-green-600" : "text-destructive"}>{c.margin.toFixed(1)}%</span>
+                                  </TableCell>
+                                  <TableCell className="text-right hidden sm:table-cell">
                                     <div className="flex items-center justify-end gap-2">
                                       <span className="text-xs text-muted-foreground">{share.toFixed(1)}%</span>
                                       <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -794,9 +835,9 @@ const PerformancePage = () => {
                                       </div>
                                     </div>
                                   </TableCell>
-                                  <TableCell className="text-right hidden sm:table-cell">{c.uniqueItems}</TableCell>
-                                  <TableCell className="text-right hidden sm:table-cell">${c.avgPrice.toFixed(0)}</TableCell>
-                                  <TableCell className="hidden md:table-cell text-sm">
+                                  <TableCell className="text-right hidden md:table-cell">{c.uniqueItems}</TableCell>
+                                  <TableCell className="text-right hidden md:table-cell">${c.avgPrice.toFixed(0)}</TableCell>
+                                  <TableCell className="hidden lg:table-cell text-sm">
                                     {c.bestItem} <span className="text-muted-foreground text-xs">({c.bestItemQty})</span>
                                   </TableCell>
                                 </TableRow>
