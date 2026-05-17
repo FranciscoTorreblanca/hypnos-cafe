@@ -32,7 +32,22 @@ import CalendarPage from "@/pages/CalendarPage";
 import TicketsPage from "@/pages/TicketsPage";
 import WifiPage from "@/pages/WifiPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Avoid refetching every time the user switches tabs / refocuses the app.
+      // Data stays "fresh" for 5 minutes, after which it will refetch in the
+      // background on the next interaction. Individual queries can override
+      // staleTime for stricter freshness (e.g. orders, stock).
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: "always",
+      refetchOnMount: true,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
