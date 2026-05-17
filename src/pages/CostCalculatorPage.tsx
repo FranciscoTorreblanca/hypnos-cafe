@@ -486,37 +486,6 @@ const CostCalculatorPage = () => {
         onSave={handleSaveIngredient}
       />
 
-      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Copiar costos de otro platillo</DialogTitle>
-          </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-2">
-            Los ingredientes se cargarán como base. Los cambios solo se guardarán cuando presiones "Guardar receta".
-          </p>
-          <MenuItemFilters value={copyFilters} onChange={setCopyFilters} compact />
-          <ScrollArea className="h-72 rounded-md border">
-            <div className="divide-y">
-              {filteredCopyItems.map((mi) => (
-                <button
-                  key={mi.id}
-                  type="button"
-                  onClick={() => handleCopyFromItem(mi.id)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors"
-                >
-                  <span className="truncate">{mi.name}</span>
-                  <span className="font-mono text-xs text-muted-foreground shrink-0">
-                    costo ${Number(mi.cost).toFixed(2)}
-                  </span>
-                </button>
-              ))}
-              {filteredCopyItems.length === 0 && (
-                <p className="text-center text-xs text-muted-foreground py-6">Sin resultados</p>
-              )}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
