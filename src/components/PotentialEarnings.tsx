@@ -21,11 +21,12 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
   const { data: categories = [] } = useMenuCategories();
   const [open, setOpen] = useState(defaultOpen);
 
-  const { totalRevenue, totalProfit, byCategory, trackedCount } = useMemo(() => {
+  const { totalRevenue, totalProfit, totalInvested, byCategory, trackedCount } = useMemo(() => {
     const tracked = items.filter((i) => i.inventory_count !== null && (i.inventory_count ?? 0) > 0);
     let totalRevenue = 0;
     let totalProfit = 0;
-    const cat = new Map<string, { name: string; revenue: number; profit: number }>();
+    let totalInvested = 0;
+    const cat = new Map<string, { name: string; revenue: number; profit: number; invested: number; items: number }>();
 
     for (const it of tracked) {
       const qty = it.inventory_count ?? 0;
@@ -33,8 +34,10 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
       const cost = it.cost || 0;
       const revenue = qty * price;
       const profit = qty * (price - cost);
+      const invested = qty * cost;
       totalRevenue += revenue;
       totalProfit += profit;
+      totalInvested += invested;
 
       const catId = it.category_id ?? "__none__";
       const catObj = categories.find((c) => c.id === catId);
@@ -43,14 +46,16 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
           ? catObj.name_en
           : catObj.name
         : t("stock.notTracked");
-      const cur = cat.get(catId) ?? { name: catName, revenue: 0, profit: 0 };
+      const cur = cat.get(catId) ?? { name: catName, revenue: 0, profit: 0, invested: 0, items: 0 };
       cur.revenue += revenue;
       cur.profit += profit;
+      cur.invested += invested;
+      cur.items += qty;
       cat.set(catId, cur);
     }
 
     const byCategory = Array.from(cat.values()).sort((a, b) => b.revenue - a.revenue);
-    return { totalRevenue, totalProfit, byCategory, trackedCount: tracked.length };
+    return { totalRevenue, totalProfit, totalInvested, byCategory, trackedCount: tracked.length };
   }, [items, categories, language, t]);
 
   if (trackedCount === 0) return null;
