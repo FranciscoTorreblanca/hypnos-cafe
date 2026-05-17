@@ -805,8 +805,8 @@ const PerformancePage = () => {
                                 return value;
                               }}
                             />
-                            <Bar dataKey="netProfit" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                            <Bar dataKey="cost" fill="hsl(var(--muted-foreground))" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="netProfit" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
+                            <Bar dataKey="cost" stackId="a" fill="hsl(var(--muted-foreground))" radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
