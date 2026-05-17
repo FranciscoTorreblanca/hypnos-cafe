@@ -273,6 +273,15 @@ const PerformancePage = () => {
   const prevAvgTicket = prevTotalOrders > 0 ? prevRevenue / prevTotalOrders : 0;
   const totalTips = currentPayments.reduce((s, p) => s + p.tip, 0);
 
+  // Production-cost-based net profit (excludes tips). Item cost comes from menu_items.cost.
+  const sumItemCost = (os: PaidOrder[]) =>
+    os.reduce((s, o) => s + o.order_items.reduce((ss, i) => ss + i.quantity * (i.menu_items?.cost ?? 0), 0), 0);
+  const totalItemCost = sumItemCost(currentOrders);
+  const prevItemCost = sumItemCost(prevOrders);
+  const netProfit = totalRevenue - totalItemCost;
+  const prevNetProfit = prevRevenue - prevItemCost;
+  const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
   const pctChange = (curr: number, prev: number) => {
     if (prev === 0) return curr > 0 ? 100 : 0;
     return ((curr - prev) / prev) * 100;
@@ -281,6 +290,7 @@ const PerformancePage = () => {
   const revChange = pctChange(totalRevenue, prevRevenue);
   const ordersChange = pctChange(totalOrders, prevTotalOrders);
   const ticketChange = pctChange(avgTicket, prevAvgTicket);
+  const netProfitChange = pctChange(netProfit, prevNetProfit);
 
   const topSellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories);
 
