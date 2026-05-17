@@ -400,6 +400,16 @@ export const translations = {
   "stock.code": { es: "Código", en: "Code" },
   "stock.cameraError": { es: "No se puede acceder a la cámara", en: "Cannot access camera" },
 
+  // Potential earnings (based on current inventory)
+  "potential.title": { es: "Ganancias potenciales", en: "Potential earnings" },
+  "potential.revenue": { es: "Ingreso total", en: "Total revenue" },
+  "potential.netProfit": { es: "Ganancia neta", en: "Net profit" },
+  "potential.byCategory": { es: "Por categoría", en: "By category" },
+  "potential.hint": {
+    es: "Basado en el inventario actual y precio efectivo (promo si aplica) menos costo del producto.",
+    en: "Based on current inventory and effective price (promo if any) minus item cost.",
+  },
+
   // Calendar / Events
   "nav.calendar": { es: "Calendario", en: "Calendar" },
   "calendar.title": { es: "Calendario y Eventos", en: "Calendar & Events" },
