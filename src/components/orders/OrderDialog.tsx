@@ -68,7 +68,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { data: combos = [] } = useCombos();
-  const { createOrder, addItem, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemDiscountAmount, updateItemStatus, updateGeneralDiscount, updateGeneralDiscountAmount } = useOrders();
+  const { createOrder, addItemsBulk, removeItem, updateOrderStatus, cancelOrder, updateItemDiscount, updateItemDiscountAmount, updateItemStatus, updateGeneralDiscount, updateGeneralDiscountAmount } = useOrders();
   const { createPayment } = usePayments();
   const { createTicket } = useTickets();
   const { user, isAdmin } = useAuth();
