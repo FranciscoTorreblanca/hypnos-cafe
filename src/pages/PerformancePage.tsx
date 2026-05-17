@@ -773,10 +773,29 @@ const PerformancePage = () => {
                             <XAxis type="number" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
                             <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} width={110} />
                             <Tooltip
-                              formatter={(value: number, name: string) => {
-                                if (name === "netProfit") return [`$${Math.round(value).toLocaleString()}`, t("performance.netProfit")];
-                                if (name === "cost") return [`$${Math.round(value).toLocaleString()}`, t("performance.itemCost")];
-                                return [`$${Math.round(value).toLocaleString()}`, name];
+                              content={({ active, payload }) => {
+                                if (!active || !payload || !payload.length) return null;
+                                const d: any = payload[0].payload;
+                                const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
+                                return (
+                                  <div className="rounded-lg border border-border/50 bg-background px-3 py-2 text-xs shadow-xl">
+                                    <div className="font-medium mb-1.5">{d.name}</div>
+                                    <div className="grid gap-1">
+                                      <div className="flex items-center justify-between gap-4">
+                                        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-[2px]" style={{ background: "hsl(var(--primary))" }} />{t("performance.netProfit")}</span>
+                                        <span className="font-mono font-medium tabular-nums">{fmt(d.netProfit)}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-4">
+                                        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-[2px]" style={{ background: "hsl(var(--muted-foreground))" }} />{t("performance.itemCost")}</span>
+                                        <span className="font-mono font-medium tabular-nums">{fmt(d.cost)}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-4 pt-1 border-t border-border/50">
+                                        <span className="text-muted-foreground">{t("billing.income")}</span>
+                                        <span className="font-mono font-medium tabular-nums">{fmt(d.revenue)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
                               }}
                             />
                             <Legend
@@ -786,8 +805,8 @@ const PerformancePage = () => {
                                 return value;
                               }}
                             />
-                            <Bar dataKey="netProfit" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="cost" stackId="a" fill="hsl(var(--muted-foreground))" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="netProfit" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="cost" fill="hsl(var(--muted-foreground))" radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
