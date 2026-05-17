@@ -612,6 +612,20 @@ const PerformancePage = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("performance.netProfit")}</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${Math.round(netProfit).toLocaleString()}</div>
+                <div className="flex items-center gap-2">
+                  <ChangeIndicator value={netProfitChange} />
+                  <span className="text-xs text-muted-foreground">{netMargin.toFixed(1)}%</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{t("performance.netProfitHint")}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{t("performance.peakHour")}</CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
