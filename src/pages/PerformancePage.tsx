@@ -297,7 +297,7 @@ const PerformancePage = () => {
   // Category breakdown for current period
   const categoryBreakdown = useMemo(() => {
     const rangeOrders = getOrdersInRange(currentPeriod.start, currentPeriod.end);
-    type Agg = { catId: string; name: string; qty: number; revenue: number; uniqueItems: Set<string>; bestItem: string; bestItemQty: number; itemQty: Map<string, { name: string; qty: number }> };
+    type Agg = { catId: string; name: string; qty: number; revenue: number; cost: number; uniqueItems: Set<string>; bestItem: string; bestItemQty: number; itemQty: Map<string, { name: string; qty: number }> };
     const map = new Map<string, Agg>();
     rangeOrders.forEach((o) =>
       o.order_items.forEach((item) => {
@@ -307,9 +307,10 @@ const PerformancePage = () => {
           ? t("performance.noCategory")
           : (language === "en" && cat?.name_en ? cat.name_en : cat?.name ?? "?");
         const itemName = language === "en" && item.menu_items?.name_en ? item.menu_items.name_en : item.menu_items?.name ?? "?";
-        const existing = map.get(catId) ?? { catId, name: catName, qty: 0, revenue: 0, uniqueItems: new Set(), bestItem: "", bestItemQty: 0, itemQty: new Map() };
+        const existing = map.get(catId) ?? { catId, name: catName, qty: 0, revenue: 0, cost: 0, uniqueItems: new Set(), bestItem: "", bestItemQty: 0, itemQty: new Map() };
         existing.qty += item.quantity;
         existing.revenue += item.quantity * item.unit_price * (1 - (item.discount ?? 0) / 100);
+        existing.cost += item.quantity * (item.menu_items?.cost ?? 0);
         existing.uniqueItems.add(item.menu_item_id);
         const ie = existing.itemQty.get(item.menu_item_id) ?? { name: itemName, qty: 0 };
         ie.qty += item.quantity;
@@ -327,6 +328,9 @@ const PerformancePage = () => {
         name: c.name,
         qty: c.qty,
         revenue: c.revenue,
+        cost: c.cost,
+        netProfit: c.revenue - c.cost,
+        margin: c.revenue > 0 ? ((c.revenue - c.cost) / c.revenue) * 100 : 0,
         uniqueItems: c.uniqueItems.size,
         avgPrice: c.qty > 0 ? c.revenue / c.qty : 0,
         bestItem: c.bestItem,
