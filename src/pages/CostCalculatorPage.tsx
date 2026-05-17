@@ -143,9 +143,8 @@ const CostCalculatorPage = () => {
 
   // Recipe builder
   const [selectedItemId, setSelectedItemId] = useState<string>("");
-  const [customPrice, setCustomPrice] = useState("");
   const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
-  const [recipeRows, setRecipeRows] = useState<{ ingredient_id: string; source_menu_item_id: string; quantity: string }[]>([]);
+  const [recipeRows, setRecipeRows] = useState<RecipeRow[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
 
   // Picker filters (for selecting which item to cost)
@@ -155,36 +154,8 @@ const CostCalculatorPage = () => {
     [menuItems, pickerFilters]
   );
 
-  // Copy-from-item dialog
-  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
-  const [copyFilters, setCopyFilters] = useState<MenuItemFilterState>(emptyFilters);
-  const filteredCopyItems = useMemo(
-    () => applyMenuItemFilters(menuItems.filter((m) => m.id !== selectedItemId), copyFilters, (m) => m.name),
-    [menuItems, copyFilters, selectedItemId]
-  );
-
   const handleSelectItem = (id: string) => {
     setSelectedItemId(id);
-  };
-
-  const handleCopyFromItem = async (sourceId: string) => {
-    const { data, error } = await supabase
-      .from("menu_item_ingredients")
-      .select("*")
-      .eq("menu_item_id", sourceId);
-    if (error) {
-      toast({ title: "Error al copiar", description: error.message, variant: "destructive" });
-      return;
-    }
-    setRecipeRows(
-      (data || []).map((r: any) => ({
-        ingredient_id: r.ingredient_id ?? "",
-        source_menu_item_id: r.source_menu_item_id ?? "",
-        quantity: String(r.quantity),
-      }))
-    );
-    setCopyDialogOpen(false);
-    toast({ title: "Costos copiados", description: "Revisa y guarda para aplicar los cambios" });
   };
 
   // Sync existing recipe into local state when data arrives
@@ -200,38 +171,13 @@ const CostCalculatorPage = () => {
     }
   }, [existingRecipe, selectedItemId]);
 
-  const addRecipeRow = () => setRecipeRows((p) => [...p, { ingredient_id: "", source_menu_item_id: "", quantity: "" }]);
-  const removeRecipeRow = (i: number) => setRecipeRows((p) => p.filter((_, idx) => idx !== i));
-  const updateRecipeRow = (i: number, k: string, v: string) =>
-    setRecipeRows((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
+  const recipeCost = useMemo(
+    () => computeRecipeCost(recipeRows, ingredients, menuItems),
+    [recipeRows, ingredients, menuItems]
+  );
 
-  // Helper to get unit cost for a row (ingredient or sub-menu-item)
-  const getRowCostInfo = (row: { ingredient_id: string; source_menu_item_id: string }) => {
-    if (row.ingredient_id) {
-      const ing = ingredients.find((i) => i.id === row.ingredient_id);
-      return ing ? { unitCost: ing.unit_cost, unit: ing.unit, label: ing.name } : null;
-    }
-    if (row.source_menu_item_id) {
-      const mi = menuItems.find((m) => m.id === row.source_menu_item_id);
-      // Use cost (subtotal) of the menu item, quantity is always whole units
-      return mi ? { unitCost: mi.cost, unit: "pz", label: `🍽 ${mi.name}` } : null;
-    }
-    return null;
-  };
-
-  const recipeCost = useMemo(() => {
-    let total = 0;
-    for (const row of recipeRows) {
-      const info = getRowCostInfo(row);
-      if (info) total += info.unitCost * (Number(row.quantity) || 0);
-    }
-    return total;
-  }, [recipeRows, ingredients, menuItems]);
-
-  const suggested = suggestPrice(recipeCost);
   const selectedItem = menuItems.find((i) => i.id === selectedItemId);
   const currentPrice = selectedItem?.price ?? 0;
-  const realCost = recipeCost * 1.05; // with shrinkage
 
   const handleSaveIngredient = (values: Partial<Ingredient> & { name: string }) => {
     upsert.mutate(values, {
