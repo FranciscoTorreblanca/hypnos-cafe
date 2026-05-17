@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ChevronDown, ChevronUp, TrendingUp, Coins } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, TrendingUp, Coins, Package } from "lucide-react";
 import { useMenuItems, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useLanguage } from "@/i18n/LanguageContext";
