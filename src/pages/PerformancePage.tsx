@@ -772,8 +772,22 @@ const PerformancePage = () => {
                             <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                             <XAxis type="number" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
                             <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} width={110} />
-                            <Tooltip formatter={(value: number, name: string) => name === "revenue" ? [`$${Math.round(value).toLocaleString()}`, t("billing.income")] : [value, t("performance.qtySold")]} />
-                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                            <Tooltip
+                              formatter={(value: number, name: string) => {
+                                if (name === "netProfit") return [`$${Math.round(value).toLocaleString()}`, t("performance.netProfit")];
+                                if (name === "cost") return [`$${Math.round(value).toLocaleString()}`, t("performance.itemCost")];
+                                return [`$${Math.round(value).toLocaleString()}`, name];
+                              }}
+                            />
+                            <Legend
+                              formatter={(value: string) => {
+                                if (value === "netProfit") return t("performance.netProfit");
+                                if (value === "cost") return t("performance.itemCost");
+                                return value;
+                              }}
+                            />
+                            <Bar dataKey="netProfit" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
+                            <Bar dataKey="cost" stackId="a" fill="hsl(var(--muted-foreground))" radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
