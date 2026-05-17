@@ -296,6 +296,10 @@ export const translations = {
   "performance.preset.custom": { es: "Personalizado", en: "Custom" },
   "performance.vsPrevPeriod": { es: "vs período anterior", en: "vs previous period" },
   "performance.qtyByCategory": { es: "Unidades por categoría", en: "Units by category" },
+  "performance.netProfit": { es: "Ganancia neta", en: "Net profit" },
+  "performance.itemCost": { es: "Costo prod.", en: "Item cost" },
+  "performance.margin": { es: "Margen", en: "Margin" },
+  "performance.netProfitHint": { es: "Ingresos − costo de productos (propinas no incluidas)", en: "Revenue − item cost (tips excluded)" },
 
   // Loyalty
   "loyalty.admin": { es: "Programa de Lealtad", en: "Loyalty Program" },
