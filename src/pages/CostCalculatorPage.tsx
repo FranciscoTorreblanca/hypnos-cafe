@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIngredients, Ingredient } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
@@ -11,31 +11,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Search, ChevronsUpDown, Check, Copy } from "lucide-react";
+import { Plus, Trash2, Pencil, ExternalLink, Calculator, Upload, Check } from "lucide-react";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
-import { MenuItem } from "@/hooks/useMenuItems";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { MenuItemFilters, emptyFilters, applyMenuItemFilters, MenuItemFilterState } from "@/components/menu/MenuItemFilters";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
-
-/* ── Price suggestion logic ──────────────────────────────── */
-function suggestPrice(rawCost: number) {
-  const withShrinkage = rawCost * 1.05;          // +5% shrinkage
-  const multiplied = withShrinkage * 3;           // ×3 multiplier
-  const withCC = multiplied * 1.05;               // +5% credit card
-  // Round to attractive price
-  if (withCC <= 10) return Math.ceil(withCC);
-  if (withCC <= 50) return Math.ceil(withCC / 5) * 5;
-  if (withCC <= 200) return Math.ceil(withCC / 10) * 10;
-  return Math.ceil(withCC / 25) * 25;
-}
+import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 
 /* ── Ingredient Form Dialog ──────────────────────────────── */
 interface IngFormValues {
