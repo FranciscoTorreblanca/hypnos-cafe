@@ -634,7 +634,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           return renderCartItem(entry.item);
         });
       })()}
-      <Button size="sm" className="w-full gap-1 h-8" onClick={handleSubmitCart} disabled={addItem.isPending || createOrder.isPending}>
+      <Button size="sm" className="w-full gap-1 h-8" onClick={handleSubmitCart} disabled={addItemsBulk.isPending || createOrder.isPending}>
         <Plus className="h-3 w-3" /> {t("orders.addToOrder")}
       </Button>
     </div>
