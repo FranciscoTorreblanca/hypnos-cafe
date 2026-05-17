@@ -121,7 +121,7 @@ const PerformancePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en))")
+        .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en, cost))")
         .in("status", ["paid", "completed"])
         .gte("created_at", fetchSince)
         .order("created_at", { ascending: false });
