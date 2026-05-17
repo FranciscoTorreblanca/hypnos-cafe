@@ -1,8 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIngredients, Ingredient } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
 import { useMenuItemIngredients } from "@/hooks/useMenuItemIngredients";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -146,6 +151,41 @@ const CostCalculatorPage = () => {
   const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
   const [recipeRows, setRecipeRows] = useState<RecipeRow[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
+
+  // Ingredient usage map across all recipes
+  const { data: allRecipeRows = [] } = useQuery({
+    queryKey: ["menu_item_ingredients", "all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("menu_item_ingredients")
+        .select("ingredient_id, menu_item_id");
+      if (error) throw error;
+      return data as { ingredient_id: string | null; menu_item_id: string }[];
+    },
+  });
+  const ingredientUsage = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const r of allRecipeRows) {
+      if (!r.ingredient_id) continue;
+      if (!map.has(r.ingredient_id)) map.set(r.ingredient_id, new Set());
+      map.get(r.ingredient_id)!.add(r.menu_item_id);
+    }
+    return map;
+  }, [allRecipeRows]);
+  const itemNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const it of menuItems) m.set(it.id, it.name);
+    return m;
+  }, [menuItems]);
+  const [showOnlyUnused, setShowOnlyUnused] = useState(false);
+  const filteredIngredients = useMemo(() => {
+    if (!showOnlyUnused) return ingredients;
+    return ingredients.filter((i) => (ingredientUsage.get(i.id)?.size ?? 0) === 0);
+  }, [ingredients, ingredientUsage, showOnlyUnused]);
+  const unusedCount = useMemo(
+    () => ingredients.filter((i) => (ingredientUsage.get(i.id)?.size ?? 0) === 0).length,
+    [ingredients, ingredientUsage]
+  );
 
   // Picker filters (for selecting which item to cost)
   const [pickerFilters, setPickerFilters] = useState<MenuItemFilterState>(emptyFilters);
@@ -400,51 +440,106 @@ const CostCalculatorPage = () => {
               </div>
             )}
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Presentación</TableHead>
-                    <TableHead>Costo/unidad</TableHead>
-                    <TableHead>Proveedor</TableHead>
-                    <TableHead className="w-20"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ingredients.map((ing) => (
-                    <TableRow key={ing.id}>
-                      <TableCell className="font-medium">{ing.name}</TableCell>
-                      <TableCell className="text-sm">
-                        {Number(ing.presentation_qty)} {ing.unit} — ${Number(ing.presentation_cost).toFixed(2)}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">${Number(ing.unit_cost).toFixed(4)}/{ing.unit}</TableCell>
-                      <TableCell className="text-sm">
-                        <span className="text-muted-foreground">{ing.notes}</span>
-                        {ing.provider_link && (
-                          <a href={ing.provider_link} target="_blank" rel="noopener noreferrer" className="ml-1 inline-flex text-primary hover:underline">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isAdmin && (
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingIng(ing); setIngDialogOpen(true); }}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove.mutate(ing.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+                <p className="text-sm text-muted-foreground">
+                  {ingredients.length} ingredientes · <span className={unusedCount > 0 ? "text-destructive font-medium" : ""}>{unusedCount} sin uso</span>
+                </p>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Switch checked={showOnlyUnused} onCheckedChange={setShowOnlyUnused} />
+                  Solo sin uso
+                </label>
+              </div>
+              <TooltipProvider delayDuration={150}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Presentación</TableHead>
+                      <TableHead>Costo/unidad</TableHead>
+                      <TableHead>Uso en recetas</TableHead>
+                      <TableHead>Proveedor</TableHead>
+                      <TableHead className="w-20"></TableHead>
                     </TableRow>
-                  ))}
-                  {ingredients.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t("common.noResults")}</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredIngredients.map((ing) => {
+                      const usedIn = ingredientUsage.get(ing.id);
+                      const usedCount = usedIn?.size ?? 0;
+                      const usedNames = usedIn ? Array.from(usedIn).map((id) => itemNameById.get(id) ?? "—") : [];
+                      return (
+                        <TableRow key={ing.id}>
+                          <TableCell className="font-medium">{ing.name}</TableCell>
+                          <TableCell className="text-sm">
+                            {Number(ing.presentation_qty)} {ing.unit} — ${Number(ing.presentation_cost).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">${Number(ing.unit_cost).toFixed(4)}/{ing.unit}</TableCell>
+                          <TableCell>
+                            {usedCount === 0 ? (
+                              <Badge variant="outline" className="text-muted-foreground">Sin uso</Badge>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="secondary" className="cursor-help">
+                                    {usedCount} {usedCount === 1 ? "receta" : "recetas"}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <ul className="text-xs space-y-0.5">
+                                    {usedNames.map((n, i) => <li key={i}>• {n}</li>)}
+                                  </ul>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <span className="text-muted-foreground">{ing.notes}</span>
+                            {ing.provider_link && (
+                              <a href={ing.provider_link} target="_blank" rel="noopener noreferrer" className="ml-1 inline-flex text-primary hover:underline">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isAdmin && (
+                              <div className="flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingIng(ing); setIngDialogOpen(true); }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                {usedCount > 0 ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive opacity-40" disabled>
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Usado en {usedCount} {usedCount === 1 ? "receta" : "recetas"}</TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-destructive"
+                                    onClick={() => {
+                                      if (confirm(`¿Eliminar "${ing.name}"?`)) remove.mutate(ing.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {filteredIngredients.length === 0 && (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("common.noResults")}</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TooltipProvider>
             </CardContent>
           </Card>
         </TabsContent>
