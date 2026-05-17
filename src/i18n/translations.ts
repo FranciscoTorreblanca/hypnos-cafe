@@ -405,6 +405,8 @@ export const translations = {
   "potential.revenue": { es: "Ingreso total", en: "Total revenue" },
   "potential.netProfit": { es: "Ganancia neta", en: "Net profit" },
   "potential.byCategory": { es: "Por categoría", en: "By category" },
+  "potential.invested": { es: "Inversión", en: "Invested" },
+  "potential.items": { es: "artículos", en: "items" },
   "potential.hint": {
     es: "Basado en el inventario actual y precio efectivo (promo si aplica) menos costo del producto.",
     en: "Based on current inventory and effective price (promo if any) minus item cost.",
