@@ -405,11 +405,14 @@ const PerformancePage = () => {
   const exportCategories = () => {
     downloadCsv(
       `categories-${format(currentPeriod.start, "yyyy-MM-dd")}`,
-      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
+      [t("performance.category"), t("performance.qtySold"), t("billing.income"), t("performance.itemCost"), t("performance.netProfit"), t("performance.margin"), t("performance.share"), t("performance.uniqueItems"), t("performance.avgPrice"), t("performance.bestItem")],
       categoryBreakdown.map((c) => [
         c.name,
         c.qty,
         c.revenue.toFixed(2),
+        c.cost.toFixed(2),
+        c.netProfit.toFixed(2),
+        `${c.margin.toFixed(1)}%`,
         totalCategoryRevenue > 0 ? `${((c.revenue / totalCategoryRevenue) * 100).toFixed(1)}%` : "0%",
         c.uniqueItems,
         c.avgPrice.toFixed(2),
