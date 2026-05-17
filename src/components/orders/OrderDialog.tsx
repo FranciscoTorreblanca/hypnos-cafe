@@ -258,9 +258,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       const newOrder = await createOrder.mutateAsync(tableNumber);
       orderId = newOrder.id;
     }
-    for (const c of cart) {
-      await addItem.mutateAsync({
-        order_id: orderId,
+    await addItemsBulk.mutateAsync({
+      order_id: orderId,
+      items: cart.map((c) => ({
         menu_item_id: c.menuItem.id,
         quantity: c.quantity,
         unit_price: getEffectivePrice(c.menuItem),
@@ -269,8 +269,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         discount_amount: c.discountAmount || 0,
         combo_id: c.comboId,
         combo_group_id: c.comboGroupId,
-      });
-    }
+      })),
+    });
     toast({ title: t("common.success"), description: `${cartCount} ${t("orders.itemsAdded")}` });
     setCart([]);
     if (isMobile) setMobileTab("order");
