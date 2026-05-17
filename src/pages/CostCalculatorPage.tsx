@@ -152,6 +152,41 @@ const CostCalculatorPage = () => {
   const [recipeRows, setRecipeRows] = useState<RecipeRow[]>([]);
   const { data: existingRecipe = [], saveAll } = useMenuItemIngredients(selectedItemId || undefined);
 
+  // Ingredient usage map across all recipes
+  const { data: allRecipeRows = [] } = useQuery({
+    queryKey: ["menu_item_ingredients", "all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("menu_item_ingredients")
+        .select("ingredient_id, menu_item_id");
+      if (error) throw error;
+      return data as { ingredient_id: string | null; menu_item_id: string }[];
+    },
+  });
+  const ingredientUsage = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const r of allRecipeRows) {
+      if (!r.ingredient_id) continue;
+      if (!map.has(r.ingredient_id)) map.set(r.ingredient_id, new Set());
+      map.get(r.ingredient_id)!.add(r.menu_item_id);
+    }
+    return map;
+  }, [allRecipeRows]);
+  const itemNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const it of menuItems) m.set(it.id, it.name);
+    return m;
+  }, [menuItems]);
+  const [showOnlyUnused, setShowOnlyUnused] = useState(false);
+  const filteredIngredients = useMemo(() => {
+    if (!showOnlyUnused) return ingredients;
+    return ingredients.filter((i) => (ingredientUsage.get(i.id)?.size ?? 0) === 0);
+  }, [ingredients, ingredientUsage, showOnlyUnused]);
+  const unusedCount = useMemo(
+    () => ingredients.filter((i) => (ingredientUsage.get(i.id)?.size ?? 0) === 0).length,
+    [ingredients, ingredientUsage]
+  );
+
   // Picker filters (for selecting which item to cost)
   const [pickerFilters, setPickerFilters] = useState<MenuItemFilterState>(emptyFilters);
   const filteredPickerItems = useMemo(
