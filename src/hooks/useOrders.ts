@@ -156,6 +156,46 @@ export const useOrders = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
+  const addItemsBulk = useMutation({
+    mutationFn: async ({
+      order_id,
+      items,
+    }: {
+      order_id: string;
+      items: Array<{
+        menu_item_id: string;
+        quantity: number;
+        unit_price: number;
+        notes?: string;
+        discount?: number;
+        discount_amount?: number;
+        combo_id?: string;
+        combo_group_id?: string;
+      }>;
+    }) => {
+      if (items.length === 0) return;
+      const rows = items.map((c) => ({
+        order_id,
+        menu_item_id: c.menu_item_id,
+        quantity: c.quantity,
+        unit_price: c.unit_price,
+        notes: c.notes ?? "",
+        discount: c.discount ?? 0,
+        discount_amount: c.discount_amount ?? 0,
+        combo_id: c.combo_id ?? null,
+        combo_group_id: c.combo_group_id ?? null,
+      }));
+      const { error } = await supabase.from("order_items").insert(rows as any);
+      if (error) throw error;
+      await recalcOrderTotal(order_id);
+      const { data: order } = await supabase.from("orders").select("status").eq("id", order_id).single();
+      if (order && (order.status === "ready" || order.status === "served")) {
+        await supabase.from("orders").update({ status: "in_progress" as any }).eq("id", order_id);
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
   const removeItem = useMutation({
     mutationFn: async ({ id, order_id }: { id: string; order_id: string }) => {
       const { error } = await supabase.from("order_items").delete().eq("id", id);
@@ -234,6 +274,7 @@ export const useOrders = () => {
     updateOrderStatus,
     updateItemStatus,
     addItem,
+    addItemsBulk,
     removeItem,
     cancelOrder,
     updateItemDiscount,
