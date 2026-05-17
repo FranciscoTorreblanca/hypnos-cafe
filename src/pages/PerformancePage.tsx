@@ -36,7 +36,7 @@ interface PaidOrder {
     quantity: number;
     unit_price: number;
     discount: number;
-    menu_items: { name: string; name_en: string } | null;
+    menu_items: { name: string; name_en: string; cost: number | null } | null;
   }[];
 }
 
