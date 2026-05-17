@@ -41,6 +41,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
+import { PotentialEarnings } from "@/components/PotentialEarnings";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -224,6 +225,9 @@ const StockPage = () => {
           )}
         </div>
       </div>
+
+      {/* Potential earnings */}
+      <PotentialEarnings />
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
