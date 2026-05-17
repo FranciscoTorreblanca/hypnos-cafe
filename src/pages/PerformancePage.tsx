@@ -25,6 +25,7 @@ import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { PotentialEarnings } from "@/components/PotentialEarnings";
 
 interface PaidOrder {
   id: string;
@@ -578,6 +579,9 @@ const PerformancePage = () => {
         </div>
       ) : (
         <>
+          {/* Potential earnings from current inventory */}
+          <PotentialEarnings defaultOpen />
+
           {/* KPI Cards */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
             <Card>
