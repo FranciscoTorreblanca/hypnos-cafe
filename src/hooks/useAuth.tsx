@@ -43,19 +43,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const syncAuthState = async (nextSession: Session | null) => {
-      setLoading(true);
+    let currentUserId: string | null = null;
+
+    const syncAuthState = async (nextSession: Session | null, opts: { initial?: boolean } = {}) => {
+      const nextUserId = nextSession?.user?.id ?? null;
+      const userChanged = nextUserId !== currentUserId;
+
+      // Only show the global loading state on the initial bootstrap or when
+      // the actual signed-in user changes. Token refreshes (triggered on tab
+      // refocus) keep the same user — we must not flip `loading` to true,
+      // because that unmounts ProtectedRoute children and closes open dialogs.
+      if (opts.initial || userChanged) {
+        setLoading(true);
+      }
+
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
-      if (nextSession?.user) {
-        await fetchRoles(nextSession.user.id);
-      } else {
-        setRoles([]);
-        setLoyaltyMemberCode(null);
+      if (userChanged) {
+        if (nextSession?.user) {
+          await fetchRoles(nextSession.user.id);
+        } else {
+          setRoles([]);
+          setLoyaltyMemberCode(null);
+        }
       }
 
-      setLoading(false);
+      currentUserId = nextUserId;
+
+      if (opts.initial || userChanged) {
+        setLoading(false);
+      }
     };
 
     const {
@@ -64,7 +82,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       void syncAuthState(nextSession);
     });
 
-    void supabase.auth.getSession().then(({ data: { session } }) => syncAuthState(session));
+    void supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => syncAuthState(session, { initial: true }));
 
     return () => subscription.unsubscribe();
   }, []);
