@@ -12,7 +12,6 @@ function primaryRole(roles: string[]): string {
   return roles[0];
 }
 
-// Quick in-page action tracker (call from anywhere).
 export async function trackUsageAction(
   actionName: string,
   metadata: Record<string, any> = {}
@@ -34,7 +33,7 @@ export async function trackUsageAction(
       metadata,
     });
   } catch {
-    // Silently ignore — analytics must never break UX
+    // never break UX
   }
 }
 
@@ -54,7 +53,6 @@ export function useUsageTracking() {
     const durationOnPrev = fromPath ? now - enterTime.current : null;
     const role = primaryRole(roles as any);
 
-    // Log duration on the previous screen
     if (fromPath && durationOnPrev !== null && durationOnPrev > 500) {
       (supabase.from("usage_events") as any)
         .insert({
@@ -68,7 +66,6 @@ export function useUsageTracking() {
         .then(() => {});
     }
 
-    // Log view on the new screen
     (supabase.from("usage_events") as any)
       .insert({
         user_id: user.id,
@@ -82,47 +79,6 @@ export function useUsageTracking() {
 
     enterTime.current = now;
     previousPath.current = path;
-
-    // Log final duration on unload
-    const handleUnload = () => {
-      const dur = Date.now() - enterTime.current;
-      if (dur < 500) return;
-      const blob = new Blob(
-        [
-          JSON.stringify({
-            user_id: user.id,
-            role,
-            event_type: "page_leave",
-            path,
-            duration_ms: dur,
-            metadata: { unload: true },
-          }),
-        ],
-        { type: "application/json" }
-      );
-      // Best-effort: use sendBeacon when possible via REST
-      try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/usage_events`;
-        const headers: any = {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        };
-        // sendBeacon doesn't support custom headers, so fall back to fetch keepalive
-        fetch(url, {
-          method: "POST",
-          headers: {
-            ...headers,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: blob,
-          keepalive: true,
-        }).catch(() => {});
-      } catch {
-        // Silently ignore
-      }
-    };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, user?.id]);
 }
