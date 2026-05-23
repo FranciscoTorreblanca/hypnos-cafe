@@ -3,9 +3,11 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { Outlet } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUsageTracking } from "@/hooks/useUsageTracking";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
+  useUsageTracking();
 
   if (isMobile) {
     return (

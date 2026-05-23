@@ -412,6 +412,35 @@ export const translations = {
     en: "Based on current inventory and effective price (promo if any) minus item cost.",
   },
 
+  // Usage Analytics
+  "nav.analytics": { es: "Analítica de uso", en: "Usage Analytics" },
+  "analytics.title": { es: "Analítica de uso", en: "Usage Analytics" },
+  "analytics.subtitle": {
+    es: "Qué pantallas se usan más y cómo mejorar la eficiencia",
+    en: "Which screens are used most and how to improve efficiency",
+  },
+  "analytics.totalViews": { es: "Vistas totales", en: "Total views" },
+  "analytics.activeUsers": { es: "Usuarios activos", en: "Active users" },
+  "analytics.totalTime": { es: "Tiempo total", en: "Total time" },
+  "analytics.actions": { es: "Acciones", en: "Actions" },
+  "analytics.insights": { es: "Sugerencias", en: "Insights" },
+  "analytics.screens": { es: "Pantallas", en: "Screens" },
+  "analytics.flows": { es: "Flujos", en: "Flows" },
+  "analytics.users": { es: "Usuarios", en: "Users" },
+  "analytics.roles": { es: "Roles", en: "Roles" },
+  "analytics.topScreens": { es: "Pantallas más usadas", en: "Most used screens" },
+  "analytics.topFlows": { es: "Transiciones más comunes", en: "Most common transitions" },
+  "analytics.screen": { es: "Pantalla", en: "Screen" },
+  "analytics.views": { es: "Vistas", en: "Views" },
+  "analytics.unique": { es: "Únicos", en: "Unique" },
+  "analytics.uniqueUsers": { es: "Usuarios únicos", en: "Unique users" },
+  "analytics.avgTime": { es: "Tiempo prom.", en: "Avg time" },
+  "analytics.user": { es: "Usuario", en: "User" },
+  "analytics.role": { es: "Rol", en: "Role" },
+  "analytics.empty": { es: "Aún no hay datos", en: "No data yet" },
+
+
+
   // Calendar / Events
   "nav.calendar": { es: "Calendario", en: "Calendar" },
   "calendar.title": { es: "Calendario y Eventos", en: "Calendar & Events" },
