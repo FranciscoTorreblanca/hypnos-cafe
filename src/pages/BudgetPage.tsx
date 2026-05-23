@@ -267,6 +267,11 @@ export default function BudgetPage() {
   const [adjOpen, setAdjOpen] = useState(false);
   const [adjForm, setAdjForm] = useState({ source: "cash" as Source, amount: "", kind: "adjustment", note: "" });
 
+  const [quickAdjOpen, setQuickAdjOpen] = useState(false);
+  const [quickAdjSource, setQuickAdjSource] = useState<"cash" | "card">("cash");
+  const [quickAdjTarget, setQuickAdjTarget] = useState("");
+  const [quickAdjNote, setQuickAdjNote] = useState("");
+
   const openNewExpense = (recurring_id = "", category_id = "") => {
     setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id });
     setExpenseOpen(true);
