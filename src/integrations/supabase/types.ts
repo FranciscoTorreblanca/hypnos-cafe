@@ -1227,6 +1227,45 @@ export type Database = {
           },
         ]
       }
+      usage_events: {
+        Row: {
+          action_name: string
+          created_at: string
+          duration_ms: number | null
+          event_type: string
+          from_path: string
+          id: string
+          metadata: Json
+          path: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          action_name?: string
+          created_at?: string
+          duration_ms?: number | null
+          event_type: string
+          from_path?: string
+          id?: string
+          metadata?: Json
+          path?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          action_name?: string
+          created_at?: string
+          duration_ms?: number | null
+          event_type?: string
+          from_path?: string
+          id?: string
+          metadata?: Json
+          path?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
