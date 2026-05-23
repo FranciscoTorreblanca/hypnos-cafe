@@ -489,6 +489,10 @@ export const translations = {
   "budget.expenseAdded": { es: "Gasto registrado", en: "Expense added" },
   "budget.recurringSaved": { es: "Recurrente guardado", en: "Recurring saved" },
   "budget.balanceAdjusted": { es: "Saldo ajustado", en: "Balance adjusted" },
+  "budget.targetBalance": { es: "Saldo real", en: "Real balance" },
+  "budget.difference": { es: "Diferencia", en: "Difference" },
+  "budget.quickAdjust": { es: "Ajuste rápido", en: "Quick adjust" },
+  "budget.clickToEdit": { es: "Clic para ajustar", en: "Click to adjust" },
 
 
 

@@ -267,6 +267,11 @@ export default function BudgetPage() {
   const [adjOpen, setAdjOpen] = useState(false);
   const [adjForm, setAdjForm] = useState({ source: "cash" as Source, amount: "", kind: "adjustment", note: "" });
 
+  const [quickAdjOpen, setQuickAdjOpen] = useState(false);
+  const [quickAdjSource, setQuickAdjSource] = useState<"cash" | "card">("cash");
+  const [quickAdjTarget, setQuickAdjTarget] = useState("");
+  const [quickAdjNote, setQuickAdjNote] = useState("");
+
   const openNewExpense = (recurring_id = "", category_id = "") => {
     setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id });
     setExpenseOpen(true);
@@ -315,6 +320,43 @@ export default function BudgetPage() {
     );
   };
 
+  const openQuickAdjust = (source: "cash" | "card") => {
+    const current = source === "cash" ? totalsBySource.cash : totalsBySource.card;
+    setQuickAdjSource(source);
+    setQuickAdjTarget(String(Math.round(current)));
+    setQuickAdjNote("");
+    setQuickAdjOpen(true);
+  };
+
+  const currentQuickBalance = quickAdjSource === "cash" ? totalsBySource.cash : totalsBySource.card;
+  const quickDiff = Number(quickAdjTarget || 0) - currentQuickBalance;
+
+  const submitQuickAdjust = () => {
+    const target = Number(quickAdjTarget);
+    if (Number.isNaN(target)) return;
+    const current = quickAdjSource === "cash" ? totalsBySource.cash : totalsBySource.card;
+    const diff = target - current;
+    if (diff === 0) {
+      setQuickAdjOpen(false);
+      return;
+    }
+    addAdjustment.mutate(
+      {
+        source: quickAdjSource,
+        amount: diff,
+        kind: "adjustment",
+        note: quickAdjNote || `${t("budget.quickAdjust")} ${sourceLabel(quickAdjSource)}`,
+      },
+      {
+        onSuccess: () => {
+          setQuickAdjOpen(false);
+          setQuickAdjTarget("");
+          setQuickAdjNote("");
+        },
+      }
+    );
+  };
+
   // ---------- Render ----------
   const catLabel = (id: string) => {
     const c = categories.find((c) => c.id === id);
@@ -331,15 +373,29 @@ export default function BudgetPage() {
 
       {/* Balance cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-primary/40 hover:bg-accent/30 transition-colors relative"
+          onClick={() => openQuickAdjust("cash")}
+          title={t("budget.clickToEdit") as string}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Coins className="h-4 w-4" />{t("budget.cash")}</div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2"><Coins className="h-4 w-4" />{t("budget.cash")}</div>
+              <Pencil className="h-3 w-3 opacity-50" />
+            </div>
             <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.cash)}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-primary/40 hover:bg-accent/30 transition-colors relative"
+          onClick={() => openQuickAdjust("card")}
+          title={t("budget.clickToEdit") as string}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><CreditCard className="h-4 w-4" />{t("budget.card")}</div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{t("budget.card")}</div>
+              <Pencil className="h-3 w-3 opacity-50" />
+            </div>
             <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.card)}</div>
           </CardContent>
         </Card>
@@ -791,6 +847,47 @@ export default function BudgetPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdjOpen(false)}>{t("common.cancel")}</Button>
             <Button onClick={submitAdjustment} disabled={addAdjustment.isPending}>{t("common.save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick adjust balance dialog */}
+      <Dialog open={quickAdjOpen} onOpenChange={setQuickAdjOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("budget.quickAdjust")} — {sourceLabel(quickAdjSource)}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t("budget.targetBalance")}</span>
+              <span className="font-semibold">{fmtMXN(currentQuickBalance)}</span>
+            </div>
+            <div>
+              <Label>{t("budget.targetBalance")}</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={quickAdjTarget}
+                onChange={(e) => setQuickAdjTarget(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="flex items-center justify-between text-sm rounded-md bg-muted p-2">
+              <span className="text-muted-foreground">{t("budget.difference")}</span>
+              <span className={`font-semibold ${quickDiff < 0 ? "text-destructive" : quickDiff > 0 ? "text-primary" : ""}`}>
+                {quickDiff > 0 ? "+" : ""}{fmtMXN(quickDiff)}
+              </span>
+            </div>
+            <div>
+              <Label>{t("budget.note")}</Label>
+              <Textarea value={quickAdjNote} onChange={(e) => setQuickAdjNote(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickAdjOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={submitQuickAdjust} disabled={addAdjustment.isPending || Number.isNaN(Number(quickAdjTarget))}>
+              {t("common.save")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
