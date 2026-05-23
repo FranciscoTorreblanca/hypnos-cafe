@@ -42,6 +42,7 @@ const PATH_LABELS: Record<string, { es: string; en: string }> = {
   "/users": { es: "Usuarios", en: "Users" },
   "/settings": { es: "Configuración", en: "Settings" },
   "/analytics": { es: "Analítica de uso", en: "Usage Analytics" },
+  "/budget": { es: "Presupuesto", en: "Budget" },
   "/wifi": { es: "Wifi", en: "Wifi" },
 };
 
