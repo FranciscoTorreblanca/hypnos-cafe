@@ -850,6 +850,47 @@ export default function BudgetPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quick adjust balance dialog */}
+      <Dialog open={quickAdjOpen} onOpenChange={setQuickAdjOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("budget.quickAdjust")} — {sourceLabel(quickAdjSource)}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t("budget.targetBalance")}</span>
+              <span className="font-semibold">{fmtMXN(currentQuickBalance)}</span>
+            </div>
+            <div>
+              <Label>{t("budget.targetBalance")}</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={quickAdjTarget}
+                onChange={(e) => setQuickAdjTarget(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="flex items-center justify-between text-sm rounded-md bg-muted p-2">
+              <span className="text-muted-foreground">{t("budget.difference")}</span>
+              <span className={`font-semibold ${quickDiff < 0 ? "text-destructive" : quickDiff > 0 ? "text-primary" : ""}`}>
+                {quickDiff > 0 ? "+" : ""}{fmtMXN(quickDiff)}
+              </span>
+            </div>
+            <div>
+              <Label>{t("budget.note")}</Label>
+              <Textarea value={quickAdjNote} onChange={(e) => setQuickAdjNote(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickAdjOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={submitQuickAdjust} disabled={addAdjustment.isPending || Number.isNaN(Number(quickAdjTarget))}>
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
