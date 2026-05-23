@@ -320,6 +320,43 @@ export default function BudgetPage() {
     );
   };
 
+  const openQuickAdjust = (source: "cash" | "card") => {
+    const current = source === "cash" ? totalsBySource.cash : totalsBySource.card;
+    setQuickAdjSource(source);
+    setQuickAdjTarget(String(Math.round(current)));
+    setQuickAdjNote("");
+    setQuickAdjOpen(true);
+  };
+
+  const currentQuickBalance = quickAdjSource === "cash" ? totalsBySource.cash : totalsBySource.card;
+  const quickDiff = Number(quickAdjTarget || 0) - currentQuickBalance;
+
+  const submitQuickAdjust = () => {
+    const target = Number(quickAdjTarget);
+    if (Number.isNaN(target)) return;
+    const current = quickAdjSource === "cash" ? totalsBySource.cash : totalsBySource.card;
+    const diff = target - current;
+    if (diff === 0) {
+      setQuickAdjOpen(false);
+      return;
+    }
+    addAdjustment.mutate(
+      {
+        source: quickAdjSource,
+        amount: diff,
+        kind: "adjustment",
+        note: quickAdjNote || `${t("budget.quickAdjust")} ${sourceLabel(quickAdjSource)}`,
+      },
+      {
+        onSuccess: () => {
+          setQuickAdjOpen(false);
+          setQuickAdjTarget("");
+          setQuickAdjNote("");
+        },
+      }
+    );
+  };
+
   // ---------- Render ----------
   const catLabel = (id: string) => {
     const c = categories.find((c) => c.id === id);
