@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      balance_adjustments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          note: string
+          source: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          kind?: string
+          note?: string
+          source?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          note?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      budget_categories: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          key: string
+          kind: string
+          label: string
+          label_en: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          key: string
+          kind?: string
+          label: string
+          label_en?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          key?: string
+          kind?: string
+          label?: string
+          label_en?: string
+        }
+        Relationships: []
+      }
       combo_choice_groups: {
         Row: {
           combo_id: string
@@ -287,6 +353,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      expense_entries: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          note: string
+          paid_at: string
+          payment_source: string
+          recurring_id: string | null
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          note?: string
+          paid_at?: string
+          payment_source?: string
+          recurring_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string
+          paid_at?: string
+          payment_source?: string
+          recurring_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_entries_recurring_id_fkey"
+            columns: ["recurring_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ingredients: {
         Row: {
@@ -992,6 +1109,59 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string
+          frequency: string
+          id: string
+          is_active: boolean
+          name: string
+          next_due_date: string | null
+          notes: string
+          payment_source: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          next_due_date?: string | null
+          notes?: string
+          payment_source?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          next_due_date?: string | null
+          notes?: string
+          payment_source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
             referencedColumns: ["id"]
           },
         ]

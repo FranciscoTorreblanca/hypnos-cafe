@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Ticket,
   Activity,
+  Wallet,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +55,7 @@ export const AppSidebar = () => {
     { key: "nav.tickets" as const, icon: Ticket, path: "/tickets", roles: ["admin", "billing", "waiter"] },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
     { key: "nav.analytics" as const, icon: Activity, path: "/analytics", roles: ["admin"] },
+    { key: "nav.budget" as const, icon: Wallet, path: "/budget", roles: ["admin"] },
     { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"] },
     { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"] },
     { key: "nav.calendar" as const, icon: CalendarDays, path: "/calendar", roles: ["admin", "waiter", "billing"] },
