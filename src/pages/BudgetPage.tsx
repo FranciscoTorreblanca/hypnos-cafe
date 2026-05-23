@@ -373,15 +373,29 @@ export default function BudgetPage() {
 
       {/* Balance cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-primary/40 hover:bg-accent/30 transition-colors relative"
+          onClick={() => openQuickAdjust("cash")}
+          title={t("budget.clickToEdit") as string}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Coins className="h-4 w-4" />{t("budget.cash")}</div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2"><Coins className="h-4 w-4" />{t("budget.cash")}</div>
+              <Pencil className="h-3 w-3 opacity-50" />
+            </div>
             <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.cash)}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-primary/40 hover:bg-accent/30 transition-colors relative"
+          onClick={() => openQuickAdjust("card")}
+          title={t("budget.clickToEdit") as string}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><CreditCard className="h-4 w-4" />{t("budget.card")}</div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{t("budget.card")}</div>
+              <Pencil className="h-3 w-3 opacity-50" />
+            </div>
             <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.card)}</div>
           </CardContent>
         </Card>
