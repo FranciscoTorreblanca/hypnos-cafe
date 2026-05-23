@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Ticket,
   Activity,
+  Wallet,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
