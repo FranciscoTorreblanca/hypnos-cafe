@@ -25,6 +25,7 @@ import {
   ScanLine,
   History,
   Package,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
