@@ -26,6 +26,7 @@ import {
   History,
   Package,
   Activity,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
