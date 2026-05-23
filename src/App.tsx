@@ -32,6 +32,7 @@ import CalendarPage from "@/pages/CalendarPage";
 import TicketsPage from "@/pages/TicketsPage";
 import WifiPage from "@/pages/WifiPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
+import BudgetPage from "@/pages/BudgetPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
