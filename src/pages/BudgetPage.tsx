@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { startOfMonth, endOfMonth, format } from "date-fns";
+import { startOfMonth, endOfMonth, format, differenceInCalendarDays, addDays, addMonths, addYears, parseISO } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +31,18 @@ const FREQ_MONTHLY_FACTOR: Record<Frequency, number> = {
   quarterly: 1 / 3,
   yearly: 1 / 12,
   one_time: 0,
+};
+
+const advanceDate = (d: Date, f: Frequency): Date => {
+  switch (f) {
+    case "daily": return addDays(d, 1);
+    case "weekly": return addDays(d, 7);
+    case "biweekly": return addDays(d, 14);
+    case "monthly": return addMonths(d, 1);
+    case "quarterly": return addMonths(d, 3);
+    case "yearly": return addYears(d, 1);
+    default: return d;
+  }
 };
 
 const fmtMXN = (n: number) =>
@@ -189,7 +201,7 @@ export default function BudgetPage() {
 
   // ---------- Mutations (admin only) ----------
   const addExpense = useMutation({
-    mutationFn: async (payload: { category_id: string; amount: number; payment_source: Source; note: string; paid_at: string }) => {
+    mutationFn: async (payload: { category_id: string; amount: number; payment_source: Source; note: string; paid_at: string; recurring_id?: string | null }) => {
       const { error } = await (supabase.from("expense_entries") as any).insert({
         ...payload,
         created_by: user!.id,
@@ -277,9 +289,21 @@ export default function BudgetPage() {
     setExpenseOpen(true);
   };
 
+  const openMarkPaid = (r: any) => {
+    setExpForm({
+      category_id: r.category_id || categories[0]?.id || "",
+      amount: String(r.amount ?? ""),
+      payment_source: (r.payment_source as Source) || "card",
+      note: r.name || "",
+      recurring_id: r.id,
+    });
+    setExpenseOpen(true);
+  };
+
   const submitExpense = () => {
     const amt = Number(expForm.amount);
     if (!expForm.category_id || !amt) return;
+    const recurring_id = expForm.recurring_id || null;
     addExpense.mutate(
       {
         category_id: expForm.category_id,
@@ -287,8 +311,25 @@ export default function BudgetPage() {
         payment_source: expForm.payment_source,
         note: expForm.note,
         paid_at: new Date().toISOString(),
-      },
-      { onSuccess: () => setExpenseOpen(false) }
+        recurring_id,
+      } as any,
+      {
+        onSuccess: async () => {
+          // advance next_due_date for the linked recurring
+          if (recurring_id) {
+            const r = recurring.find((x) => x.id === recurring_id);
+            if (r && r.frequency && r.frequency !== "one_time") {
+              const base = r.next_due_date ? parseISO(r.next_due_date) : new Date();
+              const next = advanceDate(base < new Date() ? new Date() : base, r.frequency as Frequency);
+              await (supabase.from("recurring_expenses") as any)
+                .update({ next_due_date: format(next, "yyyy-MM-dd") })
+                .eq("id", recurring_id);
+              qc.invalidateQueries({ queryKey: ["recurring-expenses"] });
+            }
+          }
+          setExpenseOpen(false);
+        },
+      }
     );
   };
 
@@ -363,6 +404,59 @@ export default function BudgetPage() {
     if (!c) return "—";
     return language === "es" ? c.label : c.label_en || c.label;
   };
+
+  const lastPaidByRecurring = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of expenses) {
+      if (!e.recurring_id) continue;
+      const prev = map.get(e.recurring_id);
+      if (!prev || new Date(e.paid_at) > new Date(prev)) map.set(e.recurring_id, e.paid_at);
+    }
+    return map;
+  }, [expenses]);
+
+  const dueStatus = (r: any): { days: number | null; tone: "ok" | "upcoming" | "soon" | "overdue" | "none"; label: string } => {
+    if (!r.next_due_date) return { days: null, tone: "none", label: "—" };
+    const d = parseISO(r.next_due_date);
+    const days = differenceInCalendarDays(d, new Date());
+    if (days < 0) return { days, tone: "overdue", label: `${Math.abs(days)}d ${language === "es" ? "vencido" : "overdue"}` };
+    if (days === 0) return { days, tone: "soon", label: language === "es" ? "Hoy" : "Today" };
+    if (days <= 3) return { days, tone: "soon", label: language === "es" ? `En ${days}d` : `In ${days}d` };
+    if (days <= 7) return { days, tone: "upcoming", label: language === "es" ? `En ${days}d` : `In ${days}d` };
+    return { days, tone: "ok", label: language === "es" ? `En ${days}d` : `In ${days}d` };
+  };
+
+  const toneClasses = (tone: string) => {
+    switch (tone) {
+      case "overdue": return "bg-destructive/15 text-destructive border-destructive/30";
+      case "soon": return "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30";
+      case "upcoming": return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
+      case "ok": return "bg-primary/10 text-primary border-primary/30";
+      default: return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
+  const isPaidThisPeriod = (r: any): boolean => {
+    const last = lastPaidByRecurring.get(r.id);
+    if (!last) return false;
+    if (!r.next_due_date) return false;
+    // Paid for current cycle if last paid date is after (next_due_date - cycle length)
+    const next = parseISO(r.next_due_date);
+    // Determine cycle start = next - frequency
+    let cycleStart: Date;
+    const f = r.frequency as Frequency;
+    switch (f) {
+      case "daily": cycleStart = addDays(next, -1); break;
+      case "weekly": cycleStart = addDays(next, -7); break;
+      case "biweekly": cycleStart = addDays(next, -14); break;
+      case "monthly": cycleStart = addMonths(next, -1); break;
+      case "quarterly": cycleStart = addMonths(next, -3); break;
+      case "yearly": cycleStart = addYears(next, -1); break;
+      default: return !!last;
+    }
+    return new Date(last) >= cycleStart;
+  };
+
 
   return (
     <div className="space-y-6">
@@ -547,39 +641,64 @@ export default function BudgetPage() {
                     <TableHead>{t("budget.category")}</TableHead>
                     <TableHead>{t("budget.frequency")}</TableHead>
                     <TableHead className="text-right">{t("budget.amount")}</TableHead>
-                    <TableHead className="text-right">{t("budget.perMonth")}</TableHead>
+                    <TableHead>{t("budget.nextDueDate")}</TableHead>
+                    <TableHead>{t("budget.status")}</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recurring.map((r) => (
-                    <TableRow key={r.id} className={!r.is_active ? "opacity-50" : ""}>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell>{catLabel(r.category_id)}</TableCell>
-                      <TableCell><Badge variant="outline">{freqLabel(r.frequency)}</Badge></TableCell>
-                      <TableCell className="text-right">{fmtMXN(Number(r.amount))}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {fmtMXN(Number(r.amount) * (FREQ_MONTHLY_FACTOR[r.frequency as Frequency] ?? 0))}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isAdmin && (
-                          <div className="flex gap-1 justify-end">
-                            <Button size="icon" variant="ghost" onClick={() => openNewExpense("", r.category_id)} title={t("budget.markPaid") as string}>
-                              <Receipt className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => { setRecurringEdit(r); setRecurringOpen(true); }}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => deleteRecurring.mutate(r.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {recurring.map((r) => {
+                    const status = dueStatus(r);
+                    const paid = isPaidThisPeriod(r);
+                    const lastPaid = lastPaidByRecurring.get(r.id);
+                    return (
+                      <TableRow key={r.id} className={!r.is_active ? "opacity-50" : ""}>
+                        <TableCell className="font-medium">
+                          {r.name}
+                          {lastPaid && (
+                            <div className="text-[10px] text-muted-foreground">
+                              {t("budget.lastPaid")}: {format(new Date(lastPaid), "dd MMM", { locale })}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{catLabel(r.category_id)}</TableCell>
+                        <TableCell><Badge variant="outline">{freqLabel(r.frequency)}</Badge></TableCell>
+                        <TableCell className="text-right">{fmtMXN(Number(r.amount))}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {r.next_due_date ? format(parseISO(r.next_due_date), "dd MMM yyyy", { locale }) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {paid ? (
+                            <Badge className="bg-primary/15 text-primary border-primary/30" variant="outline">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />{t("budget.paid")}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className={toneClasses(status.tone)}>
+                              {status.tone === "overdue" && <AlertCircle className="h-3 w-3 mr-1" />}
+                              {status.label}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isAdmin && (
+                            <div className="flex gap-1 justify-end">
+                              <Button size="icon" variant="ghost" onClick={() => openMarkPaid(r)} title={t("budget.markPaid") as string}>
+                                <Receipt className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => { setRecurringEdit(r); setRecurringOpen(true); }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => deleteRecurring.mutate(r.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {recurring.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{t("budget.noRecurring")}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">{t("budget.noRecurring")}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
