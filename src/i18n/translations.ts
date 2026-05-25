@@ -493,6 +493,9 @@ export const translations = {
   "budget.difference": { es: "Diferencia", en: "Difference" },
   "budget.quickAdjust": { es: "Ajuste rápido", en: "Quick adjust" },
   "budget.clickToEdit": { es: "Clic para ajustar", en: "Click to adjust" },
+  "budget.status": { es: "Estado", en: "Status" },
+  "budget.paid": { es: "Pagado", en: "Paid" },
+  "budget.lastPaid": { es: "Último pago", en: "Last paid" },
 
 
 
