@@ -641,39 +641,64 @@ export default function BudgetPage() {
                     <TableHead>{t("budget.category")}</TableHead>
                     <TableHead>{t("budget.frequency")}</TableHead>
                     <TableHead className="text-right">{t("budget.amount")}</TableHead>
-                    <TableHead className="text-right">{t("budget.perMonth")}</TableHead>
+                    <TableHead>{t("budget.nextDueDate")}</TableHead>
+                    <TableHead>{t("budget.status")}</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recurring.map((r) => (
-                    <TableRow key={r.id} className={!r.is_active ? "opacity-50" : ""}>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell>{catLabel(r.category_id)}</TableCell>
-                      <TableCell><Badge variant="outline">{freqLabel(r.frequency)}</Badge></TableCell>
-                      <TableCell className="text-right">{fmtMXN(Number(r.amount))}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {fmtMXN(Number(r.amount) * (FREQ_MONTHLY_FACTOR[r.frequency as Frequency] ?? 0))}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isAdmin && (
-                          <div className="flex gap-1 justify-end">
-                            <Button size="icon" variant="ghost" onClick={() => openNewExpense("", r.category_id)} title={t("budget.markPaid") as string}>
-                              <Receipt className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => { setRecurringEdit(r); setRecurringOpen(true); }}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => deleteRecurring.mutate(r.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {recurring.map((r) => {
+                    const status = dueStatus(r);
+                    const paid = isPaidThisPeriod(r);
+                    const lastPaid = lastPaidByRecurring.get(r.id);
+                    return (
+                      <TableRow key={r.id} className={!r.is_active ? "opacity-50" : ""}>
+                        <TableCell className="font-medium">
+                          {r.name}
+                          {lastPaid && (
+                            <div className="text-[10px] text-muted-foreground">
+                              {t("budget.lastPaid")}: {format(new Date(lastPaid), "dd MMM", { locale })}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{catLabel(r.category_id)}</TableCell>
+                        <TableCell><Badge variant="outline">{freqLabel(r.frequency)}</Badge></TableCell>
+                        <TableCell className="text-right">{fmtMXN(Number(r.amount))}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {r.next_due_date ? format(parseISO(r.next_due_date), "dd MMM yyyy", { locale }) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {paid ? (
+                            <Badge className="bg-primary/15 text-primary border-primary/30" variant="outline">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />{t("budget.paid")}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className={toneClasses(status.tone)}>
+                              {status.tone === "overdue" && <AlertCircle className="h-3 w-3 mr-1" />}
+                              {status.label}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isAdmin && (
+                            <div className="flex gap-1 justify-end">
+                              <Button size="icon" variant="ghost" onClick={() => openMarkPaid(r)} title={t("budget.markPaid") as string}>
+                                <Receipt className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => { setRecurringEdit(r); setRecurringOpen(true); }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => deleteRecurring.mutate(r.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {recurring.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{t("budget.noRecurring")}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">{t("budget.noRecurring")}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
