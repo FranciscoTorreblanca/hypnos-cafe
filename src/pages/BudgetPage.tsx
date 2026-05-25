@@ -271,7 +271,7 @@ export default function BudgetPage() {
 
   // ---------- Dialogs state ----------
   const [expenseOpen, setExpenseOpen] = useState(false);
-  const [expForm, setExpForm] = useState({ category_id: "", amount: "", payment_source: "card" as Source, note: "", recurring_id: "" });
+  const [expForm, setExpForm] = useState({ category_id: "", amount: "", payment_source: "card" as Source, note: "", recurring_id: "", paid_at: format(new Date(), "yyyy-MM-dd") });
 
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [recurringEdit, setRecurringEdit] = useState<any>(null);
