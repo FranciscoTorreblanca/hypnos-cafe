@@ -405,6 +405,59 @@ export default function BudgetPage() {
     return language === "es" ? c.label : c.label_en || c.label;
   };
 
+  const lastPaidByRecurring = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of expenses) {
+      if (!e.recurring_id) continue;
+      const prev = map.get(e.recurring_id);
+      if (!prev || new Date(e.paid_at) > new Date(prev)) map.set(e.recurring_id, e.paid_at);
+    }
+    return map;
+  }, [expenses]);
+
+  const dueStatus = (r: any): { days: number | null; tone: "ok" | "upcoming" | "soon" | "overdue" | "none"; label: string } => {
+    if (!r.next_due_date) return { days: null, tone: "none", label: "—" };
+    const d = parseISO(r.next_due_date);
+    const days = differenceInCalendarDays(d, new Date());
+    if (days < 0) return { days, tone: "overdue", label: `${Math.abs(days)}d ${language === "es" ? "vencido" : "overdue"}` };
+    if (days === 0) return { days, tone: "soon", label: language === "es" ? "Hoy" : "Today" };
+    if (days <= 3) return { days, tone: "soon", label: language === "es" ? `En ${days}d` : `In ${days}d` };
+    if (days <= 7) return { days, tone: "upcoming", label: language === "es" ? `En ${days}d` : `In ${days}d` };
+    return { days, tone: "ok", label: language === "es" ? `En ${days}d` : `In ${days}d` };
+  };
+
+  const toneClasses = (tone: string) => {
+    switch (tone) {
+      case "overdue": return "bg-destructive/15 text-destructive border-destructive/30";
+      case "soon": return "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30";
+      case "upcoming": return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
+      case "ok": return "bg-primary/10 text-primary border-primary/30";
+      default: return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
+  const isPaidThisPeriod = (r: any): boolean => {
+    const last = lastPaidByRecurring.get(r.id);
+    if (!last) return false;
+    if (!r.next_due_date) return false;
+    // Paid for current cycle if last paid date is after (next_due_date - cycle length)
+    const next = parseISO(r.next_due_date);
+    // Determine cycle start = next - frequency
+    let cycleStart: Date;
+    const f = r.frequency as Frequency;
+    switch (f) {
+      case "daily": cycleStart = addDays(next, -1); break;
+      case "weekly": cycleStart = addDays(next, -7); break;
+      case "biweekly": cycleStart = addDays(next, -14); break;
+      case "monthly": cycleStart = addMonths(next, -1); break;
+      case "quarterly": cycleStart = addMonths(next, -3); break;
+      case "yearly": cycleStart = addYears(next, -1); break;
+      default: return !!last;
+    }
+    return new Date(last) >= cycleStart;
+  };
+
+
   return (
     <div className="space-y-6">
       <div>
