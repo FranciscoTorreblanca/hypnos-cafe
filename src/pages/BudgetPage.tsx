@@ -289,9 +289,21 @@ export default function BudgetPage() {
     setExpenseOpen(true);
   };
 
+  const openMarkPaid = (r: any) => {
+    setExpForm({
+      category_id: r.category_id || categories[0]?.id || "",
+      amount: String(r.amount ?? ""),
+      payment_source: (r.payment_source as Source) || "card",
+      note: r.name || "",
+      recurring_id: r.id,
+    });
+    setExpenseOpen(true);
+  };
+
   const submitExpense = () => {
     const amt = Number(expForm.amount);
     if (!expForm.category_id || !amt) return;
+    const recurring_id = expForm.recurring_id || null;
     addExpense.mutate(
       {
         category_id: expForm.category_id,
@@ -299,8 +311,25 @@ export default function BudgetPage() {
         payment_source: expForm.payment_source,
         note: expForm.note,
         paid_at: new Date().toISOString(),
-      },
-      { onSuccess: () => setExpenseOpen(false) }
+        recurring_id,
+      } as any,
+      {
+        onSuccess: async () => {
+          // advance next_due_date for the linked recurring
+          if (recurring_id) {
+            const r = recurring.find((x) => x.id === recurring_id);
+            if (r && r.frequency && r.frequency !== "one_time") {
+              const base = r.next_due_date ? parseISO(r.next_due_date) : new Date();
+              const next = advanceDate(base < new Date() ? new Date() : base, r.frequency as Frequency);
+              await (supabase.from("recurring_expenses") as any)
+                .update({ next_due_date: format(next, "yyyy-MM-dd") })
+                .eq("id", recurring_id);
+              qc.invalidateQueries({ queryKey: ["recurring-expenses"] });
+            }
+          }
+          setExpenseOpen(false);
+        },
+      }
     );
   };
 
