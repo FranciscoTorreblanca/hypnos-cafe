@@ -285,7 +285,7 @@ export default function BudgetPage() {
   const [quickAdjNote, setQuickAdjNote] = useState("");
 
   const openNewExpense = (recurring_id = "", category_id = "") => {
-    setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id });
+    setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id, paid_at: format(new Date(), "yyyy-MM-dd") });
     setExpenseOpen(true);
   };
 
@@ -296,6 +296,7 @@ export default function BudgetPage() {
       payment_source: (r.payment_source as Source) || "card",
       note: r.name || "",
       recurring_id: r.id,
+      paid_at: format(new Date(), "yyyy-MM-dd"),
     });
     setExpenseOpen(true);
   };
