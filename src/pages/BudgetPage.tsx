@@ -201,7 +201,7 @@ export default function BudgetPage() {
 
   // ---------- Mutations (admin only) ----------
   const addExpense = useMutation({
-    mutationFn: async (payload: { category_id: string; amount: number; payment_source: Source; note: string; paid_at: string }) => {
+    mutationFn: async (payload: { category_id: string; amount: number; payment_source: Source; note: string; paid_at: string; recurring_id?: string | null }) => {
       const { error } = await (supabase.from("expense_entries") as any).insert({
         ...payload,
         created_by: user!.id,
