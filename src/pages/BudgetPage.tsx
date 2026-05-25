@@ -305,23 +305,28 @@ export default function BudgetPage() {
     const amt = Number(expForm.amount);
     if (!expForm.category_id || !amt) return;
     const recurring_id = expForm.recurring_id || null;
+    const paidAtIso = expForm.paid_at
+      ? new Date(`${expForm.paid_at}T12:00:00`).toISOString()
+      : new Date().toISOString();
     addExpense.mutate(
       {
         category_id: expForm.category_id,
         amount: amt,
         payment_source: expForm.payment_source,
         note: expForm.note,
-        paid_at: new Date().toISOString(),
+        paid_at: paidAtIso,
         recurring_id,
       } as any,
       {
         onSuccess: async () => {
-          // advance next_due_date for the linked recurring
           if (recurring_id) {
             const r = recurring.find((x) => x.id === recurring_id);
             if (r && r.frequency && r.frequency !== "one_time") {
-              const base = r.next_due_date ? parseISO(r.next_due_date) : new Date();
-              const next = advanceDate(base < new Date() ? new Date() : base, r.frequency as Frequency);
+              const paidDate = new Date(paidAtIso);
+              const due = r.next_due_date ? parseISO(r.next_due_date) : paidDate;
+              // Advance from whichever is later: the paid date or the original due date
+              const base = paidDate > due ? paidDate : due;
+              const next = advanceDate(base, r.frequency as Frequency);
               await (supabase.from("recurring_expenses") as any)
                 .update({ next_due_date: format(next, "yyyy-MM-dd") })
                 .eq("id", recurring_id);
