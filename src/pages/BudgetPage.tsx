@@ -33,6 +33,18 @@ const FREQ_MONTHLY_FACTOR: Record<Frequency, number> = {
   one_time: 0,
 };
 
+const advanceDate = (d: Date, f: Frequency): Date => {
+  switch (f) {
+    case "daily": return addDays(d, 1);
+    case "weekly": return addDays(d, 7);
+    case "biweekly": return addDays(d, 14);
+    case "monthly": return addMonths(d, 1);
+    case "quarterly": return addMonths(d, 3);
+    case "yearly": return addYears(d, 1);
+    default: return d;
+  }
+};
+
 const fmtMXN = (n: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n || 0);
 
