@@ -848,6 +848,35 @@ export default function BudgetPage() {
               </Select>
             </div>
             <div>
+              <Label className="flex items-center gap-2"><CalendarClock className="h-4 w-4" />{t("budget.paidAt")}</Label>
+              <Input
+                type="date"
+                value={expForm.paid_at}
+                onChange={(e) => setExpForm((f) => ({ ...f, paid_at: e.target.value }))}
+              />
+              {expForm.recurring_id && (() => {
+                const r = recurring.find((x) => x.id === expForm.recurring_id);
+                if (!r?.next_due_date || !expForm.paid_at) return null;
+                const diff = differenceInCalendarDays(parseISO(expForm.paid_at), parseISO(r.next_due_date));
+                if (diff > 0) {
+                  return (
+                    <div className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {language === "es" ? `Pago tardío: ${diff}d después de la fecha límite` : `Late payment: ${diff}d past due date`}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="text-xs text-primary mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {language === "es"
+                      ? diff === 0 ? "A tiempo (el día límite)" : `A tiempo (${Math.abs(diff)}d antes)`
+                      : diff === 0 ? "On time (due today)" : `On time (${Math.abs(diff)}d early)`}
+                  </div>
+                );
+              })()}
+            </div>
+            <div>
               <Label>{t("budget.note")}</Label>
               <Textarea value={expForm.note} onChange={(e) => setExpForm((f) => ({ ...f, note: e.target.value }))} rows={2} />
             </div>
