@@ -496,6 +496,7 @@ export const translations = {
   "budget.status": { es: "Estado", en: "Status" },
   "budget.paid": { es: "Pagado", en: "Paid" },
   "budget.lastPaid": { es: "Último pago", en: "Last paid" },
+  "budget.paidAt": { es: "Fecha de pago", en: "Payment date" },
 
 
 

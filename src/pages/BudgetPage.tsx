@@ -271,7 +271,7 @@ export default function BudgetPage() {
 
   // ---------- Dialogs state ----------
   const [expenseOpen, setExpenseOpen] = useState(false);
-  const [expForm, setExpForm] = useState({ category_id: "", amount: "", payment_source: "card" as Source, note: "", recurring_id: "" });
+  const [expForm, setExpForm] = useState({ category_id: "", amount: "", payment_source: "card" as Source, note: "", recurring_id: "", paid_at: format(new Date(), "yyyy-MM-dd") });
 
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [recurringEdit, setRecurringEdit] = useState<any>(null);
@@ -285,7 +285,7 @@ export default function BudgetPage() {
   const [quickAdjNote, setQuickAdjNote] = useState("");
 
   const openNewExpense = (recurring_id = "", category_id = "") => {
-    setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id });
+    setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id, paid_at: format(new Date(), "yyyy-MM-dd") });
     setExpenseOpen(true);
   };
 
@@ -296,6 +296,7 @@ export default function BudgetPage() {
       payment_source: (r.payment_source as Source) || "card",
       note: r.name || "",
       recurring_id: r.id,
+      paid_at: format(new Date(), "yyyy-MM-dd"),
     });
     setExpenseOpen(true);
   };
@@ -304,23 +305,28 @@ export default function BudgetPage() {
     const amt = Number(expForm.amount);
     if (!expForm.category_id || !amt) return;
     const recurring_id = expForm.recurring_id || null;
+    const paidAtIso = expForm.paid_at
+      ? new Date(`${expForm.paid_at}T12:00:00`).toISOString()
+      : new Date().toISOString();
     addExpense.mutate(
       {
         category_id: expForm.category_id,
         amount: amt,
         payment_source: expForm.payment_source,
         note: expForm.note,
-        paid_at: new Date().toISOString(),
+        paid_at: paidAtIso,
         recurring_id,
       } as any,
       {
         onSuccess: async () => {
-          // advance next_due_date for the linked recurring
           if (recurring_id) {
             const r = recurring.find((x) => x.id === recurring_id);
             if (r && r.frequency && r.frequency !== "one_time") {
-              const base = r.next_due_date ? parseISO(r.next_due_date) : new Date();
-              const next = advanceDate(base < new Date() ? new Date() : base, r.frequency as Frequency);
+              const paidDate = new Date(paidAtIso);
+              const due = r.next_due_date ? parseISO(r.next_due_date) : paidDate;
+              // Advance from whichever is later: the paid date or the original due date
+              const base = paidDate > due ? paidDate : due;
+              const next = advanceDate(base, r.frequency as Frequency);
               await (supabase.from("recurring_expenses") as any)
                 .update({ next_due_date: format(next, "yyyy-MM-dd") })
                 .eq("id", recurring_id);
@@ -840,6 +846,35 @@ export default function BudgetPage() {
                   <SelectItem value="other">{sourceLabel("other")}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label className="flex items-center gap-2"><CalendarClock className="h-4 w-4" />{t("budget.paidAt")}</Label>
+              <Input
+                type="date"
+                value={expForm.paid_at}
+                onChange={(e) => setExpForm((f) => ({ ...f, paid_at: e.target.value }))}
+              />
+              {expForm.recurring_id && (() => {
+                const r = recurring.find((x) => x.id === expForm.recurring_id);
+                if (!r?.next_due_date || !expForm.paid_at) return null;
+                const diff = differenceInCalendarDays(parseISO(expForm.paid_at), parseISO(r.next_due_date));
+                if (diff > 0) {
+                  return (
+                    <div className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {language === "es" ? `Pago tardío: ${diff}d después de la fecha límite` : `Late payment: ${diff}d past due date`}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="text-xs text-primary mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {language === "es"
+                      ? diff === 0 ? "A tiempo (el día límite)" : `A tiempo (${Math.abs(diff)}d antes)`
+                      : diff === 0 ? "On time (due today)" : `On time (${Math.abs(diff)}d early)`}
+                  </div>
+                );
+              })()}
             </div>
             <div>
               <Label>{t("budget.note")}</Label>
