@@ -316,44 +316,38 @@ const BillingPage = () => {
   const cfCardNet = cashFlowData.reduce((s, d) => s + d.cardNet, 0);
   const cfNetIncome = cashFlowData.reduce((s, d) => s + d.netIncome, 0);
 
+  // Today's net income (cash + card net after 5% commission)
+  const todayStart = startOfDay(new Date());
+  const todayPayments = payments.filter((p) => new Date(p.created_at) >= todayStart);
+  const todayCash = todayPayments.filter((p) => p.payment_method === "cash").reduce((s, p) => s + p.amount, 0);
+  const todayCardNet = todayPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount * 0.95, 0);
+  const todayNet = todayCash + todayCardNet;
+  const todayTips = todayPayments.reduce((s, p) => s + p.tip, 0);
+
   return (
     <div className="space-y-6">
 
       <h1 className="text-2xl font-semibold tracking-tight">{t("billing.title")}</h1>
 
-      {/* Summary cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> {t("billing.salesTotal")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${totalSales.toFixed(0)} MXN</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> {t("billing.tipsTotal")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${totalTips.toFixed(0)} MXN</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Receipt className="h-4 w-4" /> {t("billing.pendingBills")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{billableOrders.length}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Today snapshot */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            {language === "es" ? "Ingreso neto de hoy" : "Today's net income"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-x-6 gap-y-2">
+          <p className="text-3xl font-bold">${todayNet.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MXN</span></p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Banknote className="h-3 w-3" /> ${todayCash.toFixed(0)}</span>
+            <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> ${todayCardNet.toFixed(0)}</span>
+            <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> {language === "es" ? "Propinas" : "Tips"}: ${todayTips.toFixed(0)}</span>
+            <span>· {todayPayments.length} {language === "es" ? "pagos" : "payments"}</span>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <Tabs defaultValue="pending">
         <TabsList className="flex flex-wrap h-auto">
