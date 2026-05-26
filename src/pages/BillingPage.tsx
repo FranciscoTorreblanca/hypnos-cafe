@@ -349,116 +349,13 @@ const BillingPage = () => {
       </Card>
 
 
-      <Tabs defaultValue="pending">
+      <Tabs defaultValue="till">
         <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="pending">{t("billing.pendingBills")}</TabsTrigger>
-          <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
-          <TabsTrigger value="history">{t("billing.history")}</TabsTrigger>
-          <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
           <TabsTrigger value="till" className="gap-1"><Vault className="h-3.5 w-3.5" />{t("billing.till")}</TabsTrigger>
+          <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
+          <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
         </TabsList>
 
-        {/* Pending bills */}
-        <TabsContent value="pending" className="mt-4">
-          {billableOrders.length === 0 ? (
-            <p className="text-muted-foreground">{t("billing.noPending")}</p>
-          ) : (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {billableOrders.map((order) => (
-                <Card key={order.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {t("billing.table")} {order.table_number}
-                      </CardTitle>
-                      <Badge variant="outline">{t("orders.served")}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(order.created_at).toLocaleTimeString()}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-1">
-                      {(order.order_items ?? []).map((oi) => (
-                        <div key={oi.id} className="flex justify-between text-sm">
-                          <span>{oi.quantity}x {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}</span>
-                          <span className="text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-between font-semibold text-sm border-t pt-2">
-                      <span>Total</span>
-                      <span>${order.total.toFixed(0)} MXN</span>
-                    </div>
-                    <Button className="w-full gap-2" onClick={() => openPayDialog(order.id)}>
-                      <Receipt className="h-4 w-4" />
-                      {t("billing.payNow")}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Payment history */}
-        <TabsContent value="history" className="mt-4">
-          {payments.length === 0 ? (
-            <p className="text-muted-foreground">{t("billing.noHistory")}</p>
-          ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("billing.date")}</TableHead>
-                    <TableHead>{t("billing.table")}</TableHead>
-                     <TableHead>{t("billing.amount")}</TableHead>
-                     <TableHead>{t("billing.cardCommission")}</TableHead>
-                     <TableHead>{t("billing.cardNet")}</TableHead>
-                     <TableHead>{t("billing.tip")}</TableHead>
-                     <TableHead>{t("billing.method")}</TableHead>
-                    <TableHead>{t("billing.waiter")}</TableHead>
-                    {isAdmin && <TableHead>{t("billing.actions")}</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
-                      <TableCell>{p.order?.table_number ?? "-"}</TableCell>
-                      <TableCell>${p.amount.toFixed(0)}</TableCell>
-                      <TableCell className={p.payment_method === "card" ? "text-destructive" : "text-muted-foreground"}>
-                        {p.payment_method === "card" ? `-$${(p.amount * 0.05).toFixed(0)}` : "-"}
-                      </TableCell>
-                      <TableCell className={p.payment_method === "card" ? "font-medium" : ""}>
-                        {p.payment_method === "card" ? `$${(p.amount * 0.95).toFixed(0)}` : `$${p.amount.toFixed(0)}`}
-                      </TableCell>
-                      <TableCell>${p.tip.toFixed(0)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {p.payment_method === "cash" ? t("billing.cash") : t("billing.card")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs">{p.waiter?.full_name || "-"}</TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(p)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeletingPaymentId(p.id); setDeleteDialogOpen(true); }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
 
         {/* Tips by waiter */}
         <TabsContent value="tips" className="mt-4 space-y-4">
