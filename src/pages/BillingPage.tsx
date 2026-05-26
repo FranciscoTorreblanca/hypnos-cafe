@@ -316,155 +316,46 @@ const BillingPage = () => {
   const cfCardNet = cashFlowData.reduce((s, d) => s + d.cardNet, 0);
   const cfNetIncome = cashFlowData.reduce((s, d) => s + d.netIncome, 0);
 
+  // Today's net income (cash + card net after 5% commission)
+  const todayStart = startOfDay(new Date());
+  const todayPayments = payments.filter((p) => new Date(p.created_at) >= todayStart);
+  const todayCash = todayPayments.filter((p) => p.payment_method === "cash").reduce((s, p) => s + p.amount, 0);
+  const todayCardNet = todayPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount * 0.95, 0);
+  const todayNet = todayCash + todayCardNet;
+  const todayTips = todayPayments.reduce((s, p) => s + p.tip, 0);
+
   return (
     <div className="space-y-6">
 
       <h1 className="text-2xl font-semibold tracking-tight">{t("billing.title")}</h1>
 
-      {/* Summary cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> {t("billing.salesTotal")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${totalSales.toFixed(0)} MXN</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> {t("billing.tipsTotal")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${totalTips.toFixed(0)} MXN</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Receipt className="h-4 w-4" /> {t("billing.pendingBills")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{billableOrders.length}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Today snapshot */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            {language === "es" ? "Ingreso neto de hoy" : "Today's net income"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-x-6 gap-y-2">
+          <p className="text-3xl font-bold">${todayNet.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MXN</span></p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Banknote className="h-3 w-3" /> ${todayCash.toFixed(0)}</span>
+            <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> ${todayCardNet.toFixed(0)}</span>
+            <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> {language === "es" ? "Propinas" : "Tips"}: ${todayTips.toFixed(0)}</span>
+            <span>· {todayPayments.length} {language === "es" ? "pagos" : "payments"}</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Tabs defaultValue="pending">
+
+      <Tabs defaultValue="till">
         <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="pending">{t("billing.pendingBills")}</TabsTrigger>
-          <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
-          <TabsTrigger value="history">{t("billing.history")}</TabsTrigger>
-          <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
           <TabsTrigger value="till" className="gap-1"><Vault className="h-3.5 w-3.5" />{t("billing.till")}</TabsTrigger>
+          <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
+          <TabsTrigger value="tips">{t("billing.tip")}</TabsTrigger>
         </TabsList>
 
-        {/* Pending bills */}
-        <TabsContent value="pending" className="mt-4">
-          {billableOrders.length === 0 ? (
-            <p className="text-muted-foreground">{t("billing.noPending")}</p>
-          ) : (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {billableOrders.map((order) => (
-                <Card key={order.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {t("billing.table")} {order.table_number}
-                      </CardTitle>
-                      <Badge variant="outline">{t("orders.served")}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(order.created_at).toLocaleTimeString()}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-1">
-                      {(order.order_items ?? []).map((oi) => (
-                        <div key={oi.id} className="flex justify-between text-sm">
-                          <span>{oi.quantity}x {language === "es" ? oi.menu_item?.name : oi.menu_item?.name_en}</span>
-                          <span className="text-muted-foreground">${(oi.quantity * oi.unit_price).toFixed(0)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-between font-semibold text-sm border-t pt-2">
-                      <span>Total</span>
-                      <span>${order.total.toFixed(0)} MXN</span>
-                    </div>
-                    <Button className="w-full gap-2" onClick={() => openPayDialog(order.id)}>
-                      <Receipt className="h-4 w-4" />
-                      {t("billing.payNow")}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Payment history */}
-        <TabsContent value="history" className="mt-4">
-          {payments.length === 0 ? (
-            <p className="text-muted-foreground">{t("billing.noHistory")}</p>
-          ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("billing.date")}</TableHead>
-                    <TableHead>{t("billing.table")}</TableHead>
-                     <TableHead>{t("billing.amount")}</TableHead>
-                     <TableHead>{t("billing.cardCommission")}</TableHead>
-                     <TableHead>{t("billing.cardNet")}</TableHead>
-                     <TableHead>{t("billing.tip")}</TableHead>
-                     <TableHead>{t("billing.method")}</TableHead>
-                    <TableHead>{t("billing.waiter")}</TableHead>
-                    {isAdmin && <TableHead>{t("billing.actions")}</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
-                      <TableCell>{p.order?.table_number ?? "-"}</TableCell>
-                      <TableCell>${p.amount.toFixed(0)}</TableCell>
-                      <TableCell className={p.payment_method === "card" ? "text-destructive" : "text-muted-foreground"}>
-                        {p.payment_method === "card" ? `-$${(p.amount * 0.05).toFixed(0)}` : "-"}
-                      </TableCell>
-                      <TableCell className={p.payment_method === "card" ? "font-medium" : ""}>
-                        {p.payment_method === "card" ? `$${(p.amount * 0.95).toFixed(0)}` : `$${p.amount.toFixed(0)}`}
-                      </TableCell>
-                      <TableCell>${p.tip.toFixed(0)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {p.payment_method === "cash" ? t("billing.cash") : t("billing.card")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs">{p.waiter?.full_name || "-"}</TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(p)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeletingPaymentId(p.id); setDeleteDialogOpen(true); }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
 
         {/* Tips by waiter */}
         <TabsContent value="tips" className="mt-4 space-y-4">
@@ -843,235 +734,6 @@ const BillingPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Payment dialog */}
-      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("billing.confirmPayment")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span>{t("billing.subtotal")}</span>
-              <span className="font-semibold">${(selectedOrder?.total ?? 0).toFixed(0)} MXN</span>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("billing.tip")}</Label>
-              <div className="flex gap-2">
-                {[0, 10, 15, 20].map((pct) => (
-                  <Button
-                    key={pct}
-                    type="button"
-                    variant={tipAmount === String(Math.round((selectedOrder?.total ?? 0) * pct / 100)) && pct > 0 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTipAmount(String(Math.round((selectedOrder?.total ?? 0) * pct / 100)))}
-                  >
-                    {pct === 0 ? "$0" : `${pct}%`}
-                  </Button>
-                ))}
-              </div>
-              <Input
-                type="number"
-                min="0"
-                value={tipAmount}
-                onChange={(e) => setTipAmount(e.target.value)}
-                placeholder="$0"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>{t("billing.paymentMethod")}</Label>
-                <Button
-                  type="button"
-                  variant={splitEnabled ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => {
-                    const next = !splitEnabled;
-                    setSplitEnabled(next);
-                    if (next) {
-                      // Default cash to half of total
-                      const half = Math.round(((selectedOrder?.total ?? 0) / 2));
-                      setSplitCashAmount(String(half));
-                    }
-                  }}
-                >
-                  {t("billing.splitPayment")}
-                </Button>
-              </div>
-              {!splitEnabled ? (
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="cash" id="cash" />
-                    <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
-                      <Banknote className="h-4 w-4" /> {t("billing.cash")}
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="card" id="card" />
-                    <Label htmlFor="card" className="flex items-center gap-1 cursor-pointer">
-                      <CreditCard className="h-4 w-4" /> {t("billing.card")}
-                    </Label>
-                  </div>
-                </RadioGroup>
-              ) : (
-                (() => {
-                  const gd = selectedOrder?.general_discount ?? 0;
-                  const gda = (selectedOrder as any)?.general_discount_amount ?? 0;
-                  const totalNoTip = Math.round(applyGeneralDiscount(selectedOrder?.total ?? 0, gd, gda) * 100) / 100;
-                  const cashAmt = Math.max(0, Math.min(totalNoTip, parseFloat(splitCashAmount) || 0));
-                  const cardAmt = Math.max(0, Math.round((totalNoTip - cashAmt) * 100) / 100);
-                  return (
-                    <div className="space-y-2 rounded-md border p-3 bg-muted/30">
-                      <div className="space-y-1">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Banknote className="h-3.5 w-3.5" /> {t("billing.cashAmount")}
-                        </Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max={totalNoTip}
-                          step="0.01"
-                          value={splitCashAmount}
-                          onChange={(e) => setSplitCashAmount(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <CreditCard className="h-3.5 w-3.5" /> {t("billing.cardAmount")}
-                        </span>
-                        <span className="font-semibold">${cardAmt.toFixed(2)}</span>
-                      </div>
-                      {(parseFloat(tipAmount) || 0) > 0 && (
-                        <div className="space-y-1 pt-2 border-t">
-                          <Label className="text-xs">{t("billing.tipChargeOn")}</Label>
-                          <RadioGroup
-                            value={splitTipOn}
-                            onValueChange={(v) => setSplitTipOn(v as "cash" | "card")}
-                            className="flex gap-4"
-                          >
-                            <div className="flex items-center gap-2">
-                              <RadioGroupItem value="cash" id="tip-cash" />
-                              <Label htmlFor="tip-cash" className="cursor-pointer text-sm">{t("billing.cash")}</Label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <RadioGroupItem value="card" id="tip-card" />
-                              <Label htmlFor="tip-card" className="cursor-pointer text-sm">{t("billing.card")}</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                      )}
-                      {(cashAmt <= 0 || cardAmt <= 0) && (
-                        <p className="text-xs text-destructive">{t("billing.splitInvalid")}</p>
-                      )}
-                    </div>
-                  );
-                })()
-              )}
-            </div>
-
-            <div className="flex justify-between font-bold border-t pt-2">
-              <span>{t("billing.total")}</span>
-              <span>${((selectedOrder?.total ?? 0) + (parseFloat(tipAmount) || 0)).toFixed(0)} MXN</span>
-            </div>
-
-            <Button className="w-full" onClick={handleConfirmPayment} disabled={createPayment.isPending}>
-              {t("billing.confirmPayment")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Admin edit payment dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("billing.editPayment")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t("billing.amount")}</Label>
-              <Input type="number" min="0" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("billing.tip")}</Label>
-              <Input type="number" min="0" value={editTip} onChange={(e) => setEditTip(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("billing.paymentMethod")}</Label>
-              <RadioGroup value={editMethod} onValueChange={setEditMethod} className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="cash" id="edit-cash" />
-                  <Label htmlFor="edit-cash" className="flex items-center gap-1 cursor-pointer">
-                    <Banknote className="h-4 w-4" /> {t("billing.cash")}
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="card" id="edit-card" />
-                  <Label htmlFor="edit-card" className="flex items-center gap-1 cursor-pointer">
-                    <CreditCard className="h-4 w-4" /> {t("billing.card")}
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <Button className="w-full" onClick={handleEditSave} disabled={updatePayment.isPending}>
-              {t("common.save")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Admin delete confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("billing.deletePayment")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("billing.deleteConfirm")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDeleteConfirm(true)} className="bg-orange-600 hover:bg-orange-700">
-              {t("billing.deleteAndServe")}
-            </AlertDialogAction>
-            <AlertDialogAction onClick={() => handleDeleteConfirm(false)} className="bg-destructive hover:bg-destructive/90">
-              {t("billing.deleteCompletely")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Post-payment success: ask to print ticket */}
-      <AlertDialog open={paidPromptOpen} onOpenChange={setPaidPromptOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("tickets.successPaid")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("tickets.askPrintReceipt")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPaidPromptOpen(false)}>
-              {t("tickets.skipPrint")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setPaidPromptOpen(false);
-                setPrintOpen(true);
-              }}
-            >
-              {t("tickets.printReceipt")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <PrintTicketDialog
-        open={printOpen}
-        onOpenChange={(v) => {
-          setPrintOpen(v);
-          if (!v) setPendingTicket(null);
-        }}
-        ticket={pendingTicket}
-      />
     </div>
   );
 };
