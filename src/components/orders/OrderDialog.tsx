@@ -302,18 +302,35 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     try {
       const gd = order.general_discount ?? 0;
       const gda = (order as any).general_discount_amount ?? 0;
-      const finalAmount = Math.max(0, order.total * (1 - gd / 100) - gda);
-      await createPayment.mutateAsync({
-        order_id: order.id,
-        parts: [{
-          amount: Math.round(finalAmount * 100) / 100,
-          tip: parseFloat(tipAmount) || 0,
-          payment_method: paymentMethod,
-        }],
-      });
+      const finalAmount = Math.round(Math.max(0, order.total * (1 - gd / 100) - gda) * 100) / 100;
+
+      // Build & validate payment parts
+      const built = parts
+        .map((p) => ({
+          amount: Math.round((parseFloat(p.amount) || 0) * 100) / 100,
+          tip: Math.round((parseFloat(p.tip) || 0) * 100) / 100,
+          payment_method: p.method,
+        }))
+        .filter((p) => p.amount > 0 || p.tip > 0);
+
+      if (built.length === 0) {
+        toast({ title: t("common.error"), description: t("billing.splitInvalid"), variant: "destructive" });
+        return;
+      }
+      const sumAmount = Math.round(built.reduce((s, p) => s + p.amount, 0) * 100) / 100;
+      if (Math.abs(sumAmount - finalAmount) > 0.5) {
+        toast({
+          title: t("common.error"),
+          description: `${t("billing.total")}: $${finalAmount.toFixed(0)} · ${t("billing.entered") ?? "Entered"}: $${sumAmount.toFixed(0)}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await createPayment.mutateAsync({ order_id: order.id, parts: built });
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
       setShowPayment(false);
-      setTipAmount("0");
+      setParts([{ id: "p1", method: "cash", amount: "", tip: "0" }]);
       setCashDenoms({});
       setCashManual("");
       onOpenChange(false);
