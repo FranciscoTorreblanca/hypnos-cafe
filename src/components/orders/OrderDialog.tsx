@@ -80,8 +80,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [tipAmount, setTipAmount] = useState("0");
+  type PayPart = { id: string; method: "cash" | "card"; amount: string; tip: string };
+  const [parts, setParts] = useState<PayPart[]>([
+    { id: "p1", method: "cash", amount: "", tip: "0" },
+  ]);
   const [cashDenoms, setCashDenoms] = useState<Record<number, number>>({});
   const [cashManual, setCashManual] = useState("");
   const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0) + (parseFloat(cashManual) || 0);
@@ -300,18 +302,35 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     try {
       const gd = order.general_discount ?? 0;
       const gda = (order as any).general_discount_amount ?? 0;
-      const finalAmount = Math.max(0, order.total * (1 - gd / 100) - gda);
-      await createPayment.mutateAsync({
-        order_id: order.id,
-        parts: [{
-          amount: Math.round(finalAmount * 100) / 100,
-          tip: parseFloat(tipAmount) || 0,
-          payment_method: paymentMethod,
-        }],
-      });
+      const finalAmount = Math.round(Math.max(0, order.total * (1 - gd / 100) - gda) * 100) / 100;
+
+      // Build & validate payment parts
+      const built = parts
+        .map((p) => ({
+          amount: Math.round((parseFloat(p.amount) || 0) * 100) / 100,
+          tip: Math.round((parseFloat(p.tip) || 0) * 100) / 100,
+          payment_method: p.method,
+        }))
+        .filter((p) => p.amount > 0 || p.tip > 0);
+
+      if (built.length === 0) {
+        toast({ title: t("common.error"), description: t("billing.splitInvalid"), variant: "destructive" });
+        return;
+      }
+      const sumAmount = Math.round(built.reduce((s, p) => s + p.amount, 0) * 100) / 100;
+      if (Math.abs(sumAmount - finalAmount) > 0.5) {
+        toast({
+          title: t("common.error"),
+          description: `${t("billing.total")}: $${finalAmount.toFixed(0)} · ${language === "es" ? "Ingresado" : "Entered"}: $${sumAmount.toFixed(0)}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await createPayment.mutateAsync({ order_id: order.id, parts: built });
       toast({ title: t("common.success"), description: t("billing.paymentSuccess") });
       setShowPayment(false);
-      setTipAmount("0");
+      setParts([{ id: "p1", method: "cash", amount: "", tip: "0" }]);
       setCashDenoms({});
       setCashManual("");
       onOpenChange(false);
@@ -926,7 +945,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           <Button className="w-full gap-1.5" size="sm" variant="outline" onClick={handlePrintPreBill} disabled={createTicket.isPending}>
             <Printer className="h-3.5 w-3.5" /> {t("tickets.printPrebill")}
           </Button>
-          <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
+          <Button className="w-full gap-1.5" size="sm" onClick={() => {
+            const subtotal = order?.total ?? 0;
+            const gd = order?.general_discount ?? 0;
+            const gda = (order as any)?.general_discount_amount ?? 0;
+            const finalAmount = Math.round(applyGeneralDiscount(subtotal, gd, gda) * 100) / 100;
+            setParts([{ id: "p1", method: "cash", amount: String(finalAmount), tip: "0" }]);
+            setCashDenoms({});
+            setCashManual("");
+            setShowPayment(true);
+          }}>
             <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
           </Button>
         </>
@@ -1014,116 +1042,213 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         const subtotal = order?.total ?? 0;
         const gd = order?.general_discount ?? 0;
         const gda = (order as any)?.general_discount_amount ?? 0;
-        const finalAmount = applyGeneralDiscount(subtotal, gd, gda);
-        const tip = parseFloat(tipAmount) || 0;
+        const finalAmount = Math.round(applyGeneralDiscount(subtotal, gd, gda) * 100) / 100;
+
+        const sumAmount = parts.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+        const sumTip = parts.reduce((s, p) => s + (parseFloat(p.tip) || 0), 0);
+        const remaining = Math.round((finalAmount - sumAmount) * 100) / 100;
+        const totalToCharge = sumAmount + sumTip;
+
+        const updatePart = (id: string, patch: Partial<PayPart>) =>
+          setParts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+        const addPart = () => {
+          const remainNow = Math.max(0, Math.round((finalAmount - sumAmount) * 100) / 100);
+          setParts((prev) => [
+            ...prev,
+            { id: `p${Date.now()}`, method: prev[prev.length - 1]?.method === "cash" ? "card" : "cash", amount: String(remainNow), tip: "0" },
+          ]);
+        };
+        const removePart = (id: string) => setParts((prev) => (prev.length > 1 ? prev.filter((p) => p.id !== id) : prev));
+
+        // Single-cash convenience denom calc
+        const singleCash = parts.length === 1 && parts[0].method === "cash";
+        const totalToPaySingle = (parseFloat(parts[0]?.amount) || 0) + (parseFloat(parts[0]?.tip) || 0);
+        const change = cashReceived - totalToPaySingle;
+        const DENOMS = [500, 200, 100, 50, 20, 10, 5, 2, 1] as const;
+
         return (
           <>
+            {/* Quick tip presets (applied to the first part) */}
             <div className="space-y-2">
-              <Label>{t("billing.tip")}</Label>
+              <Label>{t("billing.tip")} <span className="text-muted-foreground font-normal">({language === "es" ? "total" : "total"})</span></Label>
               <div className="flex gap-2">
                 {[0, 10, 15, 20].map((pct) => {
-                  const val = Math.round(finalAmount * pct / 100);
+                  const val = Math.round((finalAmount * pct) / 100);
                   return (
-                    <Button key={pct} type="button" variant={tipAmount === String(val) && pct > 0 ? "default" : "outline"} size="sm" onClick={() => setTipAmount(String(val))}>
+                    <Button
+                      key={pct}
+                      type="button"
+                      variant={Math.round(sumTip) === val && pct > 0 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setParts((prev) => prev.map((p, i) => (i === 0 ? { ...p, tip: String(val) } : { ...p, tip: "0" })))}
+                    >
                       {pct === 0 ? "$0" : `${pct}%`}
                     </Button>
                   );
                 })}
               </div>
-              <Input type="number" min="0" value={tipAmount} onChange={(e) => setTipAmount(e.target.value)} />
             </div>
+
+            {/* Payment parts */}
             <div className="space-y-2">
-              <Label>{t("billing.paymentMethod")}</Label>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="cash" id="pay-cash" />
-                  <Label htmlFor="pay-cash" className="flex items-center gap-1 cursor-pointer"><Banknote className="h-4 w-4" /> {t("billing.cash")}</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="card" id="pay-card" />
-                  <Label htmlFor="pay-card" className="flex items-center gap-1 cursor-pointer"><CreditCard className="h-4 w-4" /> {t("billing.card")}</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <div className="flex justify-between font-bold border-t pt-2">
-              <span>{t("billing.total")}</span>
-              <span>${(finalAmount + tip).toFixed(0)} MXN</span>
-            </div>
-            {paymentMethod === "cash" && (() => {
-               const totalToPay = finalAmount + tip;
-              const received = cashReceived;
-              const change = received - totalToPay;
-              const DENOMS = [500, 200, 100, 50, 20, 10, 5, 2, 1] as const;
-              return (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
-                    {received > 0 && (
-                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => { setCashDenoms({}); setCashManual(""); }}>
-                        {language === "es" ? "Limpiar" : "Clear"}
+              <div className="flex items-center justify-between">
+                <Label>{t("billing.paymentMethod")}</Label>
+                <span className={`text-xs font-medium ${Math.abs(remaining) < 0.5 ? "text-emerald-600" : remaining > 0 ? "text-amber-600" : "text-destructive"}`}>
+                  {language === "es" ? "Por cubrir" : "Remaining"}: ${remaining.toFixed(0)}
+                </span>
+              </div>
+              {parts.map((p, idx) => (
+                <div key={p.id} className="rounded-md border p-2 space-y-2 bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <RadioGroup
+                      value={p.method}
+                      onValueChange={(v) => updatePart(p.id, { method: v as "cash" | "card" })}
+                      className="flex gap-3 flex-1"
+                    >
+                      <div className="flex items-center gap-1">
+                        <RadioGroupItem value="cash" id={`m-${p.id}-cash`} />
+                        <Label htmlFor={`m-${p.id}-cash`} className="flex items-center gap-1 cursor-pointer text-sm"><Banknote className="h-3.5 w-3.5" /> {t("billing.cash")}</Label>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <RadioGroupItem value="card" id={`m-${p.id}-card`} />
+                        <Label htmlFor={`m-${p.id}-card`} className="flex items-center gap-1 cursor-pointer text-sm"><CreditCard className="h-3.5 w-3.5" /> {t("billing.card")}</Label>
+                      </div>
+                    </RadioGroup>
+                    {parts.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePart(p.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder={`$${totalToPay.toFixed(0)}`}
-                    value={cashManual}
-                    onChange={(e) => setCashManual(e.target.value)}
-                    className="text-center text-lg font-semibold"
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    {DENOMS.map((d) => {
-                      const count = cashDenoms[d] || 0;
-                      return (
-                        <div key={d} className="inline-flex items-center h-8 rounded-md border border-input overflow-hidden">
-                          <button
-                            type="button"
-                            className="h-full px-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors"
-                            disabled={count === 0}
-                            onClick={() => setCashDenoms((prev) => {
-                              const next = { ...prev, [d]: (prev[d] || 0) - 1 };
-                              if (next[d] <= 0) delete next[d];
-                              return next;
-                            })}
-                          >
-                            −
-                          </button>
-                          <span
-                            className={`px-1.5 text-xs font-semibold cursor-pointer select-none ${count > 0 ? "bg-primary text-primary-foreground" : "text-foreground"}`}
-                            onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
-                          >
-                            {count > 0 && <span className="mr-0.5">({count})</span>}${d}
-                          </span>
-                          <button
-                            type="button"
-                            className="h-full px-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                            onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
-                          >
-                            +
-                          </button>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">{language === "es" ? "Monto" : "Amount"}</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        value={p.amount}
+                        onChange={(e) => updatePart(p.id, { amount: e.target.value })}
+                        className="h-9"
+                      />
+                      {parts.length > 1 && idx === parts.length - 1 && remaining !== 0 && (
+                        <button
+                          type="button"
+                          className="text-[11px] text-primary underline"
+                          onClick={() => updatePart(p.id, { amount: String(Math.max(0, (parseFloat(p.amount) || 0) + remaining)) })}
+                        >
+                          {language === "es" ? "Cubrir restante" : "Fill remaining"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">{t("billing.tip")}</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        value={p.tip}
+                        onChange={(e) => updatePart(p.id, { tip: e.target.value })}
+                        className="h-9"
+                      />
+                    </div>
                   </div>
-                  {received > 0 && (
-                    <div className="flex justify-between text-sm font-medium border-t pt-1.5">
-                      <span>{language === "es" ? "Recibido" : "Received"}</span>
-                      <span>${received.toFixed(0)} MXN</span>
-                    </div>
-                  )}
-                  {received > 0 && (
-                    <div className={`flex justify-between text-sm font-semibold ${change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                      <span>{language === "es" ? "Cambio" : "Change"}</span>
-                      <span>${change.toFixed(0)} MXN</span>
-                    </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" className="w-full gap-1" onClick={addPart}>
+                <Plus className="h-3.5 w-3.5" /> {language === "es" ? "Agregar otro pago" : "Add another payment"}
+              </Button>
+            </div>
+
+            <div className="border-t pt-2 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{language === "es" ? "Subtotal" : "Subtotal"}</span>
+                <span>${finalAmount.toFixed(0)}</span>
+              </div>
+              {sumTip > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t("billing.tip")}</span>
+                  <span>${sumTip.toFixed(0)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold">
+                <span>{t("billing.total")}</span>
+                <span>${totalToCharge.toFixed(0)} MXN</span>
+              </div>
+            </div>
+
+            {singleCash && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>{language === "es" ? "Efectivo recibido" : "Cash received"}</Label>
+                  {cashReceived > 0 && (
+                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => { setCashDenoms({}); setCashManual(""); }}>
+                      {language === "es" ? "Limpiar" : "Clear"}
+                    </Button>
                   )}
                 </div>
-              );
-            })()}
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder={`$${totalToPaySingle.toFixed(0)}`}
+                  value={cashManual}
+                  onChange={(e) => setCashManual(e.target.value)}
+                  className="text-center text-lg font-semibold"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {DENOMS.map((d) => {
+                    const count = cashDenoms[d] || 0;
+                    return (
+                      <div key={d} className="inline-flex items-center h-8 rounded-md border border-input overflow-hidden">
+                        <button
+                          type="button"
+                          className="h-full px-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+                          disabled={count === 0}
+                          onClick={() => setCashDenoms((prev) => {
+                            const next = { ...prev, [d]: (prev[d] || 0) - 1 };
+                            if (next[d] <= 0) delete next[d];
+                            return next;
+                          })}
+                        >−</button>
+                        <span
+                          className={`px-1.5 text-xs font-semibold cursor-pointer select-none ${count > 0 ? "bg-primary text-primary-foreground" : "text-foreground"}`}
+                          onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
+                        >
+                          {count > 0 && <span className="mr-0.5">({count})</span>}${d}
+                        </span>
+                        <button
+                          type="button"
+                          className="h-full px-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                          onClick={() => setCashDenoms((prev) => ({ ...prev, [d]: (prev[d] || 0) + 1 }))}
+                        >+</button>
+                      </div>
+                    );
+                  })}
+                </div>
+                {cashReceived > 0 && (
+                  <div className="flex justify-between text-sm font-medium border-t pt-1.5">
+                    <span>{language === "es" ? "Recibido" : "Received"}</span>
+                    <span>${cashReceived.toFixed(0)} MXN</span>
+                  </div>
+                )}
+                {cashReceived > 0 && (
+                  <div className={`flex justify-between text-sm font-semibold ${change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    <span>{language === "es" ? "Cambio" : "Change"}</span>
+                    <span>${change.toFixed(0)} MXN</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowPayment(false)}>{t("common.back")}</Button>
-              <Button className="flex-1" onClick={handleConfirmPayment} disabled={createPayment.isPending}>{t("billing.confirmPayment")}</Button>
+              <Button
+                className="flex-1"
+                onClick={handleConfirmPayment}
+                disabled={createPayment.isPending || Math.abs(remaining) > 0.5}
+              >
+                {t("billing.confirmPayment")}
+              </Button>
             </div>
           </>
         );

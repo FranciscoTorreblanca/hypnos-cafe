@@ -106,17 +106,14 @@ export const usePayments = () => {
     }) => {
       if (!parts.length) throw new Error("No payment parts provided");
 
-      // Send card portion to Mercado Pago Point Mini if configured
+      // Send card portion to Mercado Pago Point Mini if configured (sum all card parts)
       let mpResult: any = null;
-      const cardPart = parts.find((p) => p.payment_method === "card");
-      if (cardPart && cardPart.amount + cardPart.tip > 0) {
+      const cardParts = parts.filter((p) => p.payment_method === "card");
+      const cardTotal = cardParts.reduce((s, p) => s + p.amount + p.tip, 0);
+      if (cardTotal > 0) {
         const mpConfig = await getMpConfig();
         if (mpConfig?.enabled) {
-          mpResult = await sendToPointMini(
-            mpConfig.deviceId,
-            cardPart.amount + cardPart.tip,
-            order_id,
-          );
+          mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id);
         }
       }
 
