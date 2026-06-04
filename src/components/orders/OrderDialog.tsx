@@ -80,8 +80,10 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [tipAmount, setTipAmount] = useState("0");
+  type PayPart = { id: string; method: "cash" | "card"; amount: string; tip: string };
+  const [parts, setParts] = useState<PayPart[]>([
+    { id: "p1", method: "cash", amount: "", tip: "0" },
+  ]);
   const [cashDenoms, setCashDenoms] = useState<Record<number, number>>({});
   const [cashManual, setCashManual] = useState("");
   const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0) + (parseFloat(cashManual) || 0);
