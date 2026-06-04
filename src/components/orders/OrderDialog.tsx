@@ -321,7 +321,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
       if (Math.abs(sumAmount - finalAmount) > 0.5) {
         toast({
           title: t("common.error"),
-          description: `${t("billing.total")}: $${finalAmount.toFixed(0)} · ${t("billing.entered") ?? "Entered"}: $${sumAmount.toFixed(0)}`,
+          description: `${t("billing.total")}: $${finalAmount.toFixed(0)} · ${language === "es" ? "Ingresado" : "Entered"}: $${sumAmount.toFixed(0)}`,
           variant: "destructive",
         });
         return;
