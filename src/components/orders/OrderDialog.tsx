@@ -945,7 +945,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           <Button className="w-full gap-1.5" size="sm" variant="outline" onClick={handlePrintPreBill} disabled={createTicket.isPending}>
             <Printer className="h-3.5 w-3.5" /> {t("tickets.printPrebill")}
           </Button>
-          <Button className="w-full gap-1.5" size="sm" onClick={() => setShowPayment(true)}>
+          <Button className="w-full gap-1.5" size="sm" onClick={() => {
+            const subtotal = order?.total ?? 0;
+            const gd = order?.general_discount ?? 0;
+            const gda = (order as any)?.general_discount_amount ?? 0;
+            const finalAmount = Math.round(applyGeneralDiscount(subtotal, gd, gda) * 100) / 100;
+            setParts([{ id: "p1", method: "cash", amount: String(finalAmount), tip: "0" }]);
+            setCashDenoms({});
+            setCashManual("");
+            setShowPayment(true);
+          }}>
             <Receipt className="h-3.5 w-3.5" /> {t("billing.payNow")}
           </Button>
         </>
