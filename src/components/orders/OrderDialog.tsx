@@ -1006,22 +1006,49 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   // ─── Payment view ───
   const paymentView = (
     <div className="space-y-4 p-1">
-      <div className="space-y-1">
-        {orderItems.map((oi) => {
+      {(() => {
+        // Group order_items by menu_item_id, summing quantity & line totals
+        const grouped = new Map<string, { name: string; qty: number; total: number }>();
+        for (const oi of orderItems) {
           const disc = (oi as any).discount ?? 0;
           const discAmt = (oi as any).discount_amount ?? 0;
           const lineTotal = applyLineDiscount(oi.quantity * oi.unit_price, disc, discAmt);
-          return (
-            <div key={oi.id} className="flex justify-between text-sm">
-              <span>{oi.quantity}x {getName(oi.menu_item)}
-                {disc > 0 && <span className="text-emerald-600 text-xs ml-1">(-{disc}%)</span>}
-                {discAmt > 0 && <span className="text-emerald-600 text-xs ml-1">(-${discAmt.toFixed(0)})</span>}
+          const key = oi.menu_item_id;
+          const name = getName(oi.menu_item) ?? "—";
+          const prev = grouped.get(key);
+          if (prev) {
+            prev.qty += oi.quantity;
+            prev.total += lineTotal;
+          } else {
+            grouped.set(key, { name, qty: oi.quantity, total: lineTotal });
+          }
+        }
+        const groupedList = Array.from(grouped.values()).sort((a, b) => b.qty - a.qty);
+        return (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("billing.itemsSummary")}
               </span>
-              <span className="text-muted-foreground">${lineTotal.toFixed(0)}</span>
+              <Badge variant="secondary" className="text-[10px]">
+                {groupedList.reduce((s, g) => s + g.qty, 0)} {language === "es" ? "uds." : "units"}
+              </Badge>
             </div>
-          );
-        })}
-      </div>
+            <div className="space-y-1.5">
+              {groupedList.map((g) => (
+                <div key={g.name} className="flex items-center gap-3 text-sm">
+                  <span className="inline-flex items-center justify-center min-w-[2.25rem] h-7 px-1.5 rounded-md bg-primary text-primary-foreground font-bold text-sm tabular-nums">
+                    ×{g.qty}
+                  </span>
+                  <span className="flex-1 truncate font-medium">{g.name}</span>
+                  <span className="text-muted-foreground tabular-nums">${g.total.toFixed(0)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="flex justify-between text-sm border-t pt-2">
         <span>{t("billing.subtotal")}</span>
         <span className="font-semibold">${order?.total.toFixed(0)} MXN</span>
