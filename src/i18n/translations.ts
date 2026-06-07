@@ -76,6 +76,9 @@ export const translations = {
   "menu.price": { es: "Precio", en: "Price" },
   "menu.category": { es: "Categoría", en: "Category" },
   "menu.available": { es: "Disponible", en: "Available" },
+  "menu.unavailable": { es: "No disponible", en: "Unavailable" },
+  "menu.allAvailability": { es: "Todos (disponibilidad)", en: "All (availability)" },
+  "menu.filterAvailability": { es: "Disponibilidad", en: "Availability" },
   "menu.inventory": { es: "Inventario", en: "Inventory" },
 
   // Users
