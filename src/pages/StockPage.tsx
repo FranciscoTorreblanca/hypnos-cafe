@@ -92,6 +92,12 @@ const StockPage = () => {
       list = list.filter((i) => i.category_id === categoryFilter);
     }
 
+    if (availabilityFilter !== "all") {
+      list = list.filter((i) =>
+        availabilityFilter === "available" ? i.is_available : !i.is_available
+      );
+    }
+
     if (search.trim()) {
       const q = normalizeSearch(search);
       list = list.filter(
@@ -101,7 +107,7 @@ const StockPage = () => {
       );
     }
     return list;
-  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, search]);
+  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, availabilityFilter, search]);
 
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "-";
