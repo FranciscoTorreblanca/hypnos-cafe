@@ -106,8 +106,8 @@ const MenuPage = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
 
   const filtered = items.filter((i) => {
-    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
-      i.name_en.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = normalizeSearch(i.name).includes(normalizeSearch(search)) ||
+      normalizeSearch(i.name_en).includes(normalizeSearch(search));
     const matchCat = activeCategory === "all" ||
       (activeCategory === "uncategorized" ? !i.category_id : i.category_id === activeCategory);
     const ep = getEffectivePrice(i);
