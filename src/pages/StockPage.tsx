@@ -112,7 +112,7 @@ const StockPage = () => {
       );
     }
     return list;
-  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, availabilityFilter, search]);
+  }, [items, withStockItems, outOfStock, lowStock, filter, categoryFilter, availabilityFilter, search]);
 
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "-";
