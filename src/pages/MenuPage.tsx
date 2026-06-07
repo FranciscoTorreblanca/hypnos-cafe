@@ -99,13 +99,19 @@ const MenuPage = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
       i.name_en.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === "all" || 
+    const matchCat = activeCategory === "all" ||
       (activeCategory === "uncategorized" ? !i.category_id : i.category_id === activeCategory);
-    return matchSearch && matchCat;
+    const ep = getEffectivePrice(i);
+    const minP = minPrice ? Number(minPrice) : null;
+    const maxP = maxPrice ? Number(maxPrice) : null;
+    const matchPrice = (minP == null || ep >= minP) && (maxP == null || ep <= maxP);
+    return matchSearch && matchCat && matchPrice;
   });
 
   const handleSave = (values: Partial<MenuItem> & { name: string }) => {
