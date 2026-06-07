@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { groupOrderItems } from "@/utils/groupOrderItems";
