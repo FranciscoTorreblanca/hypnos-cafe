@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";

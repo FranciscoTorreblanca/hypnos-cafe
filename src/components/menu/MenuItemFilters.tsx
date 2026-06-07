@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useMemo } from "react";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useLanguage } from "@/i18n/LanguageContext";
