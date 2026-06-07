@@ -89,7 +89,7 @@ const StockPage = () => {
 
   const filteredItems = useMemo(() => {
     let list = items;
-    if (filter === "tracked") list = trackedItems;
+    if (filter === "tracked") list = withStockItems;
     else if (filter === "out") list = outOfStock;
     else if (filter === "low") list = lowStock;
 
