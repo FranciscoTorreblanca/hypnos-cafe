@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Pencil, Trash2, Calculator, Download, ScanLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -101,6 +102,7 @@ const MenuPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
 
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -111,7 +113,9 @@ const MenuPage = () => {
     const minP = minPrice ? Number(minPrice) : null;
     const maxP = maxPrice ? Number(maxPrice) : null;
     const matchPrice = (minP == null || ep >= minP) && (maxP == null || ep <= maxP);
-    return matchSearch && matchCat && matchPrice;
+    const matchAvailability = availabilityFilter === "all" ||
+      (availabilityFilter === "available" ? i.is_available : !i.is_available);
+    return matchSearch && matchCat && matchPrice && matchAvailability;
   });
 
   const handleSave = (values: Partial<MenuItem> & { name: string }) => {
@@ -209,6 +213,16 @@ const MenuPage = () => {
                 className="w-24 h-9 text-xs"
               />
             </div>
+            <Select value={availabilityFilter} onValueChange={(v) => setAvailabilityFilter(v as "all" | "available" | "unavailable")}>
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue placeholder={t("menu.filterAvailability")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("menu.allAvailability")}</SelectItem>
+                <SelectItem value="available">{t("menu.available")}</SelectItem>
+                <SelectItem value="unavailable">{t("menu.unavailable")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Category filter tabs */}
