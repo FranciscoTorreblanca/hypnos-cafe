@@ -102,6 +102,7 @@ const MenuPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
 
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
