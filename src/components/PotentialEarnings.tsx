@@ -2,10 +2,17 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ChevronDown, ChevronUp, TrendingUp, Coins, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, ChevronDown, ChevronUp, TrendingUp, Coins, Package, Filter } from "lucide-react";
 import { useMenuItems, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useLanguage } from "@/i18n/LanguageContext";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);
@@ -15,14 +22,43 @@ interface Props {
   defaultOpen?: boolean;
 }
 
+const NONE_CAT = "__none__";
+
 export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
   const { t, language } = useLanguage();
   const { data: items = [] } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const [open, setOpen] = useState(defaultOpen);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+
+  const catName = (catId: string | null) => {
+    const id = catId ?? NONE_CAT;
+    const obj = categories.find((c) => c.id === id);
+    if (!obj) return t("stock.notTracked");
+    return language === "en" && obj.name_en ? obj.name_en : obj.name;
+  };
+
+  // Categories present in tracked inventory (for filter options)
+  const trackedCategories = useMemo(() => {
+    const set = new Map<string, string>();
+    items
+      .filter((i) => i.inventory_count !== null && (i.inventory_count ?? 0) > 0)
+      .forEach((i) => {
+        const id = i.category_id ?? NONE_CAT;
+        if (!set.has(id)) set.set(id, catName(i.category_id));
+      });
+    return Array.from(set.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [items, categories, language]);
 
   const { totalRevenue, totalProfit, totalInvested, byCategory, trackedCount } = useMemo(() => {
-    const tracked = items.filter((i) => i.inventory_count !== null && (i.inventory_count ?? 0) > 0);
+    const tracked = items.filter(
+      (i) =>
+        i.inventory_count !== null &&
+        (i.inventory_count ?? 0) > 0 &&
+        !excluded.has(i.category_id ?? NONE_CAT)
+    );
     let totalRevenue = 0;
     let totalProfit = 0;
     let totalInvested = 0;
@@ -39,14 +75,8 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
       totalProfit += profit;
       totalInvested += invested;
 
-      const catId = it.category_id ?? "__none__";
-      const catObj = categories.find((c) => c.id === catId);
-      const catName = catObj
-        ? language === "en" && catObj.name_en
-          ? catObj.name_en
-          : catObj.name
-        : t("stock.notTracked");
-      const cur = cat.get(catId) ?? { name: catName, revenue: 0, profit: 0, invested: 0, items: 0 };
+      const catId = it.category_id ?? NONE_CAT;
+      const cur = cat.get(catId) ?? { name: catName(it.category_id), revenue: 0, profit: 0, invested: 0, items: 0 };
       cur.revenue += revenue;
       cur.profit += profit;
       cur.invested += invested;
@@ -56,19 +86,99 @@ export const PotentialEarnings = ({ defaultOpen = false }: Props) => {
 
     const byCategory = Array.from(cat.values()).sort((a, b) => b.revenue - a.revenue);
     return { totalRevenue, totalProfit, totalInvested, byCategory, trackedCount: tracked.length };
-  }, [items, categories, language, t]);
+  }, [items, categories, language, t, excluded]);
 
-  if (trackedCount === 0) return null;
+  const totalTrackedItems = items.filter((i) => i.inventory_count !== null && (i.inventory_count ?? 0) > 0).length;
+  if (totalTrackedItems === 0) return null;
+
+  const toggleExcluded = (id: string) => {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const includedCount = trackedCategories.length - excluded.size;
 
   return (
     <Card className="border-primary/30">
       <CardHeader className="pb-2 pt-3 px-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          {t("potential.title")}
+        <CardTitle className="text-sm flex items-center gap-2 justify-between">
+          <span className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            {t("potential.title")}
+          </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs font-normal">
+                <Filter className="h-3 w-3" />
+                {includedCount}/{trackedCategories.length}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-2">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b">
+                <span className="text-xs font-medium">{t("potential.byCategory")}</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => setExcluded(new Set())}
+                  >
+                    {t("stock.all")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => setExcluded(new Set(trackedCategories.map((c) => c.id)))}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {trackedCategories.map((c) => {
+                  const checked = !excluded.has(c.id);
+                  return (
+                    <label
+                      key={c.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-accent cursor-pointer text-xs"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleExcluded(c.id)}
+                      />
+                      <span className="flex-1 truncate">{c.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">
+        {excluded.size > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {Array.from(excluded).map((id) => {
+              const c = trackedCategories.find((tc) => tc.id === id);
+              if (!c) return null;
+              return (
+                <Badge
+                  key={id}
+                  variant="secondary"
+                  className="text-[10px] cursor-pointer gap-1"
+                  onClick={() => toggleExcluded(id)}
+                >
+                  {c.name} ✕
+                </Badge>
+              );
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-md border bg-muted/30 p-2">
             <div className="text-xs text-muted-foreground flex items-center gap-1">
