@@ -113,7 +113,9 @@ const MenuPage = () => {
     const minP = minPrice ? Number(minPrice) : null;
     const maxP = maxPrice ? Number(maxPrice) : null;
     const matchPrice = (minP == null || ep >= minP) && (maxP == null || ep <= maxP);
-    return matchSearch && matchCat && matchPrice;
+    const matchAvailability = availabilityFilter === "all" ||
+      (availabilityFilter === "available" ? i.is_available : !i.is_available);
+    return matchSearch && matchCat && matchPrice && matchAvailability;
   });
 
   const handleSave = (values: Partial<MenuItem> & { name: string }) => {
