@@ -251,7 +251,7 @@ const StockPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 pb-3">
-            <p className="text-2xl font-bold">{trackedItems.length}</p>
+            <p className="text-2xl font-bold">{withStockItems.length}</p>
           </CardContent>
         </Card>
         <Card className={lowStock.length > 0 ? "border-amber-400" : ""}>
