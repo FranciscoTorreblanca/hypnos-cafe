@@ -86,11 +86,11 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
   const [linkSearch, setLinkSearch] = useState("");
 
   const filteredLinkItems = items.filter((i) => {
-    const q = linkSearch.trim().toLowerCase();
+    const q = normalizeSearch(linkSearch).trim();
     if (!q) return true;
     return (
-      i.name.toLowerCase().includes(q) ||
-      (i.name_en || "").toLowerCase().includes(q)
+      normalizeSearch(i.name).includes(q) ||
+      normalizeSearch(i.name_en || "").includes(q)
     );
   });
 

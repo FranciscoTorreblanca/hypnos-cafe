@@ -205,14 +205,14 @@ export const applyMenuItemFilters = <T extends Record<string, any>>(
   filters: MenuItemFilterState,
   getName: (i: T) => string,
 ): T[] => {
-  const q = filters.query.trim().toLowerCase();
+  const q = normalizeSearch(filters.query).trim();
   const minP = filters.minPrice ? Number(filters.minPrice) : null;
   const maxP = filters.maxPrice ? Number(filters.maxPrice) : null;
   const minC = filters.minCost ? Number(filters.minCost) : null;
   const maxC = filters.maxCost ? Number(filters.maxCost) : null;
 
   return items.filter((i) => {
-    if (q && !getName(i).toLowerCase().includes(q)) return false;
+    if (q && !normalizeSearch(getName(i)).includes(q)) return false;
     if (filters.categoryId === "uncategorized" && i.category_id) return false;
     if (
       filters.categoryId !== "all" &&
