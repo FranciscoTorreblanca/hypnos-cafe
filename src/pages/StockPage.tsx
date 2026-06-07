@@ -322,7 +322,7 @@ const StockPage = () => {
               {t("stock.all")} ({items.length})
             </TabsTrigger>
             <TabsTrigger value="tracked" className="text-xs">
-              {t("stock.tracked")} ({trackedItems.length})
+              {t("stock.tracked")} ({withStockItems.length})
             </TabsTrigger>
             <TabsTrigger value="low" className="text-xs">
               ⚠ ({lowStock.length})
