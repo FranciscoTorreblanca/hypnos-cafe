@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useLoyaltyMembers, useLoyaltyCoupons, useCreateCoupon, useUpdateCoupon, useSaveCouponItems, useCouponItemsByCoupons } from "@/hooks/useLoyalty";

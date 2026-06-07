@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTickets, Ticket } from "@/hooks/useTickets";

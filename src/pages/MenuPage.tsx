@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";

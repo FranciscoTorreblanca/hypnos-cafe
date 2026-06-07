@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
