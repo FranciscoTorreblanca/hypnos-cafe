@@ -213,6 +213,16 @@ const MenuPage = () => {
                 className="w-24 h-9 text-xs"
               />
             </div>
+            <Select value={availabilityFilter} onValueChange={(v) => setAvailabilityFilter(v as "all" | "available" | "unavailable")}>
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue placeholder={t("menu.filterAvailability")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("menu.allAvailability")}</SelectItem>
+                <SelectItem value="available">{t("menu.available")}</SelectItem>
+                <SelectItem value="unavailable">{t("menu.unavailable")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Category filter tabs */}
