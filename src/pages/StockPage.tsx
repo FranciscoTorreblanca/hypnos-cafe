@@ -57,6 +57,7 @@ const StockPage = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "out" | "tracked">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -91,6 +92,12 @@ const StockPage = () => {
       list = list.filter((i) => i.category_id === categoryFilter);
     }
 
+    if (availabilityFilter !== "all") {
+      list = list.filter((i) =>
+        availabilityFilter === "available" ? i.is_available : !i.is_available
+      );
+    }
+
     if (search.trim()) {
       const q = normalizeSearch(search);
       list = list.filter(
@@ -100,7 +107,7 @@ const StockPage = () => {
       );
     }
     return list;
-  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, search]);
+  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, availabilityFilter, search]);
 
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "-";
@@ -288,6 +295,16 @@ const StockPage = () => {
                 {language === "en" && c.name_en ? c.name_en : c.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={availabilityFilter} onValueChange={(v) => setAvailabilityFilter(v as any)}>
+          <SelectTrigger className="w-full sm:w-[160px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("stock.all")}</SelectItem>
+            <SelectItem value="available">{t("stock.available")}</SelectItem>
+            <SelectItem value="unavailable">{t("stock.unavailable")}</SelectItem>
           </SelectContent>
         </Select>
         <Tabs
