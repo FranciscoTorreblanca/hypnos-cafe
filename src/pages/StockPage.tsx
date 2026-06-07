@@ -297,6 +297,16 @@ const StockPage = () => {
             ))}
           </SelectContent>
         </Select>
+        <Select value={availabilityFilter} onValueChange={(v) => setAvailabilityFilter(v as any)}>
+          <SelectTrigger className="w-full sm:w-[160px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("stock.all")}</SelectItem>
+            <SelectItem value="available">{t("stock.available")}</SelectItem>
+            <SelectItem value="unavailable">{t("stock.unavailable")}</SelectItem>
+          </SelectContent>
+        </Select>
         <Tabs
           value={filter}
           onValueChange={(v) => setFilter(v as any)}
