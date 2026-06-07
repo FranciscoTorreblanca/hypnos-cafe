@@ -23,12 +23,12 @@ const TicketsPage = () => {
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeSearch(search).trim();
     if (!q) return tickets;
     return tickets.filter((tk) => {
-      const folio = tk.public_id.slice(0, 8).toLowerCase();
-      const tableNum = String(tk.snapshot?.table_number ?? "");
-      return tk.public_id.toLowerCase().includes(q) || folio.includes(q) || tableNum.includes(q);
+      const folio = normalizeSearch(tk.public_id.slice(0, 8));
+      const tableNum = normalizeSearch(String(tk.snapshot?.table_number ?? ""));
+      return normalizeSearch(tk.public_id).includes(q) || folio.includes(q) || tableNum.includes(q);
     });
   }, [tickets, search]);
 
