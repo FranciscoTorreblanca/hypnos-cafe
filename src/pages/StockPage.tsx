@@ -67,6 +67,11 @@ const StockPage = () => {
     [items]
   );
 
+  const withStockItems = useMemo(
+    () => items.filter((i) => (i.inventory_count ?? 0) > 0),
+    [items]
+  );
+
   const outOfStock = useMemo(
     () => trackedItems.filter((i) => (i.inventory_count ?? 0) <= 0),
     [trackedItems]
@@ -84,7 +89,7 @@ const StockPage = () => {
 
   const filteredItems = useMemo(() => {
     let list = items;
-    if (filter === "tracked") list = trackedItems;
+    if (filter === "tracked") list = withStockItems;
     else if (filter === "out") list = outOfStock;
     else if (filter === "low") list = lowStock;
 
@@ -107,7 +112,7 @@ const StockPage = () => {
       );
     }
     return list;
-  }, [items, trackedItems, outOfStock, lowStock, filter, categoryFilter, availabilityFilter, search]);
+  }, [items, withStockItems, outOfStock, lowStock, filter, categoryFilter, availabilityFilter, search]);
 
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "-";
@@ -246,7 +251,7 @@ const StockPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 pb-3">
-            <p className="text-2xl font-bold">{trackedItems.length}</p>
+            <p className="text-2xl font-bold">{withStockItems.length}</p>
           </CardContent>
         </Card>
         <Card className={lowStock.length > 0 ? "border-amber-400" : ""}>
@@ -317,7 +322,7 @@ const StockPage = () => {
               {t("stock.all")} ({items.length})
             </TabsTrigger>
             <TabsTrigger value="tracked" className="text-xs">
-              {t("stock.tracked")} ({trackedItems.length})
+              {t("stock.tracked")} ({withStockItems.length})
             </TabsTrigger>
             <TabsTrigger value="low" className="text-xs">
               ⚠ ({lowStock.length})
