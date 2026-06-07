@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useMemo, useState } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -65,10 +66,10 @@ const CalendarPage = () => {
     return reservations.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (search.trim()) {
-        const q = search.toLowerCase();
-        if (!r.customer_name.toLowerCase().includes(q) &&
-            !r.customer_phone.toLowerCase().includes(q) &&
-            !r.customer_email.toLowerCase().includes(q)) return false;
+        const q = normalizeSearch(search);
+        if (!normalizeSearch(r.customer_name).includes(q) &&
+            !normalizeSearch(r.customer_phone).includes(q) &&
+            !normalizeSearch(r.customer_email).includes(q)) return false;
       }
       return true;
     });

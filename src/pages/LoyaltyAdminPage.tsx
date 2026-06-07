@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useLoyaltyMembers, useLoyaltyCoupons, useCreateCoupon, useUpdateCoupon, useSaveCouponItems, useCouponItemsByCoupons } from "@/hooks/useLoyalty";
@@ -55,13 +56,13 @@ const LoyaltyAdminPage = () => {
   }, [allCouponItems]);
 
   const filteredMembers = members.filter(
-    (m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase())
+    (m) => normalizeSearch(m.name).includes(normalizeSearch(search)) || normalizeSearch(m.email).includes(normalizeSearch(search))
   );
 
   const filteredMenuItems = menuItems.filter((item) => {
     if (!itemSearch.trim()) return true;
-    const q = itemSearch.toLowerCase();
-    return item.name.toLowerCase().includes(q) || item.name_en.toLowerCase().includes(q);
+    const q = normalizeSearch(itemSearch);
+    return normalizeSearch(item.name).includes(q) || normalizeSearch(item.name_en).includes(q);
   });
 
   const toggleFreeItem = (itemId: string) => {

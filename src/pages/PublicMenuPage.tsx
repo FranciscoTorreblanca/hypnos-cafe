@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -167,7 +168,7 @@ const PublicMenuPage = () => {
 
   /* ── apply filters ── */
   const filteredSections = useMemo(() => {
-    const q = search.toLowerCase().trim();
+    const q = normalizeSearch(search).trim();
 
     return sections
       .filter((s) => !selectedCategory || s.key === selectedCategory)
@@ -178,8 +179,8 @@ const PublicMenuPage = () => {
           // Hide unavailable items from public view (always shown in preview mode)
           if (!isPreview && !item.is_available) return false;
           if (!q) return true;
-          const name = getName(item).toLowerCase();
-          const desc = getDesc(item).toLowerCase();
+          const name = normalizeSearch(getName(item));
+          const desc = normalizeSearch(getDesc(item));
           return name.includes(q) || desc.includes(q);
         });
         return { ...s, entries: filtered };

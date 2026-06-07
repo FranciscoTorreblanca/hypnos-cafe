@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
@@ -99,8 +100,8 @@ const KitchenPage = () => {
 
   const filteredMenuItems = menuItems.filter((mi) => {
     if (!recipeSearch) return true;
-    const q = recipeSearch.toLowerCase();
-    return mi.name.toLowerCase().includes(q) || mi.name_en.toLowerCase().includes(q);
+    const q = normalizeSearch(recipeSearch);
+    return normalizeSearch(mi.name).includes(q) || normalizeSearch(mi.name_en).includes(q);
   });
 
   const groupedByCategory = categories

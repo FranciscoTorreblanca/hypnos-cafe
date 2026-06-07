@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useMenuItems } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
@@ -91,11 +92,11 @@ const StockPage = () => {
     }
 
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = normalizeSearch(search);
       list = list.filter(
         (i) =>
-          i.name.toLowerCase().includes(q) ||
-          i.name_en.toLowerCase().includes(q)
+          normalizeSearch(i.name).includes(q) ||
+          normalizeSearch(i.name_en).includes(q)
       );
     }
     return list;

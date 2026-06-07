@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useMenuItems } from "@/hooks/useMenuItems";
@@ -97,15 +98,15 @@ export const MenuEditorDialog = ({ open, onOpenChange, menu, onSave }: Props) =>
   }, [entries]);
 
   const filteredItems = items.filter((i) => {
-    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
-      i.name_en.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = normalizeSearch(i.name).includes(normalizeSearch(search)) ||
+      normalizeSearch(i.name_en).includes(normalizeSearch(search));
     const matchCat = catFilter === "all" || i.category_id === catFilter;
     return matchSearch && matchCat;
   });
 
   const filteredCombos = combos.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.name_en.toLowerCase().includes(search.toLowerCase())
+    normalizeSearch(c.name).includes(normalizeSearch(search)) ||
+    normalizeSearch(c.name_en).includes(normalizeSearch(search))
   );
 
   const toggleItem = (item: { id: string; name: string; name_en: string; price: number }, isCombo: boolean) => {

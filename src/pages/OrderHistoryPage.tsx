@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,14 +139,14 @@ const OrderHistoryPage = () => {
       result = result.filter((o) => o.status === statusFilter);
     }
     if (search.trim()) {
-      const s = search.toLowerCase();
+      const s = normalizeSearch(search);
       result = result.filter((o) => {
-        const tableMatch = String(o.table_number).includes(s);
+        const tableMatch = normalizeSearch(String(o.table_number)).includes(s);
         const itemMatch = o.order_items.some((oi) => {
           const name = language === "en" && oi.menu_items?.name_en ? oi.menu_items.name_en : oi.menu_items?.name ?? "";
-          return name.toLowerCase().includes(s);
+          return normalizeSearch(name).includes(s);
         });
-        const waiterMatch = o.waiterName?.toLowerCase().includes(s);
+        const waiterMatch = o.waiterName ? normalizeSearch(o.waiterName).includes(s) : false;
         return tableMatch || itemMatch || waiterMatch;
       });
     }

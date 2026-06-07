@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { groupOrderItems } from "@/utils/groupOrderItems";
@@ -134,9 +135,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const filtered = useMemo(() => {
     if (activeCategory === "combos") return [];
-    const q = search.toLowerCase();
+    const q = normalizeSearch(search);
     return availableItems.filter((i) => {
-      const matchesSearch = !q || i.name.toLowerCase().includes(q) || i.name_en.toLowerCase().includes(q);
+      const matchesSearch = !q || normalizeSearch(i.name).includes(q) || normalizeSearch(i.name_en).includes(q);
       const matchesCat = activeCategory === "all" || i.category_id === activeCategory;
       return matchesSearch && matchesCat;
     });
@@ -144,9 +145,9 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const filteredCombos = useMemo(() => {
     if (activeCategory !== "combos" && activeCategory !== "all") return [];
-    const q = search.toLowerCase();
+    const q = normalizeSearch(search);
     return availableCombos.filter((c) => {
-      return !q || c.name.toLowerCase().includes(q) || c.name_en.toLowerCase().includes(q);
+      return !q || normalizeSearch(c.name).includes(q) || normalizeSearch(c.name_en).includes(q);
     });
   }, [availableCombos, search, activeCategory]);
 
