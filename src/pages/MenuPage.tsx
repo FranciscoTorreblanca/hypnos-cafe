@@ -179,8 +179,8 @@ const MenuPage = () => {
             )}
           </div>
 
-          {/* Search bar */}
-          <div className="flex items-center gap-3">
+          {/* Search + Price filter bar */}
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -188,6 +188,25 @@ const MenuPage = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder={language === "es" ? "Min $" : "Min $"}
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="w-24 h-9 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">—</span>
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder={language === "es" ? "Máx $" : "Max $"}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-24 h-9 text-xs"
               />
             </div>
           </div>
