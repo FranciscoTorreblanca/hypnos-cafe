@@ -67,6 +67,11 @@ const StockPage = () => {
     [items]
   );
 
+  const withStockItems = useMemo(
+    () => items.filter((i) => (i.inventory_count ?? 0) > 0),
+    [items]
+  );
+
   const outOfStock = useMemo(
     () => trackedItems.filter((i) => (i.inventory_count ?? 0) <= 0),
     [trackedItems]
