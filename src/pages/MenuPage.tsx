@@ -99,13 +99,19 @@ const MenuPage = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
       i.name_en.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === "all" || 
+    const matchCat = activeCategory === "all" ||
       (activeCategory === "uncategorized" ? !i.category_id : i.category_id === activeCategory);
-    return matchSearch && matchCat;
+    const ep = getEffectivePrice(i);
+    const minP = minPrice ? Number(minPrice) : null;
+    const maxP = maxPrice ? Number(maxPrice) : null;
+    const matchPrice = (minP == null || ep >= minP) && (maxP == null || ep <= maxP);
+    return matchSearch && matchCat && matchPrice;
   });
 
   const handleSave = (values: Partial<MenuItem> & { name: string }) => {
@@ -173,8 +179,8 @@ const MenuPage = () => {
             )}
           </div>
 
-          {/* Search bar */}
-          <div className="flex items-center gap-3">
+          {/* Search + Price filter bar */}
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -182,6 +188,25 @@ const MenuPage = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder={language === "es" ? "Min $" : "Min $"}
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="w-24 h-9 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">—</span>
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder={language === "es" ? "Máx $" : "Max $"}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-24 h-9 text-xs"
               />
             </div>
           </div>
