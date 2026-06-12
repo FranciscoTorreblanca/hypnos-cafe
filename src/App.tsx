@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { BackofficeRoute } from "@/components/BackofficeRoute";
 import { AppLayout } from "@/components/AppLayout";
+import { FeatureGate } from "@/components/FeatureGate";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import TablesPage from "@/pages/TablesPage";
@@ -76,22 +77,22 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/tables" element={<TablesPage />} />
                 <Route path="/menu" element={<MenuPage />} />
-                <Route path="/cost-calculator" element={<CostCalculatorPage />} />
-                <Route path="/menu-generator" element={<MenuGeneratorPage />} />
-                <Route path="/kitchen" element={<KitchenPage />} />
+                <Route path="/cost-calculator" element={<FeatureGate feature="cost_calculator"><CostCalculatorPage /></FeatureGate>} />
+                <Route path="/menu-generator" element={<FeatureGate feature="menu_generator"><MenuGeneratorPage /></FeatureGate>} />
+                <Route path="/kitchen" element={<FeatureGate feature="kitchen"><KitchenPage /></FeatureGate>} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/performance" element={<PerformancePage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/loyalty-admin" element={<LoyaltyAdminPage />} />
-                <Route path="/loyalty-scan" element={<LoyaltyScanPage />} />
+                <Route path="/loyalty-admin" element={<FeatureGate feature="loyalty"><LoyaltyAdminPage /></FeatureGate>} />
+                <Route path="/loyalty-scan" element={<FeatureGate feature="loyalty"><LoyaltyScanPage /></FeatureGate>} />
                 <Route path="/order-history" element={<OrderHistoryPage />} />
-                <Route path="/stock" element={<StockPage />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/tickets" element={<TicketsPage />} />
-                <Route path="/wifi" element={<WifiPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/budget" element={<BudgetPage />} />
+                <Route path="/stock" element={<FeatureGate feature="stock"><StockPage /></FeatureGate>} />
+                <Route path="/calendar" element={<FeatureGate feature="calendar"><CalendarPage /></FeatureGate>} />
+                <Route path="/tickets" element={<FeatureGate feature="tickets"><TicketsPage /></FeatureGate>} />
+                <Route path="/wifi" element={<FeatureGate feature="wifi"><WifiPage /></FeatureGate>} />
+                <Route path="/analytics" element={<FeatureGate feature="analytics"><AnalyticsPage /></FeatureGate>} />
+                <Route path="/budget" element={<FeatureGate feature="budget"><BudgetPage /></FeatureGate>} />
               </Route>
               <Route
                 path="/backoffice"
