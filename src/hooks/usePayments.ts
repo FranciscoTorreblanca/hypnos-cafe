@@ -112,10 +112,10 @@ export const usePayments = () => {
       let mpResult: any = null;
       const cardParts = parts.filter((p) => p.payment_method === "card");
       const cardTotal = cardParts.reduce((s, p) => s + p.amount + p.tip, 0);
-      if (cardTotal > 0) {
-        const mpConfig = await getMpConfig();
+      if (cardTotal > 0 && currentBusinessId) {
+        const mpConfig = await getMpConfig(currentBusinessId);
         if (mpConfig?.enabled) {
-          mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id);
+          mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id, currentBusinessId);
         }
       }
 
