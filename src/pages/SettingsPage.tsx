@@ -129,7 +129,7 @@ const SettingsPage = () => {
     try {
       // Save token via edge function that stores it as a secret
       const { error } = await supabase.functions.invoke("save-mp-token", {
-        body: { token: mpToken.trim() },
+        body: { token: mpToken.trim(), business_id: currentBusinessId },
       });
       if (error) throw error;
 
