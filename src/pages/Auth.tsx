@@ -34,7 +34,11 @@ const Auth = () => {
     return <Navigate to={loyaltyMemberCode ? `/loyalty/${loyaltyMemberCode}` : "/loyalty-login"} replace />;
   }
 
-  if (user && roles.length > 0) return <Navigate to="/dashboard" replace />;
+  if (user && roles.length > 0) {
+    const pendingSlug = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hypnos.pendingBusinessSlug") : null;
+    if (pendingSlug) return <Navigate to={`/b/${pendingSlug}`} replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +56,11 @@ const Auth = () => {
       const isLinkedLoyaltyMember = Boolean(member?.member_code);
       const onlyLoyalty = (userRoles.length > 0 && userRoles.every((r) => r === "loyalty_member")) || isLinkedLoyaltyMember;
 
+      const pendingSlug = sessionStorage.getItem("hypnos.pendingBusinessSlug");
       if (onlyLoyalty) {
         navigate(member?.member_code ? `/loyalty/${member.member_code}` : "/loyalty-login");
+      } else if (pendingSlug) {
+        navigate(`/b/${pendingSlug}`);
       } else {
         navigate("/dashboard");
       }

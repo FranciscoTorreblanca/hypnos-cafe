@@ -35,6 +35,7 @@ import WifiPage from "@/pages/WifiPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import BudgetPage from "@/pages/BudgetPage";
 import BackofficeLayout from "@/pages/backoffice/BackofficeLayout";
+import BusinessEntry from "@/pages/BusinessEntry";
 import BusinessesPage from "@/pages/backoffice/BusinessesPage";
 import BusinessDetailPage from "@/pages/backoffice/BusinessDetailPage";
 import SuperAdminsPage from "@/pages/backoffice/SuperAdminsPage";
@@ -62,6 +63,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/b/:slug" element={<BusinessEntry />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route
