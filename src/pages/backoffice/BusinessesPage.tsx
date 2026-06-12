@@ -57,6 +57,7 @@ const BusinessesPage = () => {
       toast({ title: "Business created" });
       setDialog(false);
       setForm({ name: "", slug: "", currency: "MXN" });
+      setSlugTouched(false);
       await fetchRows();
       await refreshBusiness();
     } catch (e: any) {
