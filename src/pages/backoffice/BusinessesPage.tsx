@@ -84,25 +84,42 @@ const BusinessesPage = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Slug</TableHead>
+                <TableHead>App URL</TableHead>
                 <TableHead>Currency</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-20" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((b) => (
+              {rows.map((b) => {
+                const appUrl = `${window.location.origin}/b/${b.slug}`;
+                return (
                 <TableRow key={b.id} className="cursor-pointer" onClick={() => navigate(`/backoffice/businesses/${b.id}`)}>
                   <TableCell className="font-medium">{b.name}</TableCell>
                   <TableCell className="font-mono text-xs">{b.slug}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 font-mono text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(appUrl);
+                        toast({ title: "URL copied", description: appUrl });
+                      }}
+                    >
+                      <Copy className="h-3 w-3" /> Copy link
+                    </Button>
+                  </TableCell>
                   <TableCell>{b.currency}</TableCell>
                   <TableCell>
                     <Badge variant={b.status === "active" ? "default" : "secondary"}>{b.status}</Badge>
                   </TableCell>
                   <TableCell><Button variant="ghost" size="sm">Open</Button></TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No businesses yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No businesses yet</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
