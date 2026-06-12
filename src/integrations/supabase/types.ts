@@ -1476,6 +1476,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_business_id: string | null
           avatar_url: string | null
           created_at: string
           email: string
@@ -1485,6 +1486,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_business_id?: string | null
           avatar_url?: string | null
           created_at?: string
           email: string
@@ -1494,6 +1496,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_business_id?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string
@@ -1502,7 +1505,15 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_active_business_id_fkey"
+            columns: ["active_business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -1994,6 +2005,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_member_of: { Args: { _business_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      set_active_business: {
+        Args: { _business_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
