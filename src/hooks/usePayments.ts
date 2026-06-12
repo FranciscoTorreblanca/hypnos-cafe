@@ -64,7 +64,7 @@ async function sendToPointMini(deviceId: string, amount: number, orderId: string
 
 export const usePayments = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, currentBusinessId } = useAuth();
 
   const query = useQuery({
     queryKey: ["payments"],
