@@ -33,38 +33,40 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 
 export const BottomNav = () => {
   const { t } = useLanguage();
-  const { isAdmin, hasRole, user, signOut } = useAuth();
+  const { isAdmin, hasRole, hasFeature, currentBusiness, user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const showTables = isAdmin || hasRole("waiter") || hasRole("kitchen");
-  const showWifi = !!user;
+  const showWifi = !!user && hasFeature("wifi");
 
   const moreItems = [
-    { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: ["admin"] },
-    { key: "nav.tables" as const, icon: Grid3X3, path: "/tables", roles: ["admin", "waiter", "kitchen"] },
-    { key: "nav.menu" as const, icon: UtensilsCrossed, path: "/menu", roles: ["admin"] },
-    { key: "nav.costCalculator" as const, icon: Calculator, path: "/cost-calculator", roles: ["admin"] },
-    { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"] },
-    { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"] },
-    { key: "nav.wifi" as const, icon: Wifi, path: "/wifi", roles: [] },
-    { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"] },
-    { key: "nav.tickets" as const, icon: Ticket, path: "/tickets", roles: ["admin", "billing", "waiter"] },
-    { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"] },
-    { key: "nav.analytics" as const, icon: Activity, path: "/analytics", roles: ["admin"] },
-    { key: "nav.budget" as const, icon: Wallet, path: "/budget", roles: ["admin"] },
-    { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"] },
-    { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"] },
-    { key: "nav.calendar" as const, icon: CalendarDays, path: "/calendar", roles: ["admin", "waiter", "billing"] },
-    { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"] },
-    { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"] },
-    { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"] },
-    { key: "nav.settings" as const, icon: Settings, path: "/settings", roles: ["admin"] },
+    { key: "nav.dashboard" as const, icon: LayoutDashboard, path: "/dashboard", roles: ["admin"], feature: null },
+    { key: "nav.tables" as const, icon: Grid3X3, path: "/tables", roles: ["admin", "waiter", "kitchen"], feature: null },
+    { key: "nav.menu" as const, icon: UtensilsCrossed, path: "/menu", roles: ["admin"], feature: null },
+    { key: "nav.costCalculator" as const, icon: Calculator, path: "/cost-calculator", roles: ["admin"], feature: "cost_calculator" as const },
+    { key: "nav.menuGenerator" as const, icon: FileText, path: "/menu-generator", roles: ["admin"], feature: "menu_generator" as const },
+    { key: "nav.kitchen" as const, icon: ChefHat, path: "/kitchen", roles: ["admin", "waiter", "kitchen"], feature: "kitchen" as const },
+    { key: "nav.wifi" as const, icon: Wifi, path: "/wifi", roles: [], feature: "wifi" as const },
+    { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"], feature: null },
+    { key: "nav.tickets" as const, icon: Ticket, path: "/tickets", roles: ["admin", "billing", "waiter"], feature: "tickets" as const },
+    { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"], feature: null },
+    { key: "nav.analytics" as const, icon: Activity, path: "/analytics", roles: ["admin"], feature: "analytics" as const },
+    { key: "nav.budget" as const, icon: Wallet, path: "/budget", roles: ["admin"], feature: "budget" as const },
+    { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"], feature: null },
+    { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"], feature: "stock" as const },
+    { key: "nav.calendar" as const, icon: CalendarDays, path: "/calendar", roles: ["admin", "waiter", "billing"], feature: "calendar" as const },
+    { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"], feature: "loyalty" as const },
+    { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"], feature: "loyalty" as const },
+    { key: "nav.users" as const, icon: Users, path: "/users", roles: ["admin"], feature: null },
+    { key: "nav.settings" as const, icon: Settings, path: "/settings", roles: ["admin"], feature: null },
   ];
 
   const visibleMore = moreItems.filter(
-    (item) => item.roles.length === 0 || isAdmin || item.roles.some((r) => hasRole(r as any))
+    (item) =>
+      (item.roles.length === 0 || isAdmin || item.roles.some((r) => hasRole(r as any))) &&
+      (!item.feature || hasFeature(item.feature))
   );
 
   const isActive = (path: string) => location.pathname === path;
@@ -110,7 +112,7 @@ export const BottomNav = () => {
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl pb-[env(safe-area-inset-bottom)] max-h-[70dvh] flex flex-col">
           <SheetHeader className="pb-2 shrink-0">
-            <SheetTitle className="text-base">Hypnos Cafe</SheetTitle>
+            <SheetTitle className="text-base">{currentBusiness?.name ?? t("common.more")}</SheetTitle>
           </SheetHeader>
           <div className="grid gap-1 py-2 overflow-y-auto min-h-0">
             {visibleMore.map((item) => (
