@@ -35,6 +35,7 @@ import WifiPage from "@/pages/WifiPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import BudgetPage from "@/pages/BudgetPage";
 import BackofficeLayout from "@/pages/backoffice/BackofficeLayout";
+import BusinessEntry from "@/pages/BusinessEntry";
 import BusinessesPage from "@/pages/backoffice/BusinessesPage";
 import BusinessDetailPage from "@/pages/backoffice/BusinessDetailPage";
 import SuperAdminsPage from "@/pages/backoffice/SuperAdminsPage";
