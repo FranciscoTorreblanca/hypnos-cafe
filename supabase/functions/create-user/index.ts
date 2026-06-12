@@ -38,35 +38,60 @@ Deno.serve(async (req) => {
     }
     if (!targetBusinessId) throw new Error("No business context available");
 
-    // Create user with service role
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: { full_name },
-    });
-    if (createError) throw createError;
+    // Check if user already exists
+    let userId: string | null = null;
+    let isNewUser = false;
+    const { data: existingProfile } = await adminClient
+      .from("profiles").select("id").eq("email", email.toLowerCase()).maybeSingle();
 
-    // Assign legacy global role (kept for back-compat)
-    const { error: roleError } = await adminClient
+    if (existingProfile) {
+      userId = existingProfile.id;
+      // Already a member of this business?
+      const { data: existingMember } = await adminClient
+        .from("business_members")
+        .select("id, role")
+        .eq("user_id", userId)
+        .eq("business_id", targetBusinessId)
+        .eq("role", role)
+        .maybeSingle();
+      if (existingMember) {
+        throw new Error("This user is already a member of this business with that role");
+      }
+    } else {
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: { full_name },
+      });
+      if (createError) throw createError;
+      userId = newUser.user.id;
+      isNewUser = true;
+    }
+
+    // Assign legacy global role (kept for back-compat) - ignore duplicates
+    await adminClient
       .from("user_roles")
-      .insert({ user_id: newUser.user.id, role });
-    if (roleError) throw roleError;
+      .insert({ user_id: userId, role })
+      .then((r) => r); // ignore unique violation
 
     // Link user to business with scoped role
     await adminClient
       .from("business_members")
-      .insert({ user_id: newUser.user.id, business_id: targetBusinessId, role, is_default: true });
+      .insert({ user_id: userId, business_id: targetBusinessId, role, is_default: isNewUser });
 
     // Send password reset email so the new user can set their password
-    const { error: resetError } = await adminClient.auth.admin.generateLink({
-      type: "recovery",
-      email,
-    });
-    if (resetError) throw resetError;
+    if (isNewUser) {
+      const { error: resetError } = await adminClient.auth.admin.generateLink({
+        type: "recovery",
+        email,
+      });
+      if (resetError) throw resetError;
+    }
 
-    return new Response(JSON.stringify({ id: newUser.user.id }), {
+    return new Response(JSON.stringify({ id: userId, existing: !isNewUser }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
