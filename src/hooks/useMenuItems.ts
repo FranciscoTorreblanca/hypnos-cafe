@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface MenuItem {
   id: string;
@@ -16,21 +17,18 @@ export interface MenuItem {
   inventory_count: number | null;
 }
 
-/** Returns the effective selling price (promo if set, otherwise regular). */
 export const getEffectivePrice = (item: Pick<MenuItem, "price" | "promo_price">): number =>
   item.promo_price != null ? item.promo_price : item.price;
 
 export const useMenuItems = () => {
   const queryClient = useQueryClient();
+  const { currentBusinessId } = useAuth();
 
   const query = useQuery({
-    queryKey: ["menu_items"],
-    staleTime: 30 * 1000, // 30s cache - shorter for stock updates
+    queryKey: ["menu_items", currentBusinessId],
+    staleTime: 30 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from("menu_items").select("*").order("name");
       if (error) throw error;
       return data as MenuItem[];
     },
@@ -43,7 +41,8 @@ export const useMenuItems = () => {
         const { error } = await supabase.from("menu_items").update(rest).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("menu_items").insert(item);
+        if (!currentBusinessId) throw new Error("No business selected");
+        const { error } = await supabase.from("menu_items").insert({ ...item, business_id: currentBusinessId } as any);
         if (error) throw error;
       }
     },
