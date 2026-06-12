@@ -70,7 +70,7 @@ const BusinessDetailPage = () => {
       supabase.from("business_features").select("*").eq("business_id", id).maybeSingle(),
       supabase
         .from("business_members")
-        .select("id,user_id,role,is_default,profiles:user_id(email,full_name)")
+        .select("id,user_id,role,is_default")
         .eq("business_id", id),
     ]);
     setBusiness(b as Business | null);
@@ -79,7 +79,15 @@ const BusinessDetailPage = () => {
       FEATURE_KEYS.forEach((k) => { map[k] = (f as any)[k] !== false; });
       setFeatures(map);
     }
-    setMembers(m ?? []);
+    const memberList = m ?? [];
+    if (memberList.length > 0) {
+      const ids = memberList.map((row) => row.user_id);
+      const { data: profs } = await supabase.from("profiles").select("id,email,full_name").in("id", ids);
+      const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
+      setMembers(memberList.map((row) => ({ ...row, profiles: profMap.get(row.user_id) })));
+    } else {
+      setMembers([]);
+    }
   };
 
   useEffect(() => { if (id) void fetchAll(); }, [id]);
