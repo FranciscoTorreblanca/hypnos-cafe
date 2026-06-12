@@ -72,6 +72,12 @@ const BusinessesPage = () => {
     }
   };
 
+  const filtered = rows.filter((b) => {
+    const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase().trim());
+    const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
