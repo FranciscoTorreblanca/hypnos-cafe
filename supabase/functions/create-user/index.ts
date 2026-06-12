@@ -21,13 +21,24 @@ Deno.serve(async (req) => {
     if (!caller) throw new Error("Not authenticated");
 
     const { data: isAdmin } = await callerClient.rpc("is_admin");
-    if (!isAdmin) throw new Error("Not authorized");
+    const { data: isSuper } = await callerClient.rpc("is_super_admin");
+    if (!isAdmin && !isSuper) throw new Error("Not authorized");
 
-    const { email, full_name, role } = await req.json();
+    const { email, full_name, role, business_id } = await req.json();
     if (!email || !full_name || !role) throw new Error("Missing fields");
 
-    // Create user with service role — no password, they'll set it via recovery email
+    // Resolve target business: super admins can target any, regular admins use their own
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    let targetBusinessId: string | null = business_id ?? null;
+    if (!targetBusinessId) {
+      const { data: myBiz } = await adminClient
+        .from("business_members").select("business_id, is_default")
+        .eq("user_id", caller.id).order("is_default", { ascending: false }).limit(1).maybeSingle();
+      targetBusinessId = myBiz?.business_id ?? null;
+    }
+    if (!targetBusinessId) throw new Error("No business context available");
+
+    // Create user with service role
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       email_confirm: true,
@@ -35,11 +46,16 @@ Deno.serve(async (req) => {
     });
     if (createError) throw createError;
 
-    // Assign role
+    // Assign legacy global role (kept for back-compat)
     const { error: roleError } = await adminClient
       .from("user_roles")
       .insert({ user_id: newUser.user.id, role });
     if (roleError) throw roleError;
+
+    // Link user to business with scoped role
+    await adminClient
+      .from("business_members")
+      .insert({ user_id: newUser.user.id, business_id: targetBusinessId, role, is_default: true });
 
     // Send password reset email so the new user can set their password
     const { error: resetError } = await adminClient.auth.admin.generateLink({
