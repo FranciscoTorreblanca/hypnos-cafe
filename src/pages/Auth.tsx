@@ -56,8 +56,11 @@ const Auth = () => {
       const isLinkedLoyaltyMember = Boolean(member?.member_code);
       const onlyLoyalty = (userRoles.length > 0 && userRoles.every((r) => r === "loyalty_member")) || isLinkedLoyaltyMember;
 
+      const pendingSlug = sessionStorage.getItem("hypnos.pendingBusinessSlug");
       if (onlyLoyalty) {
         navigate(member?.member_code ? `/loyalty/${member.member_code}` : "/loyalty-login");
+      } else if (pendingSlug) {
+        navigate(`/b/${pendingSlug}`);
       } else {
         navigate("/dashboard");
       }
