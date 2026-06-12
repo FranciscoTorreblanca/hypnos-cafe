@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Copy } from "lucide-react";
 
 interface BusinessRow {
   id: string; name: string; slug: string; status: string; currency: string; created_at: string;
