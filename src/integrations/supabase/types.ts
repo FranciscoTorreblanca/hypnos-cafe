@@ -27,7 +27,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          business_id: string
+          business_id?: string
           created_at?: string
           created_by: string
           id?: string
@@ -69,7 +69,7 @@ export type Database = {
           label_en: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           color?: string
           created_at?: string
           display_order?: number
@@ -275,7 +275,7 @@ export type Database = {
           label_en: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           combo_id: string
           display_order?: number
           id?: string
@@ -315,7 +315,7 @@ export type Database = {
           menu_item_id: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           choice_group_id: string
           id?: string
           menu_item_id: string
@@ -359,7 +359,7 @@ export type Database = {
           quantity: number
         }
         Insert: {
-          business_id: string
+          business_id?: string
           combo_id: string
           id?: string
           menu_item_id: string
@@ -411,7 +411,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           description?: string
           description_en?: string
@@ -457,7 +457,7 @@ export type Database = {
           label_en: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -498,7 +498,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          business_id: string
+          business_id?: string
           category_key?: string | null
           created_at?: string
           display_order?: number
@@ -560,7 +560,7 @@ export type Database = {
         }
         Insert: {
           all_day?: boolean
-          business_id: string
+          business_id?: string
           capacity?: number | null
           color?: string
           cover_charge?: number
@@ -627,7 +627,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          business_id: string
+          business_id?: string
           category_id?: string | null
           created_at?: string
           created_by: string
@@ -688,7 +688,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           id?: string
           name: string
@@ -731,7 +731,7 @@ export type Database = {
           menu_item_id: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           coupon_id: string
           id?: string
           menu_item_id: string
@@ -781,7 +781,7 @@ export type Database = {
           title_en: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           description?: string
           description_en?: string
@@ -828,7 +828,7 @@ export type Database = {
           redeemed_by: string | null
         }
         Insert: {
-          business_id: string
+          business_id?: string
           coupon_id: string
           granted_at?: string
           id?: string
@@ -885,7 +885,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           email: string
           id?: string
@@ -928,7 +928,7 @@ export type Database = {
           registered_by: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           id?: string
           member_id: string
@@ -971,7 +971,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -1011,7 +1011,7 @@ export type Database = {
           section_label_en: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           combo_id?: string | null
           created_at?: string
           display_order?: number
@@ -1073,7 +1073,7 @@ export type Database = {
           source_menu_item_id: string | null
         }
         Insert: {
-          business_id: string
+          business_id?: string
           id?: string
           ingredient_id?: string | null
           menu_item_id: string
@@ -1130,7 +1130,7 @@ export type Database = {
           menu_item_id: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           code: string
           created_at?: string
           created_by?: string | null
@@ -1183,7 +1183,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           category_id?: string | null
           cost?: number
           created_at?: string
@@ -1250,7 +1250,7 @@ export type Database = {
           version: number
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           description?: string
           description_en?: string
@@ -1313,7 +1313,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
-          business_id: string
+          business_id?: string
           combo_group_id?: string | null
           combo_id?: string | null
           created_at?: string
@@ -1388,7 +1388,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           created_by: string
           general_discount?: number
@@ -1436,7 +1436,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          business_id: string
+          business_id?: string
           created_at?: string
           created_by: string
           id?: string
@@ -1513,7 +1513,7 @@ export type Database = {
         }
         Insert: {
           auth: string
-          business_id: string
+          business_id?: string
           created_at?: string
           endpoint: string
           id?: string
@@ -1564,7 +1564,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          business_id: string
+          business_id?: string
           category_id?: string | null
           created_at?: string
           created_by: string
@@ -1634,7 +1634,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           created_by: string
           customer_email?: string
@@ -1706,7 +1706,7 @@ export type Database = {
           value: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           id?: string
           key: string
@@ -1740,7 +1740,7 @@ export type Database = {
           ticket_id: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           id?: string
           printed_at?: string
           printed_by: string
@@ -1793,7 +1793,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id: string
+          business_id?: string
           created_at?: string
           created_by: string
           customer_email_for_invoice?: string
@@ -1857,7 +1857,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          business_id: string
+          business_id?: string
           created_at?: string
           created_by: string
           id?: string
@@ -1908,7 +1908,7 @@ export type Database = {
         }
         Insert: {
           action_name?: string
-          business_id: string
+          business_id?: string
           created_at?: string
           duration_ms?: number | null
           event_type: string
@@ -1976,6 +1976,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_business_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
