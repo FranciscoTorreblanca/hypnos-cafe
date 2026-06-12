@@ -2,47 +2,58 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useTableNames, TableNamesMap } from "@/hooks/useTableNames";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, RefreshCw, Info } from "lucide-react";
+import { Bell, RefreshCw, Building2 } from "lucide-react";
 import { APP_VERSION } from "@/version";
+
+interface BusinessInfo {
+  name: string; slug: string; legal_name: string | null; tax_id: string | null;
+  address: string | null; phone: string | null; email: string | null;
+  ticket_header: string | null; ticket_footer: string | null;
+  currency: string; language: string; timezone: string;
+  vat_rate: number; card_commission_rate: number; status: string;
+}
+
+const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div className="flex flex-col gap-0.5 py-1.5 border-b border-border/40 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+    <span className="text-xs text-muted-foreground">{label}</span>
+    <span className="text-sm font-medium break-words sm:text-right">{value || "—"}</span>
+  </div>
+);
 
 const SettingsPage = () => {
   const { t } = useLanguage();
   const { isAdmin, currentBusiness, hasFeature } = useAuth();
   const { toast } = useToast();
-  const { tableNames, updateNames } = useTableNames();
   const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
 
-  const [tablesCount, setTablesCount] = useState(12);
+  const [info, setInfo] = useState<BusinessInfo | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
-  const [localTableNames, setLocalTableNames] = useState<TableNamesMap>({});
   const [loading, setLoading] = useState(false);
   const [reloading, setReloading] = useState(false);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      const { data } = await supabase
-        .from("restaurant_settings")
-        .select("key, value")
-        .in("key", ["tables_count", "push_enabled"]);
-      if (data) {
-        const map: Record<string, string> = {};
-        data.forEach((s) => (map[s.key] = s.value));
-        if (map.tables_count) setTablesCount(parseInt(map.tables_count) || 12);
-        setPushEnabled(map.push_enabled === "true");
-      }
+    const load = async () => {
+      if (!currentBusiness?.id) return;
+      const [{ data: biz }, { data: settings }] = await Promise.all([
+        supabase.from("businesses")
+          .select("name,slug,legal_name,tax_id,address,phone,email,ticket_header,ticket_footer,currency,language,timezone,vat_rate,card_commission_rate,status")
+          .eq("id", currentBusiness.id).maybeSingle(),
+        supabase.from("restaurant_settings").select("key, value").eq("key", "push_enabled"),
+      ]);
+      if (biz) setInfo(biz as BusinessInfo);
+      const map: Record<string, string> = {};
+      (settings ?? []).forEach((s) => (map[s.key] = s.value));
+      setPushEnabled(map.push_enabled === "true");
     };
-    fetchSettings();
+    load();
   }, [currentBusiness?.id]);
-
-  useEffect(() => { setLocalTableNames(tableNames); }, [tableNames]);
 
   const upsertSetting = async (key: string, value: string) => {
     const { data } = await supabase.from("restaurant_settings").update({ value }).eq("key", key).select();
@@ -51,12 +62,10 @@ const SettingsPage = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSavePush = async () => {
     setLoading(true);
     try {
-      await upsertSetting("tables_count", String(tablesCount));
       await upsertSetting("push_enabled", pushEnabled ? "true" : "false");
-      await updateNames.mutateAsync(localTableNames);
       toast({ title: t("settings.saved") });
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
@@ -87,58 +96,44 @@ const SettingsPage = () => {
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
 
+      {/* Business info (read-only) */}
       <Card>
         <CardHeader>
           <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <CardTitle className="text-base">{currentBusiness?.name ?? "—"}</CardTitle>
-              <CardDescription>
-                Business profile, VAT, ticket info, Mercado Pago and feature flags are managed by the Super Admin in the backoffice.
-              </CardDescription>
+            <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div className="flex-1">
+              <CardTitle className="text-base flex items-center gap-2">
+                {info?.name ?? currentBusiness?.name ?? "—"}
+                {info?.status && (
+                  <Badge variant={info.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                    {info.status}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>Read-only business profile. Contact your administrator for changes.</CardDescription>
             </div>
           </div>
         </CardHeader>
-      </Card>
-
-      {/* Tables */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("settings.tableNames")}</CardTitle>
-          <CardDescription>{t("settings.tablesCount")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t("settings.tablesCount")}</Label>
-            <Input
-              type="number"
-              min={1}
-              max={200}
-              value={tablesCount}
-              onChange={(e) => setTablesCount(parseInt(e.target.value) || 1)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("settings.tableNames")}</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {Array.from({ length: tablesCount }, (_, i) => i + 1).map((num) => (
-                <div key={num} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">{num}</span>
-                  <Input
-                    placeholder={t("settings.tableNamePlaceholder")}
-                    value={localTableNames[String(num)] || ""}
-                    onChange={(e) =>
-                      setLocalTableNames((prev) => ({ ...prev, [String(num)]: e.target.value }))
-                    }
-                    className="h-8 text-sm"
-                  />
-                </div>
-              ))}
+        <CardContent>
+          {info ? (
+            <div className="space-y-0">
+              <Row label="Slug" value={info.slug} />
+              <Row label="Legal name" value={info.legal_name} />
+              <Row label="Tax ID" value={info.tax_id} />
+              <Row label="Email" value={info.email} />
+              <Row label="Phone" value={info.phone} />
+              <Row label="Address" value={info.address} />
+              <Row label="Currency" value={info.currency} />
+              <Row label="Language" value={info.language} />
+              <Row label="Timezone" value={info.timezone} />
+              <Row label="VAT %" value={info.vat_rate} />
+              <Row label="Card commission %" value={info.card_commission_rate} />
+              <Row label="Ticket header" value={info.ticket_header} />
+              <Row label="Ticket footer" value={info.ticket_footer} />
             </div>
-          </div>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? t("common.loading") : t("settings.save")}
-          </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          )}
         </CardContent>
       </Card>
 
@@ -183,7 +178,7 @@ const SettingsPage = () => {
                 )}
               </div>
             )}
-            <Button onClick={handleSave} disabled={loading} className="w-full">
+            <Button onClick={handleSavePush} disabled={loading} className="w-full">
               {loading ? t("common.loading") : t("settings.save")}
             </Button>
           </CardContent>
