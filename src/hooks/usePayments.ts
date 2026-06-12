@@ -22,11 +22,12 @@ export interface Payment {
   };
 }
 
-/** Check if Mercado Pago is enabled and configured */
-async function getMpConfig(): Promise<{ enabled: boolean; deviceId: string } | null> {
+/** Check if Mercado Pago is enabled and configured for the given business */
+async function getMpConfig(businessId: string): Promise<{ enabled: boolean; deviceId: string } | null> {
   const { data } = await supabase
     .from("restaurant_settings")
     .select("key, value")
+    .eq("business_id", businessId)
     .in("key", ["mp_enabled", "mp_device_id", "mp_token_set"]);
 
   if (!data) return null;
@@ -40,7 +41,7 @@ async function getMpConfig(): Promise<{ enabled: boolean; deviceId: string } | n
 }
 
 /** Send payment intent to Mercado Pago Point Mini */
-async function sendToPointMini(deviceId: string, amount: number, orderId: string) {
+async function sendToPointMini(deviceId: string, amount: number, orderId: string, businessId: string) {
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const res = await fetch(
     `https://${projectId}.supabase.co/functions/v1/mercadopago-payment`,
@@ -52,6 +53,7 @@ async function sendToPointMini(deviceId: string, amount: number, orderId: string
         amount,
         description: `Orden ${orderId.slice(0, 8)}`,
         external_reference: orderId,
+        business_id: businessId,
       }),
     }
   );
