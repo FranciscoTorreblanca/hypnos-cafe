@@ -29,6 +29,7 @@ const BusinessesPage = () => {
   const [dialog, setDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", slug: "", currency: "MXN" });
+  const [slugTouched, setSlugTouched] = useState(false);
 
   const fetchRows = async () => {
     const { data } = await supabase
