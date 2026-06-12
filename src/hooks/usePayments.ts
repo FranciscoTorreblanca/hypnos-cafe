@@ -132,10 +132,11 @@ export const usePayments = () => {
         .select("id, payment_method");
       if (error) throw error;
 
-      // Mark order as paid and reset general discount
+      // Mark order as paid — preserve general_discount / general_discount_amount
+      // so history and tickets can reproduce the actual charged amount.
       const { error: upErr } = await supabase
         .from("orders")
-        .update({ status: "paid" as any, general_discount: 0, general_discount_amount: 0 } as any)
+        .update({ status: "paid" as any } as any)
         .eq("id", order_id);
       if (upErr) throw upErr;
 

@@ -156,10 +156,15 @@ const OrderHistoryPage = () => {
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.status === "paid");
     const totalRevenue = paid.reduce((s, o) => {
-      const payment = o.payments?.[0];
-      return s + (payment?.amount ?? o.total);
+      const paymentsSum = (o.payments ?? []).reduce((ps, p) => ps + (p.amount ?? 0), 0);
+      // Fallback to discounted order total if payments are missing.
+      const fallback = applyGeneralDiscount(o.total, o.general_discount ?? 0, o.general_discount_amount ?? 0);
+      return s + (paymentsSum > 0 ? paymentsSum : fallback);
     }, 0);
-    const totalTips = paid.reduce((s, o) => s + (o.payments?.[0]?.tip ?? 0), 0);
+    const totalTips = paid.reduce(
+      (s, o) => s + (o.payments ?? []).reduce((ts, p) => ts + (p.tip ?? 0), 0),
+      0,
+    );
     const totalItems = paid.reduce((s, o) => s + o.order_items.reduce((si, oi) => si + oi.quantity, 0), 0);
     return { totalRevenue, totalTips, paidCount: paid.length, totalItems, totalOrders: orders.length };
   }, [orders]);
