@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useMenuItems } from "@/hooks/useMenuItems";
+import { useTableNames } from "@/hooks/useTableNames";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,17 +24,28 @@ import { startOfDay, subDays, format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 
 const Dashboard = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, currentBusinessId } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { data: orders = [] } = useOrders();
   const { data: menuItems = [] } = useMenuItems();
+  const { tableNames } = useTableNames();
 
-  // Profiles (active users)
+  // Active users in current business
   const { data: profiles = [] } = useQuery({
-    queryKey: ["dashboard-profiles"],
+    queryKey: ["dashboard-profiles", currentBusinessId],
+    enabled: !!currentBusinessId,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, is_active");
+      const { data: members } = await supabase
+        .from("business_members")
+        .select("user_id")
+        .eq("business_id", currentBusinessId!);
+      const ids = (members ?? []).map((m: any) => m.user_id);
+      if (ids.length === 0) return [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, is_active")
+        .in("id", ids);
       return data ?? [];
     },
   });
@@ -124,7 +136,7 @@ const Dashboard = () => {
   if (!isAdmin) return <Navigate to="/tables" replace />;
 
   // Computed stats
-  const tableCount = 12;
+  const tableCount = Object.keys(tableNames).length;
   const occupiedTables = orders.filter(
     (o) => !["paid", "cancelled"].includes(o.status)
   ).length;
