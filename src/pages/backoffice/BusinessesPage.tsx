@@ -10,9 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Copy } from "lucide-react";
+import { Plus, Copy, Search, X } from "lucide-react";
 
 interface BusinessRow {
   id: string; name: string; slug: string; status: string; currency: string; created_at: string;
@@ -30,6 +33,8 @@ const BusinessesPage = () => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", slug: "", currency: "MXN" });
   const [slugTouched, setSlugTouched] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const fetchRows = async () => {
     const { data } = await supabase
@@ -67,6 +72,12 @@ const BusinessesPage = () => {
     }
   };
 
+  const filtered = rows.filter((b) => {
+    const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase().trim());
+    const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -76,8 +87,39 @@ const BusinessesPage = () => {
         </Button>
       </div>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
-        <CardHeader><CardTitle className="text-base">All businesses ({rows.length})</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">All businesses ({filtered.length})</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -91,7 +133,7 @@ const BusinessesPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((b) => {
+              {filtered.map((b) => {
                 const appUrl = `${window.location.origin}/b/${b.slug}`;
                 return (
                 <TableRow key={b.id} className="cursor-pointer" onClick={() => navigate(`/backoffice/businesses/${b.id}`)}>
@@ -118,8 +160,8 @@ const BusinessesPage = () => {
                 </TableRow>
                 );
               })}
-              {rows.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No businesses yet</TableCell></TableRow>
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No businesses match the filters</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
