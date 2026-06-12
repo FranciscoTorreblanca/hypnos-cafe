@@ -47,6 +47,7 @@ const STORAGE_KEY = "hypnos.currentBusinessId";
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
   const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null);
   const [features, setFeatures] = useState<Record<FeatureKey, boolean>>(ALL_FEATURES_ON);
+
+  // Invalidate all cached queries whenever the active business changes so
+  // every hook re-fetches scoped data without each one needing to key by it.
+  useEffect(() => {
+    if (currentBusinessId) queryClient.invalidateQueries();
+  }, [currentBusinessId, queryClient]);
 
   const fetchRoles = async (userId: string) => {
     const [{ data: roleRows }, { data: loyaltyMember }] = await Promise.all([
