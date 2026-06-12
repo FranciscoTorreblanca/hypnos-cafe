@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { BackofficeRoute } from "@/components/BackofficeRoute";
 import { AppLayout } from "@/components/AppLayout";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
@@ -33,14 +34,14 @@ import TicketsPage from "@/pages/TicketsPage";
 import WifiPage from "@/pages/WifiPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import BudgetPage from "@/pages/BudgetPage";
+import BackofficeLayout from "@/pages/backoffice/BackofficeLayout";
+import BusinessesPage from "@/pages/backoffice/BusinessesPage";
+import BusinessDetailPage from "@/pages/backoffice/BusinessDetailPage";
+import SuperAdminsPage from "@/pages/backoffice/SuperAdminsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Avoid refetching every time the user switches tabs / refocuses the app.
-      // Data stays "fresh" for 5 minutes, after which it will refetch in the
-      // background on the next interaction. Individual queries can override
-      // staleTime for stricter freshness (e.g. orders, stock).
       refetchOnWindowFocus: false,
       refetchOnReconnect: "always",
       refetchOnMount: true,
@@ -89,6 +90,19 @@ const App = () => (
                 <Route path="/wifi" element={<WifiPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/budget" element={<BudgetPage />} />
+              </Route>
+              <Route
+                path="/backoffice"
+                element={
+                  <BackofficeRoute>
+                    <BackofficeLayout />
+                  </BackofficeRoute>
+                }
+              >
+                <Route index element={<Navigate to="businesses" replace />} />
+                <Route path="businesses" element={<BusinessesPage />} />
+                <Route path="businesses/:id" element={<BusinessDetailPage />} />
+                <Route path="super-admins" element={<SuperAdminsPage />} />
               </Route>
               <Route path="/public-menu/:menuId" element={<PublicMenuPage />} />
               <Route path="/loyalty" element={<LoyaltyPublicPage />} />

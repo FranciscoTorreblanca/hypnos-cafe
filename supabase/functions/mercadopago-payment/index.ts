@@ -20,15 +20,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Read access token from restaurant_settings scoped to business
-    const { data: tokenSetting } = await supabase
-      .from("restaurant_settings")
-      .select("value")
-      .eq("business_id", business_id)
-      .eq("key", "mp_access_token_encrypted")
+    // Prefer per-business token from businesses table (set in backoffice);
+    // fall back to legacy restaurant_settings entry for backwards compatibility.
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("mp_access_token")
+      .eq("id", business_id)
       .maybeSingle();
 
-    const accessToken = tokenSetting?.value;
+    let accessToken = business?.mp_access_token ?? null;
+    if (!accessToken) {
+      const { data: tokenSetting } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("business_id", business_id)
+        .eq("key", "mp_access_token_encrypted")
+        .maybeSingle();
+      accessToken = tokenSetting?.value ?? null;
+    }
     if (!accessToken) {
       return new Response(
         JSON.stringify({ error: "Mercado Pago access token not configured for this business" }),
