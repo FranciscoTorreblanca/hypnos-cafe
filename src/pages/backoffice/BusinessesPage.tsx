@@ -115,11 +115,11 @@ const BusinessesPage = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: form.slug || slugify(e.target.value) })} />
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: slugTouched ? form.slug : slugify(e.target.value) })} />
             </div>
             <div className="space-y-2">
               <Label>Slug</Label>
-              <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })} />
+              <Input value={form.slug} onChange={(e) => { setSlugTouched(true); setForm({ ...form, slug: slugify(e.target.value) }); }} />
               <p className="text-xs text-muted-foreground">Used in public URLs. Lowercase letters, numbers and dashes.</p>
             </div>
             <div className="space-y-2">
