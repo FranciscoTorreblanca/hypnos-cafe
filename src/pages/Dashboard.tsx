@@ -51,12 +51,15 @@ const Dashboard = () => {
   });
 
   // Loyalty members
+  const loyaltyEnabled = hasFeature("loyalty");
   const { data: loyaltyStats } = useQuery({
-    queryKey: ["dashboard-loyalty"],
+    queryKey: ["dashboard-loyalty", currentBusinessId],
+    enabled: !!currentBusinessId && loyaltyEnabled,
     queryFn: async () => {
       const { data: members } = await supabase
         .from("loyalty_members")
-        .select("id, total_visits, is_active");
+        .select("id, total_visits, is_active")
+        .eq("business_id", currentBusinessId!);
       const total = members?.length ?? 0;
       const active = members?.filter((m) => m.is_active).length ?? 0;
       const totalVisits = members?.reduce((s, m) => s + (m.total_visits ?? 0), 0) ?? 0;
