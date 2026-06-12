@@ -611,29 +611,31 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => navigate("/loyalty-admin")}
-        >
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              {t("loyalty.admin")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6">
-              <div>
-                <p className="text-2xl font-bold">{loyaltyStats?.active ?? 0}</p>
-                <p className="text-xs text-muted-foreground">{t("dash.activeMembers")}</p>
+        {loyaltyEnabled && (
+          <Card
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate("/loyalty-admin")}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                {t("loyalty.admin")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <div>
+                  <p className="text-2xl font-bold">{loyaltyStats?.active ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">{t("dash.activeMembers")}</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{loyaltyStats?.totalVisits ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">{t("loyalty.totalVisits")}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{loyaltyStats?.totalVisits ?? 0}</p>
-                <p className="text-xs text-muted-foreground">{t("loyalty.totalVisits")}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
