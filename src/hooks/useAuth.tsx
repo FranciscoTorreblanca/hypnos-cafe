@@ -102,7 +102,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const chosen = validStored ?? fallback;
     setCurrentBusinessId(chosen);
     if (chosen && typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, chosen);
-    if (chosen) await fetchFeatures(chosen);
+    if (chosen) {
+      await supabase.rpc("set_active_business", { _business_id: chosen });
+      await fetchFeatures(chosen);
+    }
   };
 
   const fetchFeatures = async (businessId: string) => {
@@ -158,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentBusiness = businesses.find((b) => b.id === currentBusinessId) ?? null;
 
   const switchBusiness = useCallback(async (id: string) => {
+    await supabase.rpc("set_active_business", { _business_id: id });
     setCurrentBusinessId(id);
     if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, id);
     await fetchFeatures(id);
