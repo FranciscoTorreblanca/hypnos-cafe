@@ -133,7 +133,7 @@ const BusinessesPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((b) => {
+              {filtered.map((b) => {
                 const appUrl = `${window.location.origin}/b/${b.slug}`;
                 return (
                 <TableRow key={b.id} className="cursor-pointer" onClick={() => navigate(`/backoffice/businesses/${b.id}`)}>
@@ -160,8 +160,8 @@ const BusinessesPage = () => {
                 </TableRow>
                 );
               })}
-              {rows.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No businesses yet</TableCell></TableRow>
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No businesses match the filters</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
