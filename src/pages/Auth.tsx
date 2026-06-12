@@ -34,7 +34,11 @@ const Auth = () => {
     return <Navigate to={loyaltyMemberCode ? `/loyalty/${loyaltyMemberCode}` : "/loyalty-login"} replace />;
   }
 
-  if (user && roles.length > 0) return <Navigate to="/dashboard" replace />;
+  if (user && roles.length > 0) {
+    const pendingSlug = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hypnos.pendingBusinessSlug") : null;
+    if (pendingSlug) return <Navigate to={`/b/${pendingSlug}`} replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
