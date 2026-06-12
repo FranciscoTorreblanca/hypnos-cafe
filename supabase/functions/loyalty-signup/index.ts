@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, email, password, phone } = await req.json();
+    const { name, email, password, phone, business_id, business_slug } = await req.json();
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ error: "name, email and password are required" }), {
@@ -32,6 +32,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Resolve target business
+    let targetBusinessId: string | null = business_id ?? null;
+    if (!targetBusinessId && business_slug) {
+      const { data: biz } = await supabaseAdmin
+        .from("businesses").select("id").eq("slug", business_slug).maybeSingle();
+      targetBusinessId = biz?.id ?? null;
+    }
+    if (!targetBusinessId) {
+      // Fallback to the first business (single-tenant deployments)
+      const { data: anyBiz } = await supabaseAdmin
+        .from("businesses").select("id").order("created_at").limit(1).maybeSingle();
+      targetBusinessId = anyBiz?.id ?? null;
+    }
+    if (!targetBusinessId) {
+      return new Response(JSON.stringify({ error: "No business available for signup" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -54,15 +73,14 @@ Deno.serve(async (req) => {
     const userId = authData.user.id;
     const memberCode = generateMemberCode();
 
-    // Insert loyalty member record
+    // Insert loyalty member record scoped to business
     const { data: member, error: memberError } = await supabaseAdmin
       .from("loyalty_members")
-      .insert({ name, email, phone: phone || "", member_code: memberCode, user_id: userId })
+      .insert({ name, email, phone: phone || "", member_code: memberCode, user_id: userId, business_id: targetBusinessId })
       .select()
       .single();
 
     if (memberError) {
-      // Cleanup: delete the auth user if member insert fails
       await supabaseAdmin.auth.admin.deleteUser(userId);
       return new Response(JSON.stringify({ error: memberError.message }), {
         status: 400,
