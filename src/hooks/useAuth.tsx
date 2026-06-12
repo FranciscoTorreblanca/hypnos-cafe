@@ -161,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentBusiness = businesses.find((b) => b.id === currentBusinessId) ?? null;
 
   const switchBusiness = useCallback(async (id: string) => {
+    await supabase.rpc("set_active_business", { _business_id: id });
     setCurrentBusinessId(id);
     if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, id);
     await fetchFeatures(id);
