@@ -32,7 +32,7 @@ interface SettingsMap {
 
 const SettingsPage = () => {
   const { t } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const { tableNames, updateNames } = useTableNames();
   const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
