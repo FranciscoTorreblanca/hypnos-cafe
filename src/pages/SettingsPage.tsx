@@ -32,7 +32,7 @@ interface SettingsMap {
 
 const SettingsPage = () => {
   const { t } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const { tableNames, updateNames } = useTableNames();
   const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
@@ -129,7 +129,7 @@ const SettingsPage = () => {
     try {
       // Save token via edge function that stores it as a secret
       const { error } = await supabase.functions.invoke("save-mp-token", {
-        body: { token: mpToken.trim() },
+        body: { token: mpToken.trim(), business_id: currentBusinessId },
       });
       if (error) throw error;
 

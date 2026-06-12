@@ -167,6 +167,7 @@ export type Database = {
           created_at: string
           id: string
           is_default: boolean
+          role: string
           user_id: string
         }
         Insert: {
@@ -174,6 +175,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_default?: boolean
+          role?: string
           user_id: string
         }
         Update: {
@@ -181,6 +183,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_default?: boolean
+          role?: string
           user_id?: string
         }
         Relationships: [
@@ -1977,6 +1980,10 @@ export type Database = {
     }
     Functions: {
       current_business_id: { Args: never; Returns: string }
+      has_business_role: {
+        Args: { _business_id: string; _role: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
