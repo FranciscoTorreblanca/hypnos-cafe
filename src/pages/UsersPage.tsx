@@ -27,7 +27,7 @@ const INTERNAL_ROLES = ["admin", "waiter", "billing", "kitchen"] as const;
 
 const UsersPage = () => {
   const { t } = useLanguage();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,8 +41,32 @@ const UsersPage = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("*");
-    const { data: roles } = await supabase.from("user_roles").select("*");
+    if (!currentBusinessId) {
+      setUsers([]);
+      return;
+    }
+    // Internal staff: business_members for this business
+    const { data: members } = await supabase
+      .from("business_members")
+      .select("user_id")
+      .eq("business_id", currentBusinessId);
+    // External loyalty members for this business (RLS already scopes, but be explicit)
+    const { data: loyalty } = await supabase
+      .from("loyalty_members")
+      .select("user_id")
+      .eq("business_id", currentBusinessId);
+
+    const idSet = new Set<string>();
+    (members ?? []).forEach((m: any) => m.user_id && idSet.add(m.user_id));
+    (loyalty ?? []).forEach((l: any) => l.user_id && idSet.add(l.user_id));
+    const ids = Array.from(idSet);
+    if (ids.length === 0) {
+      setUsers([]);
+      return;
+    }
+
+    const { data: profiles } = await supabase.from("profiles").select("*").in("id", ids);
+    const { data: roles } = await supabase.from("user_roles").select("*").in("user_id", ids);
     if (profiles) {
       setUsers(
         profiles.map((p) => ({
@@ -59,7 +83,7 @@ const UsersPage = () => {
   useEffect(() => {
     if (!isAdmin) return;
     fetchUsers();
-  }, [isAdmin]);
+  }, [isAdmin, currentBusinessId]);
 
   const handleCreate = async () => {
     if (!form.email || !form.full_name || !form.role) return;
