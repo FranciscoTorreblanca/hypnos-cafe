@@ -11,33 +11,34 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Read access token from restaurant_settings
+    const { device_id, amount, description, external_reference, business_id } = await req.json();
+
+    if (!device_id || !amount || !business_id) {
+      return new Response(
+        JSON.stringify({ error: "Missing device_id, amount or business_id" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Read access token from restaurant_settings scoped to business
     const { data: tokenSetting } = await supabase
       .from("restaurant_settings")
       .select("value")
+      .eq("business_id", business_id)
       .eq("key", "mp_access_token_encrypted")
       .maybeSingle();
 
     const accessToken = tokenSetting?.value;
     if (!accessToken) {
       return new Response(
-        JSON.stringify({ error: "Mercado Pago access token not configured" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { device_id, amount, description, external_reference } = await req.json();
-
-    if (!device_id || !amount) {
-      return new Response(
-        JSON.stringify({ error: "Missing device_id or amount" }),
+        JSON.stringify({ error: "Mercado Pago access token not configured for this business" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const body = {
       amount: Math.round(amount * 100) / 100,
-      description: description || "Pago Hypnos Cafe",
+      description: description || "Pago",
       external_reference: external_reference || "",
       print_on_terminal: true,
     };
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, data }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
