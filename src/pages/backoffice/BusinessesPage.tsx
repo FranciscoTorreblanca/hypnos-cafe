@@ -10,9 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Copy } from "lucide-react";
+import { Plus, Copy, Search, X } from "lucide-react";
 
 interface BusinessRow {
   id: string; name: string; slug: string; status: string; currency: string; created_at: string;
