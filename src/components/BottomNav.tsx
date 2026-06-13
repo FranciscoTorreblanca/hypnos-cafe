@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { BusinessSwitcher } from "@/components/BusinessSwitcher";
 
 export const BottomNav = () => {
   const { t } = useLanguage();
