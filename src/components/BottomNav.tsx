@@ -114,6 +114,7 @@ export const BottomNav = () => {
         <SheetContent side="bottom" className="rounded-t-2xl pb-[env(safe-area-inset-bottom)] max-h-[70dvh] flex flex-col">
           <SheetHeader className="pb-2 shrink-0">
             <SheetTitle className="text-base">{currentBusiness?.name ?? t("common.more")}</SheetTitle>
+            <div className="pt-2"><BusinessSwitcher /></div>
           </SheetHeader>
           <div className="grid gap-1 py-2 overflow-y-auto min-h-0">
             {visibleMore.map((item) => (
