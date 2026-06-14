@@ -106,8 +106,20 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         })),
       );
       setRecipeDirty(false);
+      setAddons(
+        (item.menu_item_addons ?? []).map((a, i) => ({
+          id: a.id,
+          name: a.name,
+          name_en: a.name_en || "",
+          extra_price: Number(a.extra_price) || 0,
+          display_order: a.display_order ?? i,
+        })),
+      );
+      setAddonsDirty(false);
     } else {
       setRecipeRows([]);
+      setAddons([]);
+      setAddonsDirty(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id, open, existingRecipe.length]);
