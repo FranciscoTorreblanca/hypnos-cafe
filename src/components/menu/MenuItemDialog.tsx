@@ -405,6 +405,70 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                   />
                 </TabsContent>
               )}
+
+              {showAddonsTab && (
+                <TabsContent value="addons" className="mt-4 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    {language === "es"
+                      ? "Define los extras opcionales. Si hay al menos uno, al añadir este producto a una orden se abrirá un cuadro para seleccionar personalizaciones."
+                      : "Define optional add-ons. If at least one exists, adding this item to an order opens a customization dialog."}
+                  </p>
+                  <div className="space-y-2">
+                    {addons.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">
+                        {language === "es" ? "Sin extras configurados." : "No add-ons configured."}
+                      </p>
+                    )}
+                    {addons.map((a, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_100px_auto] gap-2 items-end border rounded-md p-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{language === "es" ? "Nombre (ES)" : "Name (ES)"}</label>
+                          <Input
+                            value={a.name}
+                            onChange={(e) => updateAddon(idx, { name: e.target.value })}
+                            placeholder={language === "es" ? "Ej: Tocino" : "e.g. Bacon"}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{language === "es" ? "Nombre (EN)" : "Name (EN)"}</label>
+                          <Input
+                            value={a.name_en}
+                            onChange={(e) => updateAddon(idx, { name_en: e.target.value })}
+                            placeholder="Bacon"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{language === "es" ? "Precio extra" : "Extra price"}</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={a.extra_price}
+                            onChange={(e) => updateAddon(idx, { extra_price: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveAddon(idx, -1)} disabled={idx === 0}>
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveAddon(idx, 1)} disabled={idx === addons.length - 1}>
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeAddonRow(idx)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addAddonRow} className="gap-1">
+                    <Plus className="h-3.5 w-3.5" /> {language === "es" ? "Agregar extra" : "Add extra"}
+                  </Button>
+                </TabsContent>
+              )}
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-2 border-t">
