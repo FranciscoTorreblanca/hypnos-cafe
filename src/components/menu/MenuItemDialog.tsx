@@ -152,6 +152,14 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         });
       }
 
+      // Persist add-ons if editing an existing item and they changed
+      if (item?.id && addonsDirty) {
+        const valid = addons
+          .filter((a) => a.name.trim().length > 0)
+          .map((a, i) => ({ ...a, name: a.name.trim(), name_en: (a.name_en || "").trim(), display_order: i }));
+        await saveAddons.mutateAsync({ menuItemId: item.id, addons: valid });
+      }
+
       onSave({
         ...values,
         cost: effectiveCost,
