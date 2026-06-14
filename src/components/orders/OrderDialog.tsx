@@ -63,6 +63,12 @@ interface CartItem {
   discountAmount: number;
   comboId?: string;
   comboGroupId?: string;
+  // Customization: when present, this cart line represents a customized variant.
+  // `menuItem.id` is replaced with a synthetic UUID so multiple variants of the
+  // same item don't collapse together; submit uses `originalMenuItemId`.
+  originalMenuItemId?: string;
+  addons?: { id: string; name: string; name_en: string; extra_price: number }[];
+  baseUnitPrice?: number; // base price (without extras), for display
 }
 
 export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order }: Props) => {
