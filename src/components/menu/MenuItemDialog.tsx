@@ -177,6 +177,30 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   };
 
   const showCostTab = isAdmin && !!item?.id;
+  const showAddonsTab = isAdmin && !!item?.id;
+
+  const updateAddon = (idx: number, patch: Partial<AddonInput>) => {
+    setAddons((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+    setAddonsDirty(true);
+  };
+  const addAddonRow = () => {
+    setAddons((prev) => [...prev, { name: "", name_en: "", extra_price: 0, display_order: prev.length }]);
+    setAddonsDirty(true);
+  };
+  const removeAddonRow = (idx: number) => {
+    setAddons((prev) => prev.filter((_, i) => i !== idx));
+    setAddonsDirty(true);
+  };
+  const moveAddon = (idx: number, dir: -1 | 1) => {
+    setAddons((prev) => {
+      const next = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next.map((a, i) => ({ ...a, display_order: i }));
+    });
+    setAddonsDirty(true);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,6 +221,15 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                       <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] font-mono">
                         ${computedRecipeCost.toFixed(2)}
                       </Badge>
+                    )}
+                  </TabsTrigger>
+                )}
+                {showAddonsTab && (
+                  <TabsTrigger value="addons">
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />
+                    {language === "es" ? "Personalizable" : "Customizable"}
+                    {addons.length > 0 && (
+                      <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{addons.length}</Badge>
                     )}
                   </TabsTrigger>
                 )}
