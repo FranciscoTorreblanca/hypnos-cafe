@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, KeyRound } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -143,6 +143,20 @@ const UsersPage = () => {
     }
   };
 
+  const handleSendReset = async (u: UserProfile) => {
+    if (!confirm(`Send password reset email to ${u.email}?`)) return;
+    try {
+      const res = await supabase.functions.invoke("create-user", {
+        body: { action: "reset_password", email: u.email },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({ title: t("common.success"), description: "Password reset email sent" });
+    } catch (error: any) {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    }
+  };
+
   const toggleRole = (role: string) => {
     setEditRoles((prev) =>
       prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
@@ -191,9 +205,14 @@ const UsersPage = () => {
             {showEditButton && (
               <TableCell>
                 {u.id !== user?.id && (
-                  <Button variant="ghost" size="icon" onClick={() => openEditRoles(u)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1 justify-end">
+                    <Button variant="ghost" size="icon" onClick={() => handleSendReset(u)} title="Send password reset email">
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openEditRoles(u)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </TableCell>
             )}

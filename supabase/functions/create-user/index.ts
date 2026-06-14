@@ -5,6 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const getRedirectUrl = (req: Request, path = "/reset-password") => {
+  const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "";
+  return `${origin}${path}`;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -24,11 +29,28 @@ Deno.serve(async (req) => {
     const { data: isSuper } = await callerClient.rpc("is_super_admin");
     if (!isAdmin && !isSuper) throw new Error("Not authorized");
 
-    const { email, full_name, role, business_id } = await req.json();
+    const body = await req.json();
+    const action: string = body.action || "invite";
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // --- Send password reset email to an existing user ---
+    if (action === "reset_password") {
+      const { email } = body;
+      if (!email) throw new Error("Email is required");
+      const { error } = await adminClient.auth.resetPasswordForEmail(email, {
+        redirectTo: getRedirectUrl(req),
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Invite / add user to business ---
+    const { email, full_name, role, business_id } = body;
     if (!email || !full_name || !role) throw new Error("Missing fields");
 
-    // Resolve target business: super admins can target any, regular admins use their own
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    // Resolve target business
     let targetBusinessId: string | null = business_id ?? null;
     if (!targetBusinessId) {
       const { data: myBiz } = await adminClient
@@ -38,6 +60,11 @@ Deno.serve(async (req) => {
     }
     if (!targetBusinessId) throw new Error("No business context available");
 
+    // Look up business name for the informational email
+    const { data: biz } = await adminClient
+      .from("businesses").select("name").eq("id", targetBusinessId).maybeSingle();
+    const businessName = biz?.name || "your business";
+
     // Check if user already exists
     let userId: string | null = null;
     let isNewUser = false;
@@ -46,7 +73,6 @@ Deno.serve(async (req) => {
 
     if (existingProfile) {
       userId = existingProfile.id;
-      // Already a member of this business?
       const { data: existingMember } = await adminClient
         .from("business_members")
         .select("id, role")
@@ -58,13 +84,17 @@ Deno.serve(async (req) => {
         throw new Error("This user is already a member of this business with that role");
       }
     } else {
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+      // Send invite email so the user can set their password.
+      // inviteUserByEmail both creates the auth user AND emails them an invitation link.
+      const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
-        email_confirm: true,
-        user_metadata: { full_name },
-      });
-      if (createError) throw createError;
-      userId = newUser.user.id;
+        {
+          data: { full_name },
+          redirectTo: getRedirectUrl(req),
+        },
+      );
+      if (inviteError) throw inviteError;
+      userId = invited.user.id;
       isNewUser = true;
     }
 
@@ -72,26 +102,22 @@ Deno.serve(async (req) => {
     await adminClient
       .from("user_roles")
       .insert({ user_id: userId, role })
-      .then((r) => r); // ignore unique violation
+      .then((r) => r);
 
     // Link user to business with scoped role
     await adminClient
       .from("business_members")
       .insert({ user_id: userId, business_id: targetBusinessId, role, is_default: isNewUser });
 
-    // Send password reset email so the new user can set their password
-    if (isNewUser) {
-      const { error: resetError } = await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email,
-      });
-      if (resetError) throw resetError;
-    }
-
-    return new Response(JSON.stringify({ id: userId, existing: !isNewUser }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
+    return new Response(
+      JSON.stringify({
+        id: userId,
+        existing: !isNewUser,
+        invited: isNewUser,
+        business_name: businessName,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
