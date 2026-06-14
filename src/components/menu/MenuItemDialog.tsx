@@ -60,6 +60,9 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const [newLabel, setNewLabel] = useState("");
   const [recipeRows, setRecipeRows] = useState<RecipeRow[]>([]);
   const [recipeDirty, setRecipeDirty] = useState(false);
+  const { saveAll: saveAddons } = useMenuItemAddons();
+  const [addons, setAddons] = useState<AddonInput[]>([]);
+  const [addonsDirty, setAddonsDirty] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
