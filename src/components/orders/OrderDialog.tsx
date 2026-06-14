@@ -1390,6 +1390,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           onConfirm={(combo, choices) => addComboToCart(combo, choices)}
         />
       )}
+      {addonsItem && (
+        <MenuItemAddonsDialog
+          open={addonsOpen}
+          onOpenChange={(v) => { setAddonsOpen(v); if (!v) setAddonsItem(null); }}
+          item={addonsItem}
+          onConfirm={(selected, notes) => addCustomizedToCart(addonsItem, selected, notes)}
+        />
+      )}
       <PrintTicketDialog
         open={prePaymentOpen}
         onOpenChange={(v) => { setPrePaymentOpen(v); if (!v) setPrePaymentTicket(null); }}
