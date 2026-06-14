@@ -22,6 +22,8 @@ import { Trash2, Plus, Calculator } from "lucide-react";
 import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
+import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
+import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1),
