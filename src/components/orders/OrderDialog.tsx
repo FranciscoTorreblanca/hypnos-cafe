@@ -39,6 +39,7 @@ import {
   Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer,
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
+import { MenuItemAddonsDialog } from "@/components/orders/MenuItemAddonsDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
