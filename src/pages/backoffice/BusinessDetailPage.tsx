@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Trash2, UserPlus } from "lucide-react";
+import { ArrowLeft, KeyRound, Trash2, UserPlus } from "lucide-react";
 
 interface Business {
   id: string; name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -142,6 +142,20 @@ const BusinessDetailPage = () => {
       return;
     }
     await fetchAll();
+  };
+
+  const handleSendReset = async (email: string) => {
+    if (!confirm(`Send password reset email to ${email}?`)) return;
+    try {
+      const res = await supabase.functions.invoke("create-user", {
+        body: { action: "reset_password", email },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({ title: "Success", description: "Password reset email sent" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
   };
 
   if (!business) {
@@ -313,9 +327,14 @@ const BusinessDetailPage = () => {
                       <TableCell>{m.profiles?.email}</TableCell>
                       <TableCell><Badge variant="secondary">{m.role}</Badge></TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleSendReset(m.profiles?.email)} title="Send password reset email">
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
