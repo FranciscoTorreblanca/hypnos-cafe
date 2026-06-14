@@ -176,16 +176,63 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const addToCart = useCallback((menuItem: MenuItem) => {
     dismissMobileKeyboard();
+    // If item has add-ons configured → open customization dialog first
+    if ((menuItem.menu_item_addons?.length ?? 0) > 0) {
+      setAddonsItem(menuItem);
+      setAddonsOpen(true);
+      return;
+    }
     setCart((prev) => {
-      const existing = prev.find((c) => c.menuItem.id === menuItem.id);
+      const existing = prev.find((c) => c.menuItem.id === menuItem.id && !c.originalMenuItemId);
       if (existing) {
         return prev.map((c) =>
-          c.menuItem.id === menuItem.id ? { ...c, quantity: c.quantity + 1 } : c
+          c.menuItem.id === menuItem.id && !c.originalMenuItemId
+            ? { ...c, quantity: c.quantity + 1 }
+            : c,
         );
       }
       return [...prev, { menuItem, quantity: 1, notes: "", discount: 0, discountAmount: 0 }];
     });
   }, [dismissMobileKeyboard]);
+
+  const addCustomizedToCart = useCallback((baseItem: MenuItem, selectedAddons: MenuItemAddon[], extraNotes: string) => {
+    const extrasSum = selectedAddons.reduce((s, a) => s + Number(a.extra_price || 0), 0);
+    const basePrice = getEffectivePrice(baseItem);
+    const unitPrice = basePrice + extrasSum;
+    const addonsLabel = selectedAddons.map((a) => `+ ${a.name}`).join(", ");
+    const addonsLabelEn = selectedAddons.map((a) => `+ ${a.name_en || a.name}`).join(", ");
+    const syntheticId = crypto.randomUUID();
+    const noteParts = [addonsLabel, extraNotes].filter((p) => p && p.length > 0);
+    const synthetic: MenuItem = {
+      ...baseItem,
+      id: syntheticId,
+      // override unit price so cart math (which uses getEffectivePrice) reflects extras
+      price: unitPrice,
+      promo_price: null,
+      name: addonsLabel ? `${baseItem.name} (${addonsLabel})` : baseItem.name,
+      name_en: addonsLabelEn
+        ? `${baseItem.name_en || baseItem.name} (${addonsLabelEn})`
+        : baseItem.name_en || baseItem.name,
+    };
+    setCart((prev) => [
+      ...prev,
+      {
+        menuItem: synthetic,
+        quantity: 1,
+        notes: noteParts.join(" — "),
+        discount: 0,
+        discountAmount: 0,
+        originalMenuItemId: baseItem.id,
+        addons: selectedAddons.map((a) => ({
+          id: a.id,
+          name: a.name,
+          name_en: a.name_en,
+          extra_price: Number(a.extra_price || 0),
+        })),
+        baseUnitPrice: basePrice,
+      },
+    ]);
+  }, []);
 
   const handleComboClick = useCallback((combo: ComboWithItems) => {
     dismissMobileKeyboard();
