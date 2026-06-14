@@ -144,6 +144,20 @@ const BusinessDetailPage = () => {
     await fetchAll();
   };
 
+  const handleSendReset = async (email: string) => {
+    if (!confirm(`Send password reset email to ${email}?`)) return;
+    try {
+      const res = await supabase.functions.invoke("create-user", {
+        body: { action: "reset_password", email },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({ title: "Success", description: "Password reset email sent" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   if (!business) {
     return <p className="text-muted-foreground text-sm">Loading…</p>;
   }
