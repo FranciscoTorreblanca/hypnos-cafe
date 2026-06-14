@@ -2,6 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+export interface MenuItemAddon {
+  id: string;
+  menu_item_id: string;
+  name: string;
+  name_en: string;
+  extra_price: number;
+  display_order: number;
+}
+
 export interface MenuItem {
   id: string;
   category_id: string | null;
@@ -15,6 +24,7 @@ export interface MenuItem {
   image_url: string | null;
   is_available: boolean;
   inventory_count: number | null;
+  menu_item_addons?: MenuItemAddon[];
 }
 
 export const getEffectivePrice = (item: Pick<MenuItem, "price" | "promo_price">): number =>
@@ -28,21 +38,30 @@ export const useMenuItems = () => {
     queryKey: ["menu_items", currentBusinessId],
     staleTime: 30 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("menu_items").select("*").order("name");
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("*, menu_item_addons(*)")
+        .order("name");
       if (error) throw error;
-      return data as MenuItem[];
+      return (data ?? []).map((mi: any) => ({
+        ...mi,
+        menu_item_addons: (mi.menu_item_addons ?? []).sort(
+          (a: MenuItemAddon, b: MenuItemAddon) => a.display_order - b.display_order,
+        ),
+      })) as MenuItem[];
     },
   });
 
   const upsert = useMutation({
     mutationFn: async (item: Partial<MenuItem> & { name: string }) => {
+      const { menu_item_addons, ...rest } = item as any;
       if (item.id) {
-        const { id, ...rest } = item;
-        const { error } = await supabase.from("menu_items").update(rest).eq("id", id);
+        const { id, ...payload } = rest;
+        const { error } = await supabase.from("menu_items").update(payload).eq("id", id);
         if (error) throw error;
       } else {
         if (!currentBusinessId) throw new Error("No business selected");
-        const { error } = await supabase.from("menu_items").insert({ ...item, business_id: currentBusinessId } as any);
+        const { error } = await supabase.from("menu_items").insert({ ...rest, business_id: currentBusinessId } as any);
         if (error) throw error;
       }
     },

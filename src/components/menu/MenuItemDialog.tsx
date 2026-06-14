@@ -22,6 +22,8 @@ import { Trash2, Plus, Calculator } from "lucide-react";
 import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
+import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
+import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -58,6 +60,9 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const [newLabel, setNewLabel] = useState("");
   const [recipeRows, setRecipeRows] = useState<RecipeRow[]>([]);
   const [recipeDirty, setRecipeDirty] = useState(false);
+  const { saveAll: saveAddons } = useMenuItemAddons();
+  const [addons, setAddons] = useState<AddonInput[]>([]);
+  const [addonsDirty, setAddonsDirty] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -101,8 +106,20 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         })),
       );
       setRecipeDirty(false);
+      setAddons(
+        (item.menu_item_addons ?? []).map((a, i) => ({
+          id: a.id,
+          name: a.name,
+          name_en: a.name_en || "",
+          extra_price: Number(a.extra_price) || 0,
+          display_order: a.display_order ?? i,
+        })),
+      );
+      setAddonsDirty(false);
     } else {
       setRecipeRows([]);
+      setAddons([]);
+      setAddonsDirty(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id, open, existingRecipe.length]);
@@ -135,6 +152,14 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         });
       }
 
+      // Persist add-ons if editing an existing item and they changed
+      if (item?.id && addonsDirty) {
+        const valid = addons
+          .filter((a) => a.name.trim().length > 0)
+          .map((a, i) => ({ ...a, name: a.name.trim(), name_en: (a.name_en || "").trim(), display_order: i }));
+        await saveAddons.mutateAsync({ menuItemId: item.id, addons: valid });
+      }
+
       onSave({
         ...values,
         cost: effectiveCost,
@@ -152,6 +177,30 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   };
 
   const showCostTab = isAdmin && !!item?.id;
+  const showAddonsTab = isAdmin && !!item?.id;
+
+  const updateAddon = (idx: number, patch: Partial<AddonInput>) => {
+    setAddons((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+    setAddonsDirty(true);
+  };
+  const addAddonRow = () => {
+    setAddons((prev) => [...prev, { name: "", name_en: "", extra_price: 0, display_order: prev.length }]);
+    setAddonsDirty(true);
+  };
+  const removeAddonRow = (idx: number) => {
+    setAddons((prev) => prev.filter((_, i) => i !== idx));
+    setAddonsDirty(true);
+  };
+  const moveAddon = (idx: number, dir: -1 | 1) => {
+    setAddons((prev) => {
+      const next = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next.map((a, i) => ({ ...a, display_order: i }));
+    });
+    setAddonsDirty(true);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,6 +221,15 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                       <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] font-mono">
                         ${computedRecipeCost.toFixed(2)}
                       </Badge>
+                    )}
+                  </TabsTrigger>
+                )}
+                {showAddonsTab && (
+                  <TabsTrigger value="addons">
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />
+                    {language === "es" ? "Personalizable" : "Customizable"}
+                    {addons.length > 0 && (
+                      <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{addons.length}</Badge>
                     )}
                   </TabsTrigger>
                 )}
@@ -345,6 +403,70 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     }}
                     applyLabel={language === "es" ? "Establecer precio (se aplica al guardar)" : "Set price (applied on save)"}
                   />
+                </TabsContent>
+              )}
+
+              {showAddonsTab && (
+                <TabsContent value="addons" className="mt-4 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    {language === "es"
+                      ? "Define los extras opcionales. Si hay al menos uno, al añadir este producto a una orden se abrirá un cuadro para seleccionar personalizaciones."
+                      : "Define optional add-ons. If at least one exists, adding this item to an order opens a customization dialog."}
+                  </p>
+                  <div className="space-y-2">
+                    {addons.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">
+                        {language === "es" ? "Sin extras configurados." : "No add-ons configured."}
+                      </p>
+                    )}
+                    {addons.map((a, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_100px_auto] gap-2 items-end border rounded-md p-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{language === "es" ? "Nombre (ES)" : "Name (ES)"}</label>
+                          <Input
+                            value={a.name}
+                            onChange={(e) => updateAddon(idx, { name: e.target.value })}
+                            placeholder={language === "es" ? "Ej: Tocino" : "e.g. Bacon"}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{language === "es" ? "Nombre (EN)" : "Name (EN)"}</label>
+                          <Input
+                            value={a.name_en}
+                            onChange={(e) => updateAddon(idx, { name_en: e.target.value })}
+                            placeholder="Bacon"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{language === "es" ? "Precio extra" : "Extra price"}</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={a.extra_price}
+                            onChange={(e) => updateAddon(idx, { extra_price: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveAddon(idx, -1)} disabled={idx === 0}>
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveAddon(idx, 1)} disabled={idx === addons.length - 1}>
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeAddonRow(idx)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addAddonRow} className="gap-1">
+                    <Plus className="h-3.5 w-3.5" /> {language === "es" ? "Agregar extra" : "Add extra"}
+                  </Button>
                 </TabsContent>
               )}
             </Tabs>

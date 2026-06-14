@@ -2,7 +2,7 @@ import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { groupOrderItems } from "@/utils/groupOrderItems";
-import { useMenuItems, MenuItem, getEffectivePrice } from "@/hooks/useMenuItems";
+import { useMenuItems, MenuItem, MenuItemAddon, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useCombos, ComboWithItems } from "@/hooks/useCombos";
 import { Order, useOrders } from "@/hooks/useOrders";
@@ -39,6 +39,7 @@ import {
   Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer,
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
+import { MenuItemAddonsDialog } from "@/components/orders/MenuItemAddonsDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -62,6 +63,12 @@ interface CartItem {
   discountAmount: number;
   comboId?: string;
   comboGroupId?: string;
+  // Customization: when present, this cart line represents a customized variant.
+  // `menuItem.id` is replaced with a synthetic UUID so multiple variants of the
+  // same item don't collapse together; submit uses `originalMenuItemId`.
+  originalMenuItemId?: string;
+  addons?: { id: string; name: string; name_en: string; extra_price: number }[];
+  baseUnitPrice?: number; // base price (without extras), for display
 }
 
 export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order }: Props) => {
@@ -99,6 +106,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [prePaymentOpen, setPrePaymentOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
+  const [addonsItem, setAddonsItem] = useState<MenuItem | null>(null);
+  const [addonsOpen, setAddonsOpen] = useState(false);
 
   const dismissMobileKeyboard = useCallback(() => {
     if (!isMobile) return;
@@ -167,16 +176,63 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const addToCart = useCallback((menuItem: MenuItem) => {
     dismissMobileKeyboard();
+    // If item has add-ons configured → open customization dialog first
+    if ((menuItem.menu_item_addons?.length ?? 0) > 0) {
+      setAddonsItem(menuItem);
+      setAddonsOpen(true);
+      return;
+    }
     setCart((prev) => {
-      const existing = prev.find((c) => c.menuItem.id === menuItem.id);
+      const existing = prev.find((c) => c.menuItem.id === menuItem.id && !c.originalMenuItemId);
       if (existing) {
         return prev.map((c) =>
-          c.menuItem.id === menuItem.id ? { ...c, quantity: c.quantity + 1 } : c
+          c.menuItem.id === menuItem.id && !c.originalMenuItemId
+            ? { ...c, quantity: c.quantity + 1 }
+            : c,
         );
       }
       return [...prev, { menuItem, quantity: 1, notes: "", discount: 0, discountAmount: 0 }];
     });
   }, [dismissMobileKeyboard]);
+
+  const addCustomizedToCart = useCallback((baseItem: MenuItem, selectedAddons: MenuItemAddon[], extraNotes: string) => {
+    const extrasSum = selectedAddons.reduce((s, a) => s + Number(a.extra_price || 0), 0);
+    const basePrice = getEffectivePrice(baseItem);
+    const unitPrice = basePrice + extrasSum;
+    const addonsLabel = selectedAddons.map((a) => `+ ${a.name}`).join(", ");
+    const addonsLabelEn = selectedAddons.map((a) => `+ ${a.name_en || a.name}`).join(", ");
+    const syntheticId = crypto.randomUUID();
+    const noteParts = [addonsLabel, extraNotes].filter((p) => p && p.length > 0);
+    const synthetic: MenuItem = {
+      ...baseItem,
+      id: syntheticId,
+      // override unit price so cart math (which uses getEffectivePrice) reflects extras
+      price: unitPrice,
+      promo_price: null,
+      name: addonsLabel ? `${baseItem.name} (${addonsLabel})` : baseItem.name,
+      name_en: addonsLabelEn
+        ? `${baseItem.name_en || baseItem.name} (${addonsLabelEn})`
+        : baseItem.name_en || baseItem.name,
+    };
+    setCart((prev) => [
+      ...prev,
+      {
+        menuItem: synthetic,
+        quantity: 1,
+        notes: noteParts.join(" — "),
+        discount: 0,
+        discountAmount: 0,
+        originalMenuItemId: baseItem.id,
+        addons: selectedAddons.map((a) => ({
+          id: a.id,
+          name: a.name,
+          name_en: a.name_en,
+          extra_price: Number(a.extra_price || 0),
+        })),
+        baseUnitPrice: basePrice,
+      },
+    ]);
+  }, []);
 
   const handleComboClick = useCallback((combo: ComboWithItems) => {
     dismissMobileKeyboard();
@@ -264,7 +320,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     await addItemsBulk.mutateAsync({
       order_id: orderId,
       items: cart.map((c) => ({
-        menu_item_id: c.menuItem.id,
+        menu_item_id: c.originalMenuItemId ?? c.menuItem.id,
         quantity: c.quantity,
         unit_price: getEffectivePrice(c.menuItem),
         notes: c.notes || undefined,
@@ -466,7 +522,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                 className="w-full flex items-center justify-between rounded-md border p-2 hover:bg-accent active:bg-accent/80 transition-colors text-left"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{getName(item)}</p>
+                  <p className="text-sm font-medium truncate flex items-center gap-1">
+                    {(item.menu_item_addons?.length ?? 0) > 0 && (
+                      <Package className="h-3 w-3 text-primary shrink-0" />
+                    )}
+                    {getName(item)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {item.inventory_count != null && (
@@ -1332,6 +1393,14 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           combo={selectedCombo}
           allItems={items}
           onConfirm={(combo, choices) => addComboToCart(combo, choices)}
+        />
+      )}
+      {addonsItem && (
+        <MenuItemAddonsDialog
+          open={addonsOpen}
+          onOpenChange={(v) => { setAddonsOpen(v); if (!v) setAddonsItem(null); }}
+          item={addonsItem}
+          onConfirm={(selected, notes) => addCustomizedToCart(addonsItem, selected, notes)}
         />
       )}
       <PrintTicketDialog
