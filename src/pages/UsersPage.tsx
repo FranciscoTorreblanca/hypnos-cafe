@@ -205,9 +205,14 @@ const UsersPage = () => {
             {showEditButton && (
               <TableCell>
                 {u.id !== user?.id && (
-                  <Button variant="ghost" size="icon" onClick={() => openEditRoles(u)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1 justify-end">
+                    <Button variant="ghost" size="icon" onClick={() => handleSendReset(u)} title="Send password reset email">
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openEditRoles(u)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </TableCell>
             )}
