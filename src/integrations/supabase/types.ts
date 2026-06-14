@@ -1066,6 +1066,57 @@ export type Database = {
           },
         ]
       }
+      menu_item_addons: {
+        Row: {
+          business_id: string
+          created_at: string
+          display_order: number
+          extra_price: number
+          id: string
+          menu_item_id: string
+          name: string
+          name_en: string
+          updated_at: string
+        }
+        Insert: {
+          business_id?: string
+          created_at?: string
+          display_order?: number
+          extra_price?: number
+          id?: string
+          menu_item_id: string
+          name: string
+          name_en?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          display_order?: number
+          extra_price?: number
+          id?: string
+          menu_item_id?: string
+          name?: string
+          name_en?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_addons_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_addons_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_item_ingredients: {
         Row: {
           business_id: string
