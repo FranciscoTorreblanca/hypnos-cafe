@@ -522,7 +522,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                 className="w-full flex items-center justify-between rounded-md border p-2 hover:bg-accent active:bg-accent/80 transition-colors text-left"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{getName(item)}</p>
+                  <p className="text-sm font-medium truncate flex items-center gap-1">
+                    {(item.menu_item_addons?.length ?? 0) > 0 && (
+                      <Package className="h-3 w-3 text-primary shrink-0" />
+                    )}
+                    {getName(item)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {item.inventory_count != null && (
