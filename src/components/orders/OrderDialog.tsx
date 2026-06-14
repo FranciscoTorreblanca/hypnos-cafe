@@ -106,6 +106,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [prePaymentOpen, setPrePaymentOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
+  const [addonsItem, setAddonsItem] = useState<MenuItem | null>(null);
+  const [addonsOpen, setAddonsOpen] = useState(false);
 
   const dismissMobileKeyboard = useCallback(() => {
     if (!isMobile) return;
