@@ -320,7 +320,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     await addItemsBulk.mutateAsync({
       order_id: orderId,
       items: cart.map((c) => ({
-        menu_item_id: c.menuItem.id,
+        menu_item_id: c.originalMenuItemId ?? c.menuItem.id,
         quantity: c.quantity,
         unit_price: getEffectivePrice(c.menuItem),
         notes: c.notes || undefined,
