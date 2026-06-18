@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, RefreshCw, Building2 } from "lucide-react";
+import { Bell, RefreshCw, Building2, Fingerprint } from "lucide-react";
 import { APP_VERSION } from "@/version";
+import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin";
 
 interface BusinessInfo {
   name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -181,6 +182,23 @@ const SettingsPage = () => {
             <Button onClick={handleSavePush} disabled={loading} className="w-full">
               {loading ? t("common.loading") : t("settings.save")}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasFeature("time_attendance" as any) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Fingerprint className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-base">Time & attendance</CardTitle>
+                <CardDescription className="text-sm">Devices, fingerprints and shift schedules.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <TimeAttendanceAdmin />
           </CardContent>
         </Card>
       )}

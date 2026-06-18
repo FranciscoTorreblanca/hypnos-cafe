@@ -4,23 +4,20 @@ import { BottomNav } from "@/components/BottomNav";
 import { Outlet } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { AttendanceGate } from "@/components/AttendanceGate";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
   useUsageTracking();
 
-  if (isMobile) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <main className="flex-1 p-4 pb-20">
-          <Outlet />
-        </main>
-        <BottomNav />
-      </div>
-    );
-  }
-
-  return (
+  const inner = isMobile ? (
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 p-4 pb-20">
+        <Outlet />
+      </main>
+      <BottomNav />
+    </div>
+  ) : (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
@@ -33,4 +30,6 @@ export const AppLayout = () => {
       </SidebarInset>
     </SidebarProvider>
   );
+
+  return <AttendanceGate>{inner}</AttendanceGate>;
 };

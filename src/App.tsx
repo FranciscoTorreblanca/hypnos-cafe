@@ -35,6 +35,8 @@ import TicketsPage from "@/pages/TicketsPage";
 import WifiPage from "@/pages/WifiPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import BudgetPage from "@/pages/BudgetPage";
+import CheckInPage from "@/pages/CheckInPage";
+import TimeClockPage from "@/pages/TimeClockPage";
 import BackofficeLayout from "@/pages/backoffice/BackofficeLayout";
 import BusinessEntry from "@/pages/BusinessEntry";
 import BusinessesPage from "@/pages/backoffice/BusinessesPage";
@@ -66,6 +68,8 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/b/:slug" element={<BusinessEntry />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/check-in" element={<ProtectedRoute><CheckInPage /></ProtectedRoute>} />
+              <Route path="/time-clock" element={<ProtectedRoute><TimeClockPage /></ProtectedRoute>} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route
                 element={
