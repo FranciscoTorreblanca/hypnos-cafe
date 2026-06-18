@@ -32,6 +32,7 @@ interface Business {
 const FEATURE_KEYS = [
   "tickets","calendar","loyalty","kitchen","cost_calculator","stock",
   "budget","analytics","push_notifications","mercado_pago","menu_generator","wifi",
+  "time_attendance",
 ] as const;
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -47,6 +48,7 @@ const FEATURE_LABELS: Record<string, string> = {
   mercado_pago: "Mercado Pago",
   menu_generator: "Menu generator",
   wifi: "Wi-Fi info",
+  time_attendance: "Time & attendance (fingerprint check-in)",
 };
 
 const BUSINESS_ROLES = ["business_admin", "admin", "waiter", "billing", "kitchen"] as const;
