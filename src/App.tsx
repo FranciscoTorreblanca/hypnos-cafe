@@ -68,6 +68,8 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/b/:slug" element={<BusinessEntry />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/check-in" element={<ProtectedRoute><CheckInPage /></ProtectedRoute>} />
+              <Route path="/time-clock" element={<ProtectedRoute><TimeClockPage /></ProtectedRoute>} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route
                 element={
