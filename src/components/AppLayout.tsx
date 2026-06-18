@@ -33,29 +33,3 @@ export const AppLayout = () => {
 
   return <AttendanceGate>{inner}</AttendanceGate>;
 };
-
-  if (isMobile) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <main className="flex-1 p-4 pb-20">
-          <Outlet />
-        </main>
-        <BottomNav />
-      </div>
-    );
-  }
-
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-6">
-          <SidebarTrigger />
-        </header>
-        <main className="flex-1 p-6">
-          <Outlet />
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
-  );
-};
