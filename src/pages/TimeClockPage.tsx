@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useBridgeStatus } from "@/hooks/useAttendance";
+import { useBridgeStatus, setStoredDeviceToken } from "@/hooks/useAttendance";
 import { captureFingerprint } from "@/lib/fingerprintBridge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
