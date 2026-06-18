@@ -20,10 +20,16 @@ const CheckInPage = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const now = useNow();
   const { status, refresh } = useBridgeStatus();
   const { loading, hasOpen, session, refresh: refreshSession } = useOpenSession(user?.id ?? null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const t = searchParams.get("device");
+    if (t) { setStoredDeviceToken(t); navigate("/check-in", { replace: true }); }
+  }, [searchParams, navigate]);
 
   const bridgeReady = status && status !== "loading" && status.reader_connected;
 
