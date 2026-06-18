@@ -186,6 +186,23 @@ const SettingsPage = () => {
         </Card>
       )}
 
+      {hasFeature("time_attendance" as any) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Fingerprint className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-base">Time & attendance</CardTitle>
+                <CardDescription className="text-sm">Devices, fingerprints and shift schedules.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <TimeAttendanceAdmin />
+          </CardContent>
+        </Card>
+      )}
+
       {/* App Updates */}
       <Card>
         <CardHeader>
