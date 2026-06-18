@@ -27,6 +27,8 @@ import {
   Package,
   Activity,
   Wallet,
+  Fingerprint,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
