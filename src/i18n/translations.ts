@@ -33,6 +33,8 @@ export const translations = {
   "nav.billing": { es: "Caja", en: "Billing" },
   "nav.users": { es: "Usuarios", en: "Users" },
   "nav.settings": { es: "Configuración", en: "Settings" },
+  "nav.checkIn": { es: "Marcar entrada", en: "Check in" },
+  "nav.timeClock": { es: "Reloj checador", en: "Time clock" },
   "nav.costCalculator": { es: "Calculadora de costos", en: "Cost Calculator" },
   "nav.menuGenerator": { es: "Generador de menú", en: "Menu Generator" },
   "nav.orderHistory": { es: "Historial de órdenes", en: "Order History" },
