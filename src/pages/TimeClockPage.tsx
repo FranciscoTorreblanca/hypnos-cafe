@@ -22,6 +22,13 @@ const TimeClockPage = () => {
   const { status, refresh } = useBridgeStatus();
   const { toast } = useToast();
   const now = useNow();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const tok = searchParams.get("device");
+    if (tok) { setStoredDeviceToken(tok); navigate("/time-clock", { replace: true }); }
+  }, [searchParams, navigate]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
