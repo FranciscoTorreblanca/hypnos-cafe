@@ -78,7 +78,10 @@ const BusinessDetailPage = () => {
     setBusiness(b as Business | null);
     if (f) {
       const map: Record<string, boolean> = {};
-      FEATURE_KEYS.forEach((k) => { map[k] = (f as any)[k] !== false; });
+      FEATURE_KEYS.forEach((k) => {
+        const v = (f as any)[k];
+        map[k] = k === "time_attendance" ? v === true : v !== false;
+      });
       setFeatures(map);
     }
     const memberList = m ?? [];
