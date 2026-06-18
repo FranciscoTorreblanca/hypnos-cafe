@@ -20,6 +20,8 @@ import {
   Activity,
   Wallet,
   Building2,
+  Fingerprint,
+  Clock,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
