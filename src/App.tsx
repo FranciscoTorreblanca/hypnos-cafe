@@ -35,6 +35,8 @@ import TicketsPage from "@/pages/TicketsPage";
 import WifiPage from "@/pages/WifiPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import BudgetPage from "@/pages/BudgetPage";
+import CheckInPage from "@/pages/CheckInPage";
+import TimeClockPage from "@/pages/TimeClockPage";
 import BackofficeLayout from "@/pages/backoffice/BackofficeLayout";
 import BusinessEntry from "@/pages/BusinessEntry";
 import BusinessesPage from "@/pages/backoffice/BusinessesPage";
