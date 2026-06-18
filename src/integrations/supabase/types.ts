@@ -14,6 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_devices: {
+        Row: {
+          allow_pin_fallback: boolean
+          business_id: string
+          created_at: string
+          device_token_hash: string
+          fingerprint_bridge_version: string | null
+          id: string
+          is_time_clock: boolean
+          label: string
+          last_seen_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_pin_fallback?: boolean
+          business_id: string
+          created_at?: string
+          device_token_hash: string
+          fingerprint_bridge_version?: string | null
+          id?: string
+          is_time_clock?: boolean
+          label: string
+          last_seen_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_pin_fallback?: boolean
+          business_id?: string
+          created_at?: string
+          device_token_hash?: string
+          fingerprint_bridge_version?: string | null
+          id?: string
+          is_time_clock?: boolean
+          label?: string
+          last_seen_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_devices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          business_id: string
+          check_in_at: string
+          check_in_method: string
+          check_out_at: string | null
+          check_out_method: string | null
+          created_at: string
+          device_id: string | null
+          fingerprint_hash: string | null
+          id: string
+          late: boolean
+          notes: string | null
+          scheduled_check_in: string | null
+          scheduled_check_out: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          check_in_at?: string
+          check_in_method?: string
+          check_out_at?: string | null
+          check_out_method?: string | null
+          created_at?: string
+          device_id?: string | null
+          fingerprint_hash?: string | null
+          id?: string
+          late?: boolean
+          notes?: string | null
+          scheduled_check_in?: string | null
+          scheduled_check_out?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          check_in_at?: string
+          check_in_method?: string
+          check_out_at?: string | null
+          check_out_method?: string | null
+          created_at?: string
+          device_id?: string | null
+          fingerprint_hash?: string | null
+          id?: string
+          late?: boolean
+          notes?: string | null
+          scheduled_check_in?: string | null
+          scheduled_check_out?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       balance_adjustments: {
         Row: {
           amount: number
@@ -116,6 +232,7 @@ export type Database = {
           push_notifications: boolean
           stock: boolean
           tickets: boolean
+          time_attendance: boolean
           updated_at: string
           wifi: boolean
         }
@@ -132,6 +249,7 @@ export type Database = {
           push_notifications?: boolean
           stock?: boolean
           tickets?: boolean
+          time_attendance?: boolean
           updated_at?: string
           wifi?: boolean
         }
@@ -148,6 +266,7 @@ export type Database = {
           push_notifications?: boolean
           stock?: boolean
           tickets?: boolean
+          time_attendance?: boolean
           updated_at?: string
           wifi?: boolean
         }
@@ -2007,6 +2126,41 @@ export type Database = {
           },
         ]
       }
+      user_fingerprints: {
+        Row: {
+          business_id: string
+          created_at: string
+          device_label: string | null
+          id: string
+          template_hash: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          device_label?: string | null
+          id?: string
+          template_hash: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          device_label?: string | null
+          id?: string
+          template_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_fingerprints_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2036,16 +2190,156 @@ export type Database = {
           },
         ]
       }
+      user_shift_schedules: {
+        Row: {
+          active: boolean
+          auto_logout_offset_minutes: number
+          business_id: string
+          check_in_time: string
+          check_out_time: string
+          created_at: string
+          early_window_minutes: number
+          id: string
+          late_window_minutes: number
+          updated_at: string
+          user_id: string
+          weekday: number | null
+        }
+        Insert: {
+          active?: boolean
+          auto_logout_offset_minutes?: number
+          business_id: string
+          check_in_time?: string
+          check_out_time?: string
+          created_at?: string
+          early_window_minutes?: number
+          id?: string
+          late_window_minutes?: number
+          updated_at?: string
+          user_id: string
+          weekday?: number | null
+        }
+        Update: {
+          active?: boolean
+          auto_logout_offset_minutes?: number
+          business_id?: string
+          check_in_time?: string
+          check_out_time?: string
+          created_at?: string
+          early_window_minutes?: number
+          id?: string
+          late_window_minutes?: number
+          updated_at?: string
+          user_id?: string
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_shift_schedules_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      attempt_check_in: {
+        Args: {
+          _device_id: string
+          _fingerprint_hash: string
+          _method?: string
+          _user_id: string
+        }
+        Returns: {
+          business_id: string
+          check_in_at: string
+          check_in_method: string
+          check_out_at: string | null
+          check_out_method: string | null
+          created_at: string
+          device_id: string | null
+          fingerprint_hash: string | null
+          id: string
+          late: boolean
+          notes: string | null
+          scheduled_check_in: string | null
+          scheduled_check_out: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "attendance_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      attempt_check_out: {
+        Args: {
+          _device_id: string
+          _fingerprint_hash: string
+          _method?: string
+          _user_id: string
+        }
+        Returns: {
+          business_id: string
+          check_in_at: string
+          check_in_method: string
+          check_out_at: string | null
+          check_out_method: string | null
+          created_at: string
+          device_id: string | null
+          fingerprint_hash: string | null
+          id: string
+          late: boolean
+          notes: string | null
+          scheduled_check_in: string | null
+          scheduled_check_out: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "attendance_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_expired_sessions: { Args: never; Returns: number }
       current_business_id: { Args: never; Returns: string }
+      get_user_schedule_for: {
+        Args: { _at: string; _user_id: string }
+        Returns: {
+          active: boolean
+          auto_logout_offset_minutes: number
+          business_id: string
+          check_in_time: string
+          check_out_time: string
+          created_at: string
+          early_window_minutes: number
+          id: string
+          late_window_minutes: number
+          updated_at: string
+          user_id: string
+          weekday: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_shift_schedules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_business_role: {
         Args: { _business_id: string; _role: string; _user_id: string }
         Returns: boolean
       }
+      has_open_attendance_session: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

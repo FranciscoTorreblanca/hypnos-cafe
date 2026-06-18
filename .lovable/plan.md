@@ -1,91 +1,105 @@
-# Multi-tenant + super-admin backoffice
 
-Turn Hypnos into a multi-business platform. Every business (including branches) is fully isolated through a `business_id` on all operational tables and Row-Level Security. A super-admin backoffice — gated routes inside the same app — manages businesses, feature flags, central settings, and user provisioning.
+# Time & Attendance — Revised Plan
 
-## 1. Data model
+Builds on the previously approved scope (USB fingerprint, block-everything gate, per-till X/Z, PO from menu_items low stock). This revision adds shift windows, fingerprint-only enforcement, and dedicated time-clock devices. Everything stays behind the `time_attendance` feature flag.
 
-Add two new tables:
+## 1. Per-user shift schedule
 
-- **`businesses`** — id, name, slug, legal name, tax id (RFC), address, phone, email, ticket header/footer text, logo url, currency (default `MXN`), default language, vat rate, mp_access_token, status (`active`/`suspended`), created_at.
-- **`business_features`** — business_id + boolean flags: `tickets`, `calendar`, `loyalty`, `kitchen`, `cost_calculator`, `stock`, `budget`, `analytics`, `push_notifications`, `mercado_pago`, `menu_generator`, `wifi`. All default true for the seeded business so nothing breaks.
-- **`business_members`** — user_id, business_id, role (`business_admin` | `waiter` | `billing` | `kitchen`), `is_default` flag. Replaces today's flat `user_roles` for business-scoped roles. A user can have multiple rows → multi-branch support (for now operational use stays single-business; cross-business is metrics-only later).
+New table `user_shift_schedules` (per business + user, optionally per weekday):
+- `check_in_time` (local time, e.g. 08:00)
+- `check_out_time` (local time, e.g. 16:00)
+- `early_window_minutes` (default 15) — how early a user may check in
+- `late_window_minutes` (default 30) — grace after scheduled check-in
+- `auto_logout_offset_minutes` (default 60) — past `check_out_time`, system force-closes the session
+- `weekday_mask` (bitmask Mon–Sun) or one row per weekday — pick simplest: one row per (user, weekday) plus a default fallback row
+- `active` flag
 
-Add `business_id uuid NOT NULL REFERENCES businesses(id)` to every operational table:
+Rules enforced server-side via SECURITY DEFINER RPC `attempt_check_in(user_id, device_id, fingerprint_token)`:
+- Reject if `now()` is before `check_in_time − early_window`
+- Reject if there is already an open session today
+- Reject if a previous session was force-closed and the next window has not opened
+- Allow late check-in (logged with `late = true`), no upper bound besides next window
+- On success → insert `attendance_sessions` row
 
-`menu_items, menu_categories, menus, menu_entries, combos, combo_items, combo_choice_groups, combo_choice_options, ingredients, menu_item_ingredients, menu_item_skus, orders, order_items, payments, tickets, ticket_prints, till_transactions, balance_adjustments, budget_categories, expense_entries, recurring_expenses, reservations, events, event_cost_categories, event_cost_items, loyalty_members, loyalty_coupons, loyalty_coupon_items, loyalty_member_coupons, loyalty_visits, push_subscriptions, usage_events, restaurant_settings`.
+Auto-logout: scheduled job (pg_cron or a lightweight trigger checked on each app heartbeat) closes any session past `check_out_time + auto_logout_offset_minutes` with `check_out_method = 'auto'`.
 
-Extend `app_role` enum with `super_admin` and `business_admin`. Keep `loyalty_member` global (loyalty members can belong to a specific business via `loyalty_members.business_id`).
+Admins (in Users → Schedule tab) manage each user's schedule. Default seed: Mon–Fri 09:00–18:00, 15/30/60 minute windows.
 
-## 2. Migration & backfill
+## 2. Fingerprint-only enforcement
 
-One migration, in order:
+The `/check-in` screen detects the local fingerprint bridge (`GET http://localhost:8765/status`):
 
-1. Create `businesses`, `business_features`, `business_members` (with grants + RLS).
-2. Insert the seed business **Hypnos Cafe** (carrying current settings: name, VAT, MP token, ticket data).
-3. Add nullable `business_id` to every table listed above, backfill with the Hypnos id, then `ALTER … SET NOT NULL`.
-4. Add `super_admin` and `business_admin` to the role enum.
-5. Promote the current admin user to `super_admin` and copy existing `user_roles` rows into `business_members` scoped to Hypnos.
-6. Replace existing RLS policies on all operational tables with policies that match on `business_id ∈ user's business_members` (via a new `public.is_member_of(business_id)` security-definer function) plus `super_admin` bypass.
-7. Drop the legacy `table_count` / numeric-table settings rows; tables are dynamic.
+- **Bridge present + reader connected** → show user picker + "Place finger" prompt. Submit fingerprint template hash to `attempt_check_in`. PIN fallback only if admin enables `allow_pin_fallback` in business settings (default OFF — keeps the anti-fraud guarantee).
+- **Bridge missing / reader disconnected** → display a blocking message:
+  - Big live clock (local time + server time, refreshes each second)
+  - Text: "This device cannot start a shift. Check in on the time-clock device before entering the floor."
+  - **Retry** button (re-probes the bridge) and **Reload** button
+  - No user list, no PIN, no way past the gate
+- WebAuthn / native mobile biometrics are explicitly NOT accepted — flagged as fraud risk in the requirements doc.
 
-## 3. Backoffice (super-admin only)
+The bridge probe runs every 5s while the gate is visible so a freshly-plugged reader unlocks the screen without manual reload.
 
-New gated section in this app at `/backoffice/*`, only visible when the current user has the `super_admin` role.
+## 3. Dedicated time-clock devices
 
-Screens:
+New table `attendance_devices`:
+- `label` (e.g. "Front desk clock")
+- `device_token` (random secret, shown once on enrollment)
+- `is_time_clock` (boolean — when true the device runs in clock mode)
+- `last_seen_at`, `fingerprint_bridge_version`
 
-- **Businesses list** — create / edit / suspend, search.
-- **Business detail** — tabs:
-  - *Profile*: name, legal data, tax id, address, currency, language, logo, ticket header/footer.
-  - *Billing config*: VAT %, Mercado Pago access token (write-only field), commission %.
-  - *Features*: switches for every flag in `business_features`.
-  - *Users*: list `business_members`, invite new ones (reuses `create-user` edge function, now requires `business_id` and the caller being super_admin OR the target business's `business_admin`).
-- **Super admins** — manage other super admins.
+Device pairing flow (Admin → Settings → Time Clock Devices):
+1. Admin clicks "Add device", names it, downloads a small JSON config containing the `device_token`.
+2. On the target machine, open `/check-in?device=<token>`. The app stores the token in `localStorage` and from then on identifies itself as that device.
+3. Admin can revoke a device, view last seen, and toggle `is_time_clock`.
 
-`AppLayout` / sidebar shows the backoffice entry only when `isSuperAdmin`. `ProtectedRoute` for `/backoffice` rejects everyone else.
+**Clock mode UI** (`is_time_clock = true`):
+- Full-screen kiosk view: big clock, business logo, list of users currently scheduled within their check-in window
+- Tap a user → "Place finger on reader" → bridge verifies → success animation + sound, session opens (or closes if user already checked in)
+- No navigation to the rest of the app from this device; reloading stays in clock mode
+- Requires bridge + reader; without them the screen shows the same blocking warning as section 2 but tailored ("Time clock unavailable — reconnect the fingerprint reader")
 
-## 4. App-side changes
+**Normal devices** (`is_time_clock = false` or no token): behave as section 2 — user must already have an open session, otherwise the blocking warning appears.
 
-- **Auth context** gains `currentBusinessId`, `currentBusinessRole`, `features`, `isSuperAdmin`, and a `switchBusiness(id)` action. The active business is persisted in `localStorage` and validated against `business_members` on load. If the user belongs to multiple businesses, a switcher appears in the top bar; otherwise it is hidden.
-- **All hooks** (`useMenuItems`, `useOrders`, `usePayments`, `useTickets`, `useTill`, `useReservations`, `useEvents`, `useLoyalty`, `useIngredients`, `useCombos`, `useMenus`, `useMenuCategories`, `useTableNames`, budget hooks, `useUsageTracking`, `usePushNotifications`) include `business_id` in inserts and rely on RLS to filter selects. Query keys gain the business id so caching resets on switch.
-- **Settings screen** is simplified — only day-to-day operational settings remain (table names/order, kitchen options, till denominations, loyalty config behaviour). Business profile, VAT, MP credentials, branding, feature toggles all disappear from `/settings` and live in backoffice only.
-- **Feature gating**: a `useFeature("tickets" | "calendar" | …)` hook reads `business_features`. Sidebar entries, route guards, and the corresponding pages render a friendly "Not available on your plan" state when off.
-- **Admin still manages own users in-app**: existing Users screen stays for `business_admin`; it scopes to the current business via `business_members` (waiter/billing/kitchen). Cross-business and super-admin creation only via backoffice.
-- **Edge functions** (`create-user`, `loyalty-signup`, `loyalty-admin-action`, `mercadopago-payment`, `send-push-notification`, `save-mp-token`) accept/derive `business_id`, validate caller's membership, and read business-scoped settings (e.g. `mercadopago-payment` looks up the MP token for the order's business).
-- **Tickets**: header/footer/logo/tax id pulled from the business row, not from generic restaurant settings.
-- **Public routes** (`/public-menu/:menuId`, `/loyalty/:memberCode`) resolve the business from the parent row (menu → business, member → business). No auth user, but RLS allows anon `SELECT` on those specific tables filtered to `is_public` rows scoped to that business.
+## 4. Data model (additions to previously approved migration)
 
-## 5. Cleanup
+```text
+attendance_devices(id, business_id, label, device_token_hash, is_time_clock,
+                   last_seen_at, allow_pin_fallback, created_at)
+user_shift_schedules(id, business_id, user_id, weekday, check_in_time,
+                     check_out_time, early_window_minutes,
+                     late_window_minutes, auto_logout_offset_minutes,
+                     active, created_at, updated_at)
+attendance_sessions  -- already planned, add columns:
+  device_id (fk attendance_devices, nullable)
+  scheduled_check_in (timestamptz, snapshot)
+  late boolean default false
+  check_out_method text  -- 'fingerprint' | 'auto' | 'admin'
+```
 
-- Remove the legacy "number of tables" setting and any UI that depended on it.
-- Remove the "business data" / "VAT" / "Mercado Pago" sections from `/settings`.
-- Remove the global "restaurant name" usage in headers — pull from current business instead.
+All tables: business-scoped RLS via `current_business_id()`, GRANTs to `authenticated` and `service_role`. Standard `update_updated_at` trigger where applicable.
 
-## 6. Additional considerations for true multi-tenancy
+RPCs (SECURITY DEFINER, business-scoped):
+- `attempt_check_in(user_id, device_id, fp_token)` — validates window, opens session
+- `attempt_check_out(user_id, device_id, fp_token)` — closes session
+- `close_expired_sessions()` — invoked by pg_cron every minute
 
-- **Slugs & deep links**: each business gets a slug used in public urls (`/m/<slug>/menu/<id>`, `/m/<slug>/loyalty`) so QR codes survive id changes.
-- **Push subscriptions** are scoped per (user, business) to avoid cross-business pings.
-- **Usage analytics dashboard** filters by business; super-admin sees all.
-- **Audit log** (light): a `backoffice_audit` table recording super-admin actions (create business, toggle feature, rotate MP token). Cheap insurance.
-- **Backups / exports**: a per-business CSV export action in backoffice so onboarding/offboarding is clean.
-- **Time zone** per business (column on `businesses`) — order-history filtering already groups by local day; this makes it accurate per branch.
-- **Rate limits**: nothing to add now, but feature flags leave room to attach plan/tier metadata later.
+## 5. UI surface
 
-## Out of scope (deliberately deferred)
+- `AttendanceGate` (wraps `AppLayout`): when `time_attendance` flag ON and user is non-admin → redirect to `/check-in` unless an open session exists. Admins bypass.
+- `/check-in` route: three states — fingerprint ready, bridge missing (warning + retry), already checked in (shows shift info + "Go to app").
+- `/time-clock` route: kiosk mode, no sidebar, no bottom nav.
+- Users page → "Schedule" tab per user (admin only).
+- Settings → "Time Clock Devices" tab (admin only).
+- Backoffice business feature toggle for `time_attendance` already covered.
 
-- Per-tier quantitative limits (max users/tables/items).
-- A truly separate backoffice project.
-- Cross-business consolidated metrics dashboard (just noted as a future use of `business_members` with multiple rows).
-- Billing/subscriptions for businesses.
+## 6. Out of scope for this iteration
 
-## Rollout order
+- Cash closing X/Z reports and purchase orders (still planned, separate build steps as previously agreed — this revision only restates attendance scope).
+- Payroll exports, geofencing, photo capture on check-in.
 
-1. Migration (tables, backfill, RLS, role enum, super-admin seed).
-2. Auth context + business switcher + feature hook.
-3. Hooks & edge functions updated to be business-aware.
-4. Backoffice screens (businesses, features, users, settings).
-5. Settings screen cleanup + dead-feature removal.
-6. Public routes + tickets + push scoped per business.
-7. QA pass: create a second test business, verify zero data leakage.
+## Technical notes
 
-Shall I proceed?
+- Fingerprint bridge contract documented in `docs/fingerprint-bridge.md`: `GET /status`, `POST /enroll`, `POST /verify` returning `{ ok, template_hash }`. Template never leaves the local machine; only the hash hits the server.
+- Time comparisons run in the business timezone (`businesses.timezone`); shift schedules store wall-clock times.
+- `device_token` stored hashed (sha256) at rest; raw token only returned once during enrollment.
+- `close_expired_sessions` uses `pg_cron`; if unavailable, an edge function `cron-attendance` invoked from a heartbeat in `AppLayout` handles it.
