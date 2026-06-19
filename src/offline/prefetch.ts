@@ -15,6 +15,7 @@ const TASKS: PrefetchTask[] = [
       qc.prefetchQuery({
         queryKey: ["menu_categories"],
         queryFn: async () => {
+          const { data, error } = await (supabase as any)
             .from("menu_categories").select("*").order("display_order");
           if (error) throw error;
           return data ?? [];
