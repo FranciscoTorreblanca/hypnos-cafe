@@ -30,6 +30,13 @@ function classifyError(err: any): "terminal" | "retry" {
 }
 
 async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
+  // For insert ops with client-generated PKs, a duplicate-key error means the row
+  // was successfully persisted on a previous attempt whose ack we missed — treat as success.
+  const ignoreDup = (error: any) => {
+    if (!error) return false;
+    return error.code === "23505" || String(error.message || "").toLowerCase().includes("duplicate key");
+  };
+  const _exec = async (): Promise<void> => {
   const p = e.payload;
   switch (e.kind) {
     case "order.create": {
