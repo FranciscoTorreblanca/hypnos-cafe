@@ -11,11 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Fingerprint, MonitorSmartphone, Plus, Trash2, Copy, Clock } from "lucide-react";
 import { useBridgeStatus, setStoredDeviceToken } from "@/hooks/useAttendance";
 import { captureFingerprint } from "@/lib/fingerprintBridge";
 
-const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const WEEKDAY_KEYS = [
+  "att.weekday.mon", "att.weekday.tue", "att.weekday.wed", "att.weekday.thu",
+  "att.weekday.fri", "att.weekday.sat", "att.weekday.sun",
+] as const;
 
 function randomToken() {
   const b = new Uint8Array(24); crypto.getRandomValues(b);
@@ -29,14 +33,13 @@ async function sha256Hex(s: string) {
 export const TimeAttendanceAdmin = () => {
   const { currentBusinessId } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const { status, refresh } = useBridgeStatus();
 
-  // Devices
   const [devices, setDevices] = useState<any[]>([]);
   const [newDeviceLabel, setNewDeviceLabel] = useState("");
   const [tokenDialog, setTokenDialog] = useState<{ label: string; token: string } | null>(null);
 
-  // Members + fingerprints + schedules
   const [members, setMembers] = useState<any[]>([]);
   const [fingerprints, setFingerprints] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -74,7 +77,7 @@ export const TimeAttendanceAdmin = () => {
     const { error } = await (supabase as any).from("attendance_devices").insert({
       business_id: currentBusinessId, label: newDeviceLabel.trim(), device_token_hash: hash,
     });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast({ title: t("att.error"), description: error.message, variant: "destructive" }); return; }
     setTokenDialog({ label: newDeviceLabel.trim(), token });
     setNewDeviceLabel("");
     await load();
@@ -86,20 +89,20 @@ export const TimeAttendanceAdmin = () => {
   };
 
   const deleteDevice = async (id: string) => {
-    if (!confirm("Remove this device?")) return;
+    if (!confirm(t("att.removeDevice"))) return;
     await (supabase as any).from("attendance_devices").delete().eq("id", id);
     await load();
   };
 
   const assignAsThis = (token: string) => {
     setStoredDeviceToken(token);
-    toast({ title: "This device paired", description: "Reload /check-in or /time-clock to apply." });
+    toast({ title: t("att.thisDevicePaired"), description: t("att.reloadHint") });
   };
 
   const enrollFingerprint = async () => {
     if (!enrollFor || !currentBusinessId) return;
     if (!status || status === "loading" || !status.reader_connected) {
-      toast({ title: "Reader unavailable", description: "Connect the USB fingerprint reader first.", variant: "destructive" });
+      toast({ title: t("att.readerUnavailableShort"), description: t("att.connectReaderFirst"), variant: "destructive" });
       return;
     }
     try {
@@ -108,16 +111,16 @@ export const TimeAttendanceAdmin = () => {
         business_id: currentBusinessId, user_id: enrollFor.id, template_hash: hash,
       });
       if (error) throw error;
-      toast({ title: "Fingerprint enrolled" });
+      toast({ title: t("att.fingerprintEnrolled") });
       setEnrollFor(null);
       await load();
     } catch (e: any) {
-      toast({ title: "Enroll failed", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: t("att.enrollFailed"), description: e.message ?? String(e), variant: "destructive" });
     }
   };
 
   const deleteFingerprint = async (id: string) => {
-    if (!confirm("Remove this fingerprint?")) return;
+    if (!confirm(t("att.removeFingerprint"))) return;
     await (supabase as any).from("user_fingerprints").delete().eq("id", id);
     await load();
   };
@@ -137,8 +140,8 @@ export const TimeAttendanceAdmin = () => {
     const { error } = await (supabase as any)
       .from("user_shift_schedules")
       .upsert(row, { onConflict: "business_id,user_id,weekday" });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Schedule saved" });
+    if (error) { toast({ title: t("att.error"), description: error.message, variant: "destructive" }); return; }
+    toast({ title: t("att.scheduleSaved") });
     setScheduleFor(null);
     await load();
   };
@@ -151,50 +154,45 @@ export const TimeAttendanceAdmin = () => {
 
   return (
     <div className="space-y-6">
-      {/* Bridge status */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Fingerprint className="h-4 w-4" /> Fingerprint reader
+            <Fingerprint className="h-4 w-4" /> {t("att.reader")}
           </CardTitle>
-          <CardDescription>Status of the USB fingerprint bridge running on this device.</CardDescription>
+          <CardDescription>{t("att.readerDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-3 text-sm">
-          {status === "loading" && <span className="text-muted-foreground">Checking…</span>}
+          {status === "loading" && <span className="text-muted-foreground">{t("att.checking")}</span>}
           {status && status !== "loading" && status.reader_connected && (
-            <Badge className="bg-emerald-600">Connected{status.version ? ` · v${status.version}` : ""}</Badge>
+            <Badge className="bg-emerald-600">{t("att.connected")}{status.version ? ` · v${status.version}` : ""}</Badge>
           )}
-          {status === null && <Badge variant="destructive">Bridge not running</Badge>}
+          {status === null && <Badge variant="destructive">{t("att.bridgeNotRunning")}</Badge>}
           {status && status !== "loading" && !status.reader_connected && (
-            <Badge variant="destructive">Reader unplugged</Badge>
+            <Badge variant="destructive">{t("att.readerUnplugged")}</Badge>
           )}
-          <Button size="sm" variant="outline" onClick={refresh}>Recheck</Button>
+          <Button size="sm" variant="outline" onClick={refresh}>{t("att.recheck")}</Button>
         </CardContent>
       </Card>
 
-      {/* Devices */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <MonitorSmartphone className="h-4 w-4" /> Time-clock devices
+            <MonitorSmartphone className="h-4 w-4" /> {t("att.devices")}
           </CardTitle>
-          <CardDescription>
-            Pair physical machines that act as kiosks. When "Time clock" is on, that device shows the
-            full-screen kiosk at <code>/time-clock</code>.
-          </CardDescription>
+          <CardDescription>{t("att.devicesDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Input placeholder="Device label (e.g. Front desk)" value={newDeviceLabel}
+            <Input placeholder={t("att.deviceLabel")} value={newDeviceLabel}
               onChange={(e) => setNewDeviceLabel(e.target.value)} />
-            <Button onClick={createDevice} className="gap-1"><Plus className="h-4 w-4" /> Add</Button>
+            <Button onClick={createDevice} className="gap-1"><Plus className="h-4 w-4" /> {t("att.add")}</Button>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Label</TableHead>
-                <TableHead>Time clock</TableHead>
-                <TableHead>Last seen</TableHead>
+                <TableHead>{t("att.label")}</TableHead>
+                <TableHead>{t("att.timeClockCol")}</TableHead>
+                <TableHead>{t("att.lastSeen")}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -216,28 +214,27 @@ export const TimeAttendanceAdmin = () => {
                 </TableRow>
               ))}
               {devices.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No devices yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">{t("att.noDevices")}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Users: fingerprints & schedules */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4" /> Users · fingerprints & schedules
+            <Clock className="h-4 w-4" /> {t("att.usersTitle")}
           </CardTitle>
-          <CardDescription>Enroll a fingerprint per user and define their daily shift window.</CardDescription>
+          <CardDescription>{t("att.usersDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Fingerprints</TableHead>
-                <TableHead>Default shift</TableHead>
+                <TableHead>{t("att.user")}</TableHead>
+                <TableHead>{t("att.fingerprints")}</TableHead>
+                <TableHead>{t("att.defaultShift")}</TableHead>
                 <TableHead className="w-32" />
               </TableRow>
             </TableHeader>
@@ -249,32 +246,29 @@ export const TimeAttendanceAdmin = () => {
                   <TableCell>{schedSummary(u.id)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Button size="sm" variant="outline" onClick={() => setEnrollFor(u)}>Enroll</Button>
-                      <Button size="sm" variant="outline" onClick={() => openSchedule(u)}>Shift</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEnrollFor(u)}>{t("att.enroll")}</Button>
+                      <Button size="sm" variant="outline" onClick={() => openSchedule(u)}>{t("att.shift")}</Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
               {members.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No users</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">{t("att.noUsers")}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Token dialog */}
       <Dialog open={!!tokenDialog} onOpenChange={(o) => !o && setTokenDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Device paired: {tokenDialog?.label}</DialogTitle>
-            <DialogDescription>
-              Copy this token — it's shown only once. Open the kiosk URL on the target machine and the device will register itself.
-            </DialogDescription>
+            <DialogTitle>{t("att.devicePaired")} {tokenDialog?.label}</DialogTitle>
+            <DialogDescription>{t("att.devicePairedDesc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Token</Label>
+              <Label>{t("att.token")}</Label>
               <div className="flex gap-2">
                 <Input readOnly value={tokenDialog?.token ?? ""} />
                 <Button variant="outline" onClick={() => tokenDialog && navigator.clipboard.writeText(tokenDialog.token)}>
@@ -283,25 +277,24 @@ export const TimeAttendanceAdmin = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Kiosk URL</Label>
+              <Label>{t("att.kioskUrl")}</Label>
               <Input readOnly value={`${window.location.origin}/time-clock?device=${tokenDialog?.token ?? ""}`} />
             </div>
             <Button variant="outline" className="w-full" onClick={() => tokenDialog && assignAsThis(tokenDialog.token)}>
-              Use THIS device as the time-clock
+              {t("att.useThisDevice")}
             </Button>
           </div>
           <DialogFooter>
-            <Button onClick={() => setTokenDialog(null)}>Done</Button>
+            <Button onClick={() => setTokenDialog(null)}>{t("att.done")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Enroll fingerprint */}
       <Dialog open={!!enrollFor} onOpenChange={(o) => !o && setEnrollFor(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enroll fingerprint — {enrollFor?.full_name || enrollFor?.email}</DialogTitle>
-            <DialogDescription>Place the finger on the reader, then save.</DialogDescription>
+            <DialogTitle>{t("att.enrollTitle")} {enrollFor?.full_name || enrollFor?.email}</DialogTitle>
+            <DialogDescription>{t("att.enrollDesc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             {fingerprints.filter((f) => f.user_id === enrollFor?.id).map((f) => (
@@ -314,69 +307,68 @@ export const TimeAttendanceAdmin = () => {
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEnrollFor(null)}>Close</Button>
+            <Button variant="outline" onClick={() => setEnrollFor(null)}>{t("att.close")}</Button>
             <Button onClick={enrollFingerprint} className="gap-2">
-              <Fingerprint className="h-4 w-4" /> Capture & save
+              <Fingerprint className="h-4 w-4" /> {t("att.captureSave")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Schedule editor */}
       <Dialog open={!!scheduleFor} onOpenChange={(o) => !o && setScheduleFor(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Shift schedule — {scheduleFor?.full_name || scheduleFor?.email}</DialogTitle>
-            <DialogDescription>Default applies every day. Use weekday rules for exceptions.</DialogDescription>
+            <DialogTitle>{t("att.scheduleTitle")} {scheduleFor?.full_name || scheduleFor?.email}</DialogTitle>
+            <DialogDescription>{t("att.scheduleDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1 col-span-2">
-              <Label>Weekday</Label>
+              <Label>{t("att.weekday")}</Label>
               <Select
                 value={scheduleForm.weekday === null ? "default" : String(scheduleForm.weekday)}
                 onValueChange={(v) => setScheduleForm({ ...scheduleForm, weekday: v === "default" ? null : Number(v) })}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Default (all days)</SelectItem>
-                  {WEEKDAYS.map((w, i) => <SelectItem key={i} value={String(i)}>{w}</SelectItem>)}
+                  <SelectItem value="default">{t("att.defaultAllDays")}</SelectItem>
+                  {WEEKDAY_KEYS.map((k, i) => <SelectItem key={i} value={String(i)}>{t(k)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Check-in time</Label>
+              <Label>{t("att.checkInTime")}</Label>
               <Input type="time" value={scheduleForm.check_in_time}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, check_in_time: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label>Check-out time</Label>
+              <Label>{t("att.checkOutTime")}</Label>
               <Input type="time" value={scheduleForm.check_out_time}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, check_out_time: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label>Early window (min)</Label>
+              <Label>{t("att.earlyWindow")}</Label>
               <Input type="number" value={scheduleForm.early_window_minutes}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, early_window_minutes: Number(e.target.value) })} />
             </div>
             <div className="space-y-1">
-              <Label>Late grace (min)</Label>
+              <Label>{t("att.lateWindow")}</Label>
               <Input type="number" value={scheduleForm.late_window_minutes}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, late_window_minutes: Number(e.target.value) })} />
             </div>
             <div className="space-y-1 col-span-2">
-              <Label>Auto-logout after check-out (min)</Label>
+              <Label>{t("att.autoLogout")}</Label>
               <Input type="number" value={scheduleForm.auto_logout_offset_minutes}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, auto_logout_offset_minutes: Number(e.target.value) })} />
             </div>
             <div className="col-span-2 flex items-center justify-between">
-              <Label>Active</Label>
+              <Label>{t("att.active")}</Label>
               <Switch checked={scheduleForm.active}
                 onCheckedChange={(v) => setScheduleForm({ ...scheduleForm, active: v })} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleFor(null)}>Cancel</Button>
-            <Button onClick={saveSchedule}>Save</Button>
+            <Button variant="outline" onClick={() => setScheduleFor(null)}>{t("att.cancel")}</Button>
+            <Button onClick={saveSchedule}>{t("att.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
