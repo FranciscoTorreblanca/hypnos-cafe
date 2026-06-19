@@ -56,14 +56,22 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000,
       gcTime: 30 * 60 * 1000,
       retry: 1,
+      networkMode: "offlineFirst",
+    },
+    mutations: {
+      networkMode: "offlineFirst",
     },
   },
 });
+
+installPersistence(queryClient, APP_VERSION);
+bindQueryClient(queryClient);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
+        <OfflineProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
