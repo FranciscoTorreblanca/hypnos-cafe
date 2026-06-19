@@ -192,8 +192,8 @@ const SettingsPage = () => {
             <div className="flex items-center gap-2">
               <Fingerprint className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle className="text-base">Time & attendance</CardTitle>
-                <CardDescription className="text-sm">Devices, fingerprints and shift schedules.</CardDescription>
+                <CardTitle className="text-base">{t("att.title")}</CardTitle>
+                <CardDescription className="text-sm">{t("att.subtitle")}</CardDescription>
               </div>
             </div>
           </CardHeader>
