@@ -67,14 +67,19 @@ export const useOrders = () => {
         .in("status", ["pending", "in_progress", "completed", "ready", "served"])
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((o: any) => ({
-        ...o,
-        order_items: (o.order_items ?? []).map((oi: any) => ({
+      return (data ?? []).map((o: any) => {
+        const order_items = (o.order_items ?? []).map((oi: any) => ({
           ...oi,
           menu_item: oi.menu_items,
           combo: oi.combos ?? null,
-        })),
-      })) as Order[];
+        }));
+        const total = order_items.reduce(
+          (s: number, i: any) =>
+            s + applyLineDiscount(i.quantity * i.unit_price, i.discount ?? 0, i.discount_amount ?? 0),
+          0
+        );
+        return { ...o, order_items, total };
+      }) as Order[];
     },
   });
 
