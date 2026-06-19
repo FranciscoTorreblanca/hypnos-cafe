@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { AttendanceGate } from "@/components/AttendanceGate";
 import { ConnectionPill } from "@/components/offline/ConnectionPill";
+import { FirstRunBanner } from "@/components/offline/FirstRunBanner";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
@@ -36,5 +37,5 @@ export const AppLayout = () => {
     </SidebarProvider>
   );
 
-  return <AttendanceGate>{inner}</AttendanceGate>;
+  return <AttendanceGate>{inner}<FirstRunBanner /></AttendanceGate>;
 };
