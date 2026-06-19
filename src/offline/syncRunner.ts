@@ -113,6 +113,7 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
     case "till.open": {
       const { error } = await (supabase.rpc as any)("open_till_session", {
         _opening_float: p.opening_float, _notes: p.notes ?? null,
+        ...(p.id ? { _id: p.id } : {}),
       });
       if (error) throw error;
       return;
@@ -129,6 +130,7 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
       const { error } = await (supabase.rpc as any)("attempt_check_in", {
         _user_id: p.user_id, _device_id: p.device_id,
         _fingerprint_hash: p.fingerprint_hash, _method: p.method,
+        ...(p.id ? { _id: p.id } : {}),
       });
       if (error) throw error;
       return;
