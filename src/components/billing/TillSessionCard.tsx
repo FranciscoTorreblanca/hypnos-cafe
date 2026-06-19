@@ -11,13 +11,15 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import {
   useCurrentTillSession, useTillXReport, useOpenTillSession, useCloseTillSession,
+  useTillSessionsHistory,
 } from "@/hooks/useTillSessions";
 import { CloseTillDialog } from "./CloseTillDialog";
-import { Vault, PlayCircle, FileText, StopCircle, Clock } from "lucide-react";
+import { Vault, PlayCircle, FileText, StopCircle, Clock, Download } from "lucide-react";
+import { generateTillReportPdf } from "@/lib/tillReportPdf";
 
 export const TillSessionCard = () => {
-  const { t } = useLanguage();
-  const { isAdmin, hasRole } = useAuth();
+  const { t, language } = useLanguage();
+  const { isAdmin, hasRole, currentBusiness } = useAuth();
   const { toast } = useToast();
   const canManage = isAdmin || hasRole("billing");
 
