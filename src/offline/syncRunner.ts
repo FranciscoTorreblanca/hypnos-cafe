@@ -55,7 +55,7 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
       return;
     }
     case "order.cancel": {
-      await supabase.from("order_items").delete().eq("order_id", p.id);
+      // Preserve items for history; only flip status.
       const { error } = await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", p.id);
       if (error) throw error;
       return;
