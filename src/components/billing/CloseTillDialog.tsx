@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Minus, Plus, RotateCcw } from "lucide-react";
 import { useCloseTillSession, type TillSession, type TillXReport } from "@/hooks/useTillSessions";
+import { useAuth } from "@/hooks/useAuth";
+import { generateTillReportPdf } from "@/lib/tillReportPdf";
 
 const DENOMINATIONS = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
 
