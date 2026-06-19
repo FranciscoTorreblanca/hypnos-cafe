@@ -52,24 +52,18 @@ const TASKS: PrefetchTask[] = [
     key: "tables",
     label: { es: "Mesas", en: "Tables" },
     run: async (qc) => {
-      await Promise.all([
-        qc.prefetchQuery({
-          queryKey: ["table_names"],
-          queryFn: async () => {
-            const { data, error } = await (supabase as any).from("table_names").select("*");
-            if (error) throw error;
-            return data ?? [];
-          },
-        }),
-        qc.prefetchQuery({
-          queryKey: ["table_order"],
-          queryFn: async () => {
-            const { data, error } = await (supabase as any).from("table_order").select("*");
-            if (error) throw error;
-            return data ?? [];
-          },
-        }),
-      ]);
+      await Promise.all(
+        (["table_names", "table_order"] as const).map((k) =>
+          qc.prefetchQuery({
+            queryKey: [k],
+            queryFn: async () => {
+              const { data } = await (supabase as any)
+                .from("restaurant_settings").select("value").eq("key", k).maybeSingle();
+              try { return data?.value ? JSON.parse(data.value) : []; } catch { return []; }
+            },
+          })
+        )
+      );
     },
   },
   {
