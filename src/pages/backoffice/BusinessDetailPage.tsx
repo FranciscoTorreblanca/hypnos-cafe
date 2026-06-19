@@ -83,7 +83,7 @@ const BusinessDetailPage = () => {
       const map: Record<string, boolean> = {};
       FEATURE_KEYS.forEach((k) => {
         const v = (f as any)[k];
-        map[k] = k === "time_attendance" ? v === true : v !== false;
+        map[k] = OPT_IN_FEATURES.has(k) ? v === true : v !== false;
       });
       setFeatures(map);
     }
