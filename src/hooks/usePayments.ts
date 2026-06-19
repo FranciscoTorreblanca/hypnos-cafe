@@ -108,62 +108,64 @@ export const usePayments = () => {
     }) => {
       if (!parts.length) throw new Error("No payment parts provided");
 
-      // Send card portion to Mercado Pago Point Mini if configured (sum all card parts)
-      let mpResult: any = null;
+      // If offline OR Mercado Pago not needed: enqueue everything and update cache.
       const cardParts = parts.filter((p) => p.payment_method === "card");
       const cardTotal = cardParts.reduce((s, p) => s + p.amount + p.tip, 0);
-      if (cardTotal > 0 && currentBusinessId) {
-        const mpConfig = await getMpConfig(currentBusinessId);
-        if (mpConfig?.enabled) {
-          mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id, currentBusinessId);
+      const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+      const ids = parts.map(() => crypto.randomUUID());
+
+      // Try Mercado Pago for card when online + configured. Skip silently on failure → still enqueue.
+      let mpResult: any = null;
+      if (isOnline && cardTotal > 0 && currentBusinessId) {
+        try {
+          const mpConfig = await getMpConfig(currentBusinessId);
+          if (mpConfig?.enabled) {
+            mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id, currentBusinessId);
+          }
+        } catch (e) {
+          console.warn("[payments] MP card terminal unavailable", e);
         }
       }
 
-      // Insert all payment rows
-      const { data: inserted, error } = await supabase
-        .from("payments")
-        .insert(
-          parts.map((p) => ({
-            order_id,
-            amount: p.amount,
-            tip: p.tip,
-            payment_method: p.payment_method,
-            created_by: user!.id,
-          })),
-        )
-        .select("id, payment_method");
-      if (error) throw error;
-
-      // Mark order as paid — preserve general_discount / general_discount_amount
-      // so history and tickets can reproduce the actual charged amount.
-      const { error: upErr } = await supabase
-        .from("orders")
-        .update({ status: "paid" as any } as any)
-        .eq("id", order_id);
-      if (upErr) throw upErr;
-
-      // Notification (fire and forget) — combine totals
-      const totalAmount = parts.reduce((s, p) => s + p.amount, 0);
-      const totalTip = parts.reduce((s, p) => s + p.tip, 0);
-      const methodLabel = parts.length > 1 ? "split" : parts[0].payment_method;
-      const { data: orderData } = await supabase
-        .from("orders").select("table_number").eq("id", order_id).single();
-      const { data: profile } = await supabase
-        .from("profiles").select("full_name").eq("id", user!.id).single();
-      triggerPushNotification("order_paid", {
-        amount: totalAmount,
-        tip: totalTip,
-        payment_method: methodLabel,
-        waiter_name: profile?.full_name || user!.email || "Mesero",
-        table_number: orderData?.table_number ?? "?",
-        order_id,
+      // Optimistic: mark order as paid in the orders cache
+      queryClient.setQueryData<any[]>(["orders"], (old) => {
+        if (!old) return old;
+        return old.map((o) => (o.id === order_id ? { ...o, status: "paid", _pending: !isOnline } : o));
       });
 
-      return {
-        mpResult,
-        payment_id: inserted?.[0]?.id ?? null,
-        payment_ids: (inserted ?? []).map((r) => r.id),
-      };
+      // Optimistic: add payment rows to the payments cache
+      const optimisticRows = parts.map((p, i) => ({
+        id: ids[i], order_id, amount: p.amount, tip: p.tip,
+        payment_method: p.payment_method, created_by: user!.id,
+        created_at: new Date().toISOString(),
+      }));
+      queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
+
+      // Enqueue (auto-runs if online)
+      const { enqueue } = await import("@/offline/enqueue");
+      await enqueue("payment.create", {
+        order_id, parts, ids, created_by: user!.id,
+      }, { label: `Payment · order ${order_id.slice(0, 6)}` });
+
+      // Best-effort push notification (only when online — never enqueue this)
+      if (isOnline) {
+        try {
+          const totalAmount = parts.reduce((s, p) => s + p.amount, 0);
+          const totalTip = parts.reduce((s, p) => s + p.tip, 0);
+          const methodLabel = parts.length > 1 ? "split" : parts[0].payment_method;
+          const { data: orderData } = await supabase
+            .from("orders").select("table_number").eq("id", order_id).single();
+          const { data: profile } = await supabase
+            .from("profiles").select("full_name").eq("id", user!.id).single();
+          triggerPushNotification("order_paid", {
+            amount: totalAmount, tip: totalTip, payment_method: methodLabel,
+            waiter_name: profile?.full_name || user!.email || "Mesero",
+            table_number: orderData?.table_number ?? "?", order_id,
+          });
+        } catch {}
+      }
+
+      return { mpResult, payment_id: ids[0], payment_ids: ids };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
@@ -171,6 +173,7 @@ export const usePayments = () => {
       queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
     },
   });
+
 
   const updatePayment = useMutation({
     mutationFn: async ({ id, amount, tip, payment_method }: { id: string; amount: number; tip: number; payment_method: string }) => {
