@@ -224,6 +224,7 @@ export type Database = {
           budget: boolean
           business_id: string
           calendar: boolean
+          cash_closing: boolean
           cost_calculator: boolean
           kitchen: boolean
           loyalty: boolean
@@ -241,6 +242,7 @@ export type Database = {
           budget?: boolean
           business_id: string
           calendar?: boolean
+          cash_closing?: boolean
           cost_calculator?: boolean
           kitchen?: boolean
           loyalty?: boolean
@@ -258,6 +260,7 @@ export type Database = {
           budget?: boolean
           business_id?: string
           calendar?: boolean
+          cash_closing?: boolean
           cost_calculator?: boolean
           kitchen?: boolean
           loyalty?: boolean
@@ -2028,6 +2031,66 @@ export type Database = {
           },
         ]
       }
+      till_sessions: {
+        Row: {
+          business_id: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_counted: number | null
+          closing_denominations: Json | null
+          closing_difference: number | null
+          closing_expected: number | null
+          closing_notes: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          opened_by: string
+          opening_float: number
+          opening_notes: string | null
+          status: string
+          updated_at: string
+          z_report: Json | null
+        }
+        Insert: {
+          business_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_counted?: number | null
+          closing_denominations?: Json | null
+          closing_difference?: number | null
+          closing_expected?: number | null
+          closing_notes?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opened_by: string
+          opening_float?: number
+          opening_notes?: string | null
+          status?: string
+          updated_at?: string
+          z_report?: Json | null
+        }
+        Update: {
+          business_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_counted?: number | null
+          closing_denominations?: Json | null
+          closing_difference?: number | null
+          closing_expected?: number | null
+          closing_notes?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string
+          opening_float?: number
+          opening_notes?: string | null
+          status?: string
+          updated_at?: string
+          z_report?: Json | null
+        }
+        Relationships: []
+      }
       till_transactions: {
         Row: {
           amount: number
@@ -2037,6 +2100,7 @@ export type Database = {
           id: string
           note: string
           payment_id: string | null
+          till_session_id: string | null
           type: string
         }
         Insert: {
@@ -2047,6 +2111,7 @@ export type Database = {
           id?: string
           note?: string
           payment_id?: string | null
+          till_session_id?: string | null
           type?: string
         }
         Update: {
@@ -2057,6 +2122,7 @@ export type Database = {
           id?: string
           note?: string
           payment_id?: string | null
+          till_session_id?: string | null
           type?: string
         }
         Relationships: [
@@ -2072,6 +2138,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "till_transactions_till_session_id_fkey"
+            columns: ["till_session_id"]
+            isOneToOne: false
+            referencedRelation: "till_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -2311,7 +2384,68 @@ export type Database = {
         }
       }
       close_expired_sessions: { Args: never; Returns: number }
+      close_till_session: {
+        Args: {
+          _counted: number
+          _denominations?: Json
+          _notes?: string
+          _session_id: string
+        }
+        Returns: {
+          business_id: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_counted: number | null
+          closing_denominations: Json | null
+          closing_difference: number | null
+          closing_expected: number | null
+          closing_notes: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          opened_by: string
+          opening_float: number
+          opening_notes: string | null
+          status: string
+          updated_at: string
+          z_report: Json | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "till_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_business_id: { Args: never; Returns: string }
+      current_till_session: {
+        Args: never
+        Returns: {
+          business_id: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_counted: number | null
+          closing_denominations: Json | null
+          closing_difference: number | null
+          closing_expected: number | null
+          closing_notes: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          opened_by: string
+          opening_float: number
+          opening_notes: string | null
+          status: string
+          updated_at: string
+          z_report: Json | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "till_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_user_schedule_for: {
         Args: { _at: string; _user_id: string }
         Returns: {
@@ -2350,10 +2484,43 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_member_of: { Args: { _business_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      open_till_session: {
+        Args: { _notes?: string; _opening_float: number }
+        Returns: {
+          business_id: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_counted: number | null
+          closing_denominations: Json | null
+          closing_difference: number | null
+          closing_expected: number | null
+          closing_notes: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          opened_by: string
+          opening_float: number
+          opening_notes: string | null
+          status: string
+          updated_at: string
+          z_report: Json | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "till_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_active_business: {
         Args: { _business_id: string }
         Returns: undefined
       }
+      till_tx_signed: {
+        Args: { _amount: number; _type: string }
+        Returns: number
+      }
+      till_x_report: { Args: { _session_id: string }; Returns: Json }
     }
     Enums: {
       app_role:

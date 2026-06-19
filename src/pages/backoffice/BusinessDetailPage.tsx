@@ -32,8 +32,10 @@ interface Business {
 const FEATURE_KEYS = [
   "tickets","calendar","loyalty","kitchen","cost_calculator","stock",
   "budget","analytics","push_notifications","mercado_pago","menu_generator","wifi",
-  "time_attendance",
+  "time_attendance","cash_closing",
 ] as const;
+
+const OPT_IN_FEATURES = new Set(["time_attendance", "cash_closing"]);
 
 const FEATURE_LABELS: Record<string, string> = {
   tickets: "Tickets / Receipts",
@@ -49,6 +51,7 @@ const FEATURE_LABELS: Record<string, string> = {
   menu_generator: "Menu generator",
   wifi: "Wi-Fi info",
   time_attendance: "Time & attendance (fingerprint check-in)",
+  cash_closing: "Cash closing (X/Z till sessions)",
 };
 
 const BUSINESS_ROLES = ["business_admin", "admin", "waiter", "billing", "kitchen"] as const;
@@ -80,7 +83,7 @@ const BusinessDetailPage = () => {
       const map: Record<string, boolean> = {};
       FEATURE_KEYS.forEach((k) => {
         const v = (f as any)[k];
-        map[k] = k === "time_attendance" ? v === true : v !== false;
+        map[k] = OPT_IN_FEATURES.has(k) ? v === true : v !== false;
       });
       setFeatures(map);
     }

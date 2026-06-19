@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp, Pencil, Trash2, BarChart3, Vault, Plus, Minus, Download } from "lucide-react";
 import { CashCountCard } from "@/components/billing/CashCountCard";
+import { TillSessionCard } from "@/components/billing/TillSessionCard";
 import { startOfDay, startOfWeek, startOfMonth, format, isAfter, subDays, subWeeks, subMonths } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,7 +51,7 @@ const BillingPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [] } = useOrders();
   const { data: payments = [], createPayment, updatePayment, deletePayment } = usePayments();
-  const { isAdmin } = useAuth();
+  const { isAdmin, hasFeature } = useAuth();
   const { toast } = useToast();
   const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
@@ -612,6 +613,7 @@ const BillingPage = () => {
 
         {/* Till Manager */}
         <TabsContent value="till" className="mt-4 space-y-4">
+          {hasFeature("cash_closing") && <TillSessionCard />}
           {/* Till Balance Card */}
           <Card>
             <CardHeader className="pb-2">

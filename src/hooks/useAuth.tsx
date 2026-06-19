@@ -8,7 +8,7 @@ type AppRole = "admin" | "waiter" | "billing" | "kitchen" | "loyalty_member" | "
 export type FeatureKey =
   | "tickets" | "calendar" | "loyalty" | "kitchen" | "cost_calculator"
   | "stock" | "budget" | "analytics" | "push_notifications"
-  | "mercado_pago" | "menu_generator" | "wifi" | "time_attendance";
+  | "mercado_pago" | "menu_generator" | "wifi" | "time_attendance" | "cash_closing";
 
 export interface BusinessSummary {
   id: string;
@@ -39,7 +39,7 @@ interface AuthContextType {
 const ALL_FEATURES_ON: Record<FeatureKey, boolean> = {
   tickets: true, calendar: true, loyalty: true, kitchen: true, cost_calculator: true,
   stock: true, budget: true, analytics: true, push_notifications: true,
-  mercado_pago: true, menu_generator: true, wifi: true, time_attendance: false,
+  mercado_pago: true, menu_generator: true, wifi: true, time_attendance: false, cash_closing: false,
 };
 
 const STORAGE_KEY = "hypnos.currentBusinessId";
