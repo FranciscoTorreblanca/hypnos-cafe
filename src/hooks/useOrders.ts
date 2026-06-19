@@ -260,7 +260,7 @@ export const useOrders = () => {
     kind: "order.cancel",
     label: (id) => `Cancel order ${id.slice(0, 6)}`,
     buildPayload: (id) => ({ id }),
-    optimistic: async (qc, id) => patchOrder(qc, id, (o) => ({ ...o, status: "cancelled", order_items: [] })),
+    optimistic: async (qc, id) => patchOrder(qc, id, (o) => ({ ...o, status: "cancelled" })),
   });
 
   const getActiveOrderForTable = (tableNumber: number) =>
