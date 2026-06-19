@@ -24,7 +24,8 @@ interface Props {
 }
 
 export const CloseTillDialog = ({ open, onOpenChange, session, xReport }: Props) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { currentBusiness } = useAuth();
   const { toast } = useToast();
   const closeMut = useCloseTillSession();
 
