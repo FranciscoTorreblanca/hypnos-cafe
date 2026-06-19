@@ -396,6 +396,17 @@ const OrderHistoryPage = () => {
                       )}
                     </div>
 
+                    {order.status === "cancelled" && (
+                      <div className="rounded border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-xs">
+                        <strong className="text-destructive">
+                          {language === "es" ? "Razón de cancelación" : "Cancellation reason"}:
+                        </strong>{" "}
+                        <span className="text-foreground">
+                          {order.cancel_reason?.trim() || (language === "es" ? "Sin razón especificada" : "No reason provided")}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Items table */}
                     <div className="border rounded overflow-hidden">
                       <table className="w-full text-xs">
