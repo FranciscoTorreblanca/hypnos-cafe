@@ -38,7 +38,7 @@ export const CloseTillDialog = ({ open, onOpenChange, session, xReport }: Props)
     [counts]
   );
   const counted = manualCounted !== "" ? parseFloat(manualCounted) || 0 : denomTotal;
-  const expected = xReport?.expected_cash ?? session.opening_float;
+  const expected = Number(xReport?.expected_cash ?? session.opening_float ?? 0);
   const difference = counted - expected;
 
   const update = (d: number, delta: number) =>
