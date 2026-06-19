@@ -50,12 +50,24 @@ export const CloseTillDialog = ({ open, onOpenChange, session, xReport }: Props)
       const denoms = Object.fromEntries(
         Object.entries(counts).filter(([, v]) => v > 0)
       );
-      await closeMut.mutateAsync({
+      const closed = await closeMut.mutateAsync({
         session_id: session.id,
         counted,
         denominations: Object.keys(denoms).length ? (denoms as any) : undefined,
         notes: notes || undefined,
       });
+      try {
+        generateTillReportPdf({
+          kind: "Z",
+          session: closed,
+          report: (closed as any).z_report ?? xReport,
+          businessName: currentBusiness?.name,
+          lang: language,
+          t,
+        });
+      } catch (pdfErr) {
+        console.error("Z PDF generation failed", pdfErr);
+      }
       toast({ title: t("till.sessionClosed") });
       onOpenChange(false);
       reset();
