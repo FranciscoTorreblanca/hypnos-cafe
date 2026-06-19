@@ -39,7 +39,7 @@ interface AuthContextType {
 const ALL_FEATURES_ON: Record<FeatureKey, boolean> = {
   tickets: true, calendar: true, loyalty: true, kitchen: true, cost_calculator: true,
   stock: true, budget: true, analytics: true, push_notifications: true,
-  mercado_pago: true, menu_generator: true, wifi: true, time_attendance: false,
+  mercado_pago: true, menu_generator: true, wifi: true, time_attendance: false, cash_closing: false,
 };
 
 const STORAGE_KEY = "hypnos.currentBusinessId";
