@@ -351,8 +351,15 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const handleCancelOrder = async () => {
     if (!order) return;
-    await cancelOrder.mutateAsync(order.id);
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast({ title: t("orders.cancelReasonRequired"), variant: "destructive" });
+      return;
+    }
+    await cancelOrder.mutateAsync({ id: order.id, reason });
     toast({ title: t("common.success"), description: t("orders.orderCancelled") });
+    setCancelReason("");
+    setCancelOpen(false);
     onOpenChange(false);
   };
 
