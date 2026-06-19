@@ -92,13 +92,21 @@ const SettingsPage = () => {
     window.location.replace(url.toString());
   };
 
-  if (!isAdmin) return <p className="text-muted-foreground">{t("common.error")}</p>;
+  if (!isAdmin) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
+        <SyncLog />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
 
       <SyncLog />
+
 
 
       {/* Business info (read-only) */}
