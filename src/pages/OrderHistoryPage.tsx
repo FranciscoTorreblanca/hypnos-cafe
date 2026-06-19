@@ -65,6 +65,7 @@ interface HistoryOrder {
   updated_at: string;
   created_by: string;
   order_items: HistoryOrderItem[];
+  cancel_reason?: string | null;
   waiterName?: string;
   cashierName?: string;
   payments: { amount: number; tip: number; payment_method: string; created_at: string; created_by: string }[];
@@ -394,6 +395,17 @@ const OrderHistoryPage = () => {
                         <span className="text-destructive">{language === "es" ? "Desc. fijo" : "Fixed disc."}: ${order.general_discount_amount?.toFixed(0)}</span>
                       )}
                     </div>
+
+                    {order.status === "cancelled" && (
+                      <div className="rounded border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-xs">
+                        <strong className="text-destructive">
+                          {language === "es" ? "Razón de cancelación" : "Cancellation reason"}:
+                        </strong>{" "}
+                        <span className="text-foreground">
+                          {order.cancel_reason?.trim() || (language === "es" ? "Sin razón especificada" : "No reason provided")}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Items table */}
                     <div className="border rounded overflow-hidden">

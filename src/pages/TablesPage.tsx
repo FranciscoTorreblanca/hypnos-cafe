@@ -463,7 +463,7 @@ const TablesPage = () => {
     const lingering = activeOrders.find((o) => o.table_number === num);
     if (lingering) {
       try {
-        await cancelOrder.mutateAsync(lingering.id);
+        await cancelOrder.mutateAsync({ id: lingering.id, reason: "Table deleted" });
       } catch (e) {
         console.error("Failed to cancel lingering order:", e);
       }

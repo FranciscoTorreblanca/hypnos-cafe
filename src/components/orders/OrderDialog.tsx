@@ -107,6 +107,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [selectedCombo, setSelectedCombo] = useState<ComboWithItems | null>(null);
   const [editingGeneralDiscount, setEditingGeneralDiscount] = useState(false);
   const [addonsItem, setAddonsItem] = useState<MenuItem | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [addonsOpen, setAddonsOpen] = useState(false);
 
   const dismissMobileKeyboard = useCallback(() => {
@@ -349,8 +351,15 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
 
   const handleCancelOrder = async () => {
     if (!order) return;
-    await cancelOrder.mutateAsync(order.id);
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast({ title: t("orders.cancelReasonRequired"), variant: "destructive" });
+      return;
+    }
+    await cancelOrder.mutateAsync({ id: order.id, reason });
     toast({ title: t("common.success"), description: t("orders.orderCancelled") });
+    setCancelReason("");
+    setCancelOpen(false);
     onOpenChange(false);
   };
 
@@ -1022,7 +1031,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </>
       )}
       {canCancelOrder && (
-        <AlertDialog>
+        <AlertDialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelReason(""); }}>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" className="w-full gap-1.5" size="sm">
               <XCircle className="h-3.5 w-3.5" /> {t("orders.cancelOrder")}
@@ -1033,9 +1042,21 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
               <AlertDialogTitle>{t("orders.cancelOrder")}</AlertDialogTitle>
               <AlertDialogDescription>{t("orders.cancelConfirm")}</AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="space-y-2">
+              <label className="text-xs font-medium">{t("orders.cancelReason")}</label>
+              <Textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder={t("orders.cancelReasonPlaceholder")}
+                rows={3}
+                autoFocus
+              />
+            </div>
             <AlertDialogFooter>
               <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCancelOrder}>{t("common.confirm")}</AlertDialogAction>
+              <AlertDialogAction onClick={(e) => { e.preventDefault(); handleCancelOrder(); }} disabled={!cancelReason.trim()}>
+                {t("common.confirm")}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
