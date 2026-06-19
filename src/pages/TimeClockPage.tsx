@@ -7,6 +7,7 @@ import { captureFingerprint } from "@/lib/fingerprintBridge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Fingerprint, AlertTriangle, RotateCw, CheckCircle2 } from "lucide-react";
 
 const useNow = () => {
@@ -21,6 +22,7 @@ const TimeClockPage = () => {
   const { currentBusinessId, currentBusiness } = useAuth();
   const { status, refresh } = useBridgeStatus();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const now = useNow();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -65,10 +67,10 @@ const TimeClockPage = () => {
         _user_id: m.user_id, _device_id: null, _fingerprint_hash: hash, _method: "fingerprint",
       });
       if (error) throw error;
-      setFeedback(`${m.openSessionId ? "Checked out" : "Checked in"}: ${m.full_name || m.email}`);
+      setFeedback(`${m.openSessionId ? t("att.checkedOut") : t("att.checkedIn")}: ${m.full_name || m.email}`);
       await load();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: t("att.failed"), description: e.message ?? String(e), variant: "destructive" });
     } finally { setBusy(false); }
   };
 
@@ -76,8 +78,8 @@ const TimeClockPage = () => {
     <div className="min-h-screen bg-background p-6 flex flex-col">
       <header className="flex items-baseline justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold">{currentBusiness?.name ?? "Time Clock"}</h1>
-          <p className="text-muted-foreground text-sm">Tap your name and place your finger on the reader.</p>
+          <h1 className="text-3xl font-semibold">{currentBusiness?.name ?? t("att.kioskTitle")}</h1>
+          <p className="text-muted-foreground text-sm">{t("att.kioskHint")}</p>
         </div>
         <div className="text-right">
           <div className="text-5xl font-light tabular-nums">{now.toLocaleTimeString()}</div>
@@ -91,12 +93,12 @@ const TimeClockPage = () => {
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium">Time clock unavailable</p>
-                <p className="text-muted-foreground">Reconnect the USB fingerprint reader to continue.</p>
+                <p className="font-medium">{t("att.kioskUnavailable")}</p>
+                <p className="text-muted-foreground">{t("att.kioskReconnect")}</p>
               </div>
             </div>
             <Button onClick={refresh} variant="outline" size="sm" className="gap-1">
-              <RotateCw className="h-3.5 w-3.5" /> Retry
+              <RotateCw className="h-3.5 w-3.5" /> {t("att.retry")}
             </Button>
           </CardContent>
         </Card>
@@ -119,12 +121,12 @@ const TimeClockPage = () => {
                 <Fingerprint className="h-5 w-5" />
                 <span className="truncate w-full text-center">{m.full_name || m.email}</span>
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {m.openSessionId ? "Tap to check out" : "Tap to check in"}
+                  {m.openSessionId ? t("att.tapToCheckOut") : t("att.tapToCheckIn")}
                 </span>
               </Button>
             ))}
             {members.length === 0 && (
-              <p className="col-span-full text-center text-muted-foreground py-12">No users in this business.</p>
+              <p className="col-span-full text-center text-muted-foreground py-12">{t("att.noUsersBusiness")}</p>
             )}
           </div>
         </>
