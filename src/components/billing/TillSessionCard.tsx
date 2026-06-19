@@ -25,7 +25,23 @@ export const TillSessionCard = () => {
 
   const { data: session, isLoading } = useCurrentTillSession();
   const { data: xReport } = useTillXReport(session?.id);
+  const { data: history = [] } = useTillSessionsHistory(10);
   const openMut = useOpenTillSession();
+
+  const downloadX = () => {
+    if (!session || !xReport) return;
+    generateTillReportPdf({
+      kind: "X", session, report: xReport,
+      businessName: currentBusiness?.name, lang: language, t,
+    });
+  };
+  const downloadZ = (s: typeof history[number]) => {
+    if (!s.z_report) return;
+    generateTillReportPdf({
+      kind: "Z", session: s, report: s.z_report,
+      businessName: currentBusiness?.name, lang: language, t,
+    });
+  };
 
   const [openingFloat, setOpeningFloat] = useState("");
   const [openingNotes, setOpeningNotes] = useState("");
