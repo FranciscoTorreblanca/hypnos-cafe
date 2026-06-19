@@ -1,105 +1,115 @@
+# Offline-First Mode
 
-# Time & Attendance — Revised Plan
+Make Hypnos Cafe usable without internet for the critical flows (orders, payments, till X/Z, attendance, menu/stock browsing). Show a clear offline indicator, queue mutations locally, and auto-sync when back online.
 
-Builds on the previously approved scope (USB fingerprint, block-everything gate, per-till X/Z, PO from menu_items low stock). This revision adds shift windows, fingerprint-only enforcement, and dedicated time-clock devices. Everything stays behind the `time_attendance` feature flag.
+## What the user will see
 
-## 1. Per-user shift schedule
+- **Connection pill** in the top header (mobile + desktop): `Online` (subtle), `Offline` (amber), `Syncing N…` (blue with spinner), `Sync error` (red, opens log).
+- **Sync Log page** (Settings → Sync) listing every offline mutation: status (pending / synced / failed / discarded), timestamp, target (e.g. "Add item to order #1234"), and per-row **Retry** / **Discard** buttons. Bulk "Retry all" / "Clear synced".
+- **Per-record badges**: orders/payments/sessions created offline show a small "Pending sync" dot until confirmed.
+- **Last-fetch timestamp** on each cached dataset ("Menu cached 12 min ago").
+- **First-run install banner**: "Preparing offline mode…" while initial datasets prefetch.
 
-New table `user_shift_schedules` (per business + user, optionally per weekday):
-- `check_in_time` (local time, e.g. 08:00)
-- `check_out_time` (local time, e.g. 16:00)
-- `early_window_minutes` (default 15) — how early a user may check in
-- `late_window_minutes` (default 30) — grace after scheduled check-in
-- `auto_logout_offset_minutes` (default 60) — past `check_out_time`, system force-closes the session
-- `weekday_mask` (bitmask Mon–Sun) or one row per weekday — pick simplest: one row per (user, weekday) plus a default fallback row
-- `active` flag
+## Scope of offline features
 
-Rules enforced server-side via SECURITY DEFINER RPC `attempt_check_in(user_id, device_id, fingerprint_token)`:
-- Reject if `now()` is before `check_in_time − early_window`
-- Reject if there is already an open session today
-- Reject if a previous session was force-closed and the next window has not opened
-- Allow late check-in (logged with `late = true`), no upper bound besides next window
-- On success → insert `attendance_sessions` row
+| Feature | Read offline | Mutate offline |
+|---|---|---|
+| Menu, categories, combos, addons, prices | ✓ | ✗ (admin-only, requires online) |
+| Tables, active orders, order items | ✓ | ✓ create/update/cancel orders & items, discounts, status changes |
+| Payments (cash + card-as-record) | ✓ history (cached) | ✓ record payment, mark paid |
+| Till sessions (open/close, X/Z reports) | ✓ current session + X report snapshot | ✓ open session, close session (Z report generated from local data), PDF export |
+| Attendance check-in / check-out | ✓ own schedule + open session | ✓ queue check-in/out (fingerprint validated against cached hash) |
+| Stock counts | ✓ | ✗ (write-heavy admin) |
+| Mercado Pago card terminal | n/a | ✗ network required — UI disables card option offline; only "cash" + "card (manual)" allowed |
+| Push notifications, analytics, backoffice | ✗ | ✗ |
 
-Auto-logout: scheduled job (pg_cron or a lightweight trigger checked on each app heartbeat) closes any session past `check_out_time + auto_logout_offset_minutes` with `check_out_method = 'auto'`.
+## Technical approach
 
-Admins (in Users → Schedule tab) manage each user's schedule. Default seed: Mon–Fri 09:00–18:00, 15/30/60 minute windows.
+### Storage
+- **IndexedDB** via `idb-keyval` (lightweight) for: (a) React Query persisted cache, (b) mutation queue, (c) sync log.
+- Three logical stores: `rq-cache`, `mutation-queue`, `sync-log`.
 
-## 2. Fingerprint-only enforcement
+### React Query persistence
+- Add `@tanstack/react-query-persist-client` + custom `idb-keyval` persister.
+- `persistQueryClient` with `maxAge: 7 days`, `buster` keyed to app version + `currentBusinessId` (clears cache on business switch / deploy).
+- Per-query `gcTime: Infinity` for offline-critical keys (`menu_items`, `menu_categories`, `combos`, `tables`, `orders`, `payments`, `till_session`, `till_x_report`, `attendance/me`, `user_shift_schedules`).
+- Other queries keep current behavior.
+- Tag each persisted query with `dataUpdatedAt` (React Query already tracks) and surface as "last fetch".
 
-The `/check-in` screen detects the local fingerprint bridge (`GET http://localhost:8765/status`):
+### Mutation queue
+- New `useOfflineMutation` wrapper around `useMutation` that:
+  1. Generates client UUID for inserts (`crypto.randomUUID()`).
+  2. Applies **optimistic update** to React Query cache immediately.
+  3. If online → fires Supabase call; on success updates log entry to `synced`; on failure keeps in queue with `failed` + error.
+  4. If offline → only enqueues; UI already reflects optimistic state.
+- Queue entry shape:
+  ```ts
+  { id, createdAt, kind: 'order.create'|'order_item.insert'|'payment.create'|'till.open'|'till.close'|'attendance.check_in'|..., payload, status, error?, retries, dependsOn?: string[] }
+  ```
+- **Dependency chain**: items reference local order id via `dependsOn`. Sync runner processes queue in FIFO with a topo sort so parent inserts succeed before children.
+- **Sync runner** triggers on: `window online` event, app focus, manual "Retry all", and 30s poll while pending entries exist.
+- On success, invalidates the related React Query keys to reconcile with server truth.
 
-- **Bridge present + reader connected** → show user picker + "Place finger" prompt. Submit fingerprint template hash to `attempt_check_in`. PIN fallback only if admin enables `allow_pin_fallback` in business settings (default OFF — keeps the anti-fraud guarantee).
-- **Bridge missing / reader disconnected** → display a blocking message:
-  - Big live clock (local time + server time, refreshes each second)
-  - Text: "This device cannot start a shift. Check in on the time-clock device before entering the floor."
-  - **Retry** button (re-probes the bridge) and **Reload** button
-  - No user list, no PIN, no way past the gate
-- WebAuthn / native mobile biometrics are explicitly NOT accepted — flagged as fraud risk in the requirements doc.
+### Conflict handling (hybrid)
+- Classify Postgres / app errors:
+  - **Auto-discard** (terminal): `order already paid`, `session_already_open`, `fingerprint_mismatch`, RLS `forbidden`, FK conflicts. Toast + sync-log entry marked `discarded` with reason; optimistic state is rolled back via query invalidation.
+  - **Keep for retry**: network errors, 5xx, timeouts, `429`. Stays `failed`, user can retry/cancel from Sync Log.
+- Rollback strategy: on terminal failure, refetch affected query (e.g. that order) so UI re-syncs to server truth.
 
-The bridge probe runs every 5s while the gate is visible so a freshly-plugged reader unlocks the screen without manual reload.
+### Client UUIDs
+- Use client-generated UUIDs for `orders.id`, `order_items.id`, `payments.id`, `till_sessions.id`, `attendance_sessions.id`. All these tables already use `gen_random_uuid()` defaults — DB accepts explicit UUIDs, no migration needed.
+- For RPCs that return rows (`open_till_session`, `close_till_session`, `attempt_check_in/out`), pass the client UUID as a new parameter so the RPC uses it. **Minor migration** adds optional `_id uuid` params with `DEFAULT gen_random_uuid()` to those four functions.
 
-## 3. Dedicated time-clock devices
+### Service worker
+- Use `vite-plugin-pwa` (`generateSW`) per the PWA skill, with guarded registration (never in Lovable preview/iframe/dev).
+- Strategies:
+  - HTML navigations: `NetworkFirst`.
+  - Hashed assets: `CacheFirst`.
+  - Supabase REST/RPC (`/rest/v1/*`, `/functions/v1/*`): **no SW caching** — React Query owns offline reads. SW just lets the app shell load offline.
+- Excludes `/~oauth`, existing `push-sw.js` left untouched.
+- Reuse existing manifest.
 
-New table `attendance_devices`:
-- `label` (e.g. "Front desk clock")
-- `device_token` (random secret, shown once on enrollment)
-- `is_time_clock` (boolean — when true the device runs in clock mode)
-- `last_seen_at`, `fingerprint_bridge_version`
+### Initial prefetch ("install")
+- On first authenticated load (and after business switch), kick off parallel prefetch of: menu_items, categories, combos, addons, tables, active orders, current till session + X report, user schedule, recent payments (last 50). Show non-blocking banner with progress; the app is usable as data arrives.
 
-Device pairing flow (Admin → Settings → Time Clock Devices):
-1. Admin clicks "Add device", names it, downloads a small JSON config containing the `device_token`.
-2. On the target machine, open `/check-in?device=<token>`. The app stores the token in `localStorage` and from then on identifies itself as that device.
-3. Admin can revoke a device, view last seen, and toggle `is_time_clock`.
+### UI plumbing
+- New `OfflineProvider` (uses `navigator.onLine` + `online`/`offline` events + Supabase ping every 30s).
+- `<ConnectionPill />` mounted in `AppLayout` header / `BottomNav`.
+- `SettingsPage` → new "Sync" tab → `<SyncLog />`.
+- Disable / hide actions that strictly require server (admin menu edits, MP card, push subscribe) when offline with explanatory tooltip.
+- i18n keys added for ES/EN.
 
-**Clock mode UI** (`is_time_clock = true`):
-- Full-screen kiosk view: big clock, business logo, list of users currently scheduled within their check-in window
-- Tap a user → "Place finger on reader" → bridge verifies → success animation + sound, session opens (or closes if user already checked in)
-- No navigation to the rest of the app from this device; reloading stays in clock mode
-- Requires bridge + reader; without them the screen shows the same blocking warning as section 2 but tailored ("Time clock unavailable — reconnect the fingerprint reader")
+## Files
 
-**Normal devices** (`is_time_clock = false` or no token): behave as section 2 — user must already have an open session, otherwise the blocking warning appears.
+### New
+- `src/offline/idbStorage.ts` — IndexedDB wrapper (queue, log, RQ persister).
+- `src/offline/persister.ts` — React Query persister + `persistQueryClient` setup.
+- `src/offline/mutationQueue.ts` — enqueue / dequeue / dependency resolution.
+- `src/offline/syncRunner.ts` — drains queue, classifies errors, updates log.
+- `src/offline/useOfflineMutation.ts` — hook replacing `useMutation` for offline-capable writes.
+- `src/offline/OfflineProvider.tsx` — connection + sync state context.
+- `src/components/offline/ConnectionPill.tsx`
+- `src/components/offline/SyncLog.tsx`
+- `src/components/offline/PendingBadge.tsx`
+- `src/hooks/useOfflineStatus.ts`
+- `src/i18n` keys.
+- `vite-plugin-pwa` config in `vite.config.ts` + guarded `src/offline/registerSW.ts`.
+- One migration: optional `_id uuid` params on `open_till_session`, `close_till_session`, `attempt_check_in`, `attempt_check_out`.
 
-## 4. Data model (additions to previously approved migration)
+### Edited
+- `src/main.tsx` — wrap QueryClientProvider with persister; register SW via guarded wrapper.
+- `src/App.tsx` / `src/components/AppLayout.tsx` — mount `OfflineProvider` + `ConnectionPill`.
+- `src/hooks/useOrders.ts`, `usePayments.ts`, `useTillSessions.ts`, `useAttendance.ts` — switch critical mutations to `useOfflineMutation`, accept client UUIDs.
+- `src/pages/SettingsPage.tsx` — new Sync tab.
+- `src/components/billing/CloseTillDialog.tsx` — Z PDF generation already client-side, will keep working offline; download triggers from optimistic close.
+- Dependencies: `bun add idb-keyval @tanstack/react-query-persist-client vite-plugin-pwa workbox-window`.
 
-```text
-attendance_devices(id, business_id, label, device_token_hash, is_time_clock,
-                   last_seen_at, allow_pin_fallback, created_at)
-user_shift_schedules(id, business_id, user_id, weekday, check_in_time,
-                     check_out_time, early_window_minutes,
-                     late_window_minutes, auto_logout_offset_minutes,
-                     active, created_at, updated_at)
-attendance_sessions  -- already planned, add columns:
-  device_id (fk attendance_devices, nullable)
-  scheduled_check_in (timestamptz, snapshot)
-  late boolean default false
-  check_out_method text  -- 'fingerprint' | 'auto' | 'admin'
-```
+## Out of scope (v1)
+- Real-time multi-device merge of concurrent offline edits (we rely on last-write + conflict discard).
+- Offline admin CRUD (menu / users / settings).
+- Mercado Pago card terminal offline (network required by gateway).
+- Offline image uploads.
 
-All tables: business-scoped RLS via `current_business_id()`, GRANTs to `authenticated` and `service_role`. Standard `update_updated_at` trigger where applicable.
-
-RPCs (SECURITY DEFINER, business-scoped):
-- `attempt_check_in(user_id, device_id, fp_token)` — validates window, opens session
-- `attempt_check_out(user_id, device_id, fp_token)` — closes session
-- `close_expired_sessions()` — invoked by pg_cron every minute
-
-## 5. UI surface
-
-- `AttendanceGate` (wraps `AppLayout`): when `time_attendance` flag ON and user is non-admin → redirect to `/check-in` unless an open session exists. Admins bypass.
-- `/check-in` route: three states — fingerprint ready, bridge missing (warning + retry), already checked in (shows shift info + "Go to app").
-- `/time-clock` route: kiosk mode, no sidebar, no bottom nav.
-- Users page → "Schedule" tab per user (admin only).
-- Settings → "Time Clock Devices" tab (admin only).
-- Backoffice business feature toggle for `time_attendance` already covered.
-
-## 6. Out of scope for this iteration
-
-- Cash closing X/Z reports and purchase orders (still planned, separate build steps as previously agreed — this revision only restates attendance scope).
-- Payroll exports, geofencing, photo capture on check-in.
-
-## Technical notes
-
-- Fingerprint bridge contract documented in `docs/fingerprint-bridge.md`: `GET /status`, `POST /enroll`, `POST /verify` returning `{ ok, template_hash }`. Template never leaves the local machine; only the hash hits the server.
-- Time comparisons run in the business timezone (`businesses.timezone`); shift schedules store wall-clock times.
-- `device_token` stored hashed (sha256) at rest; raw token only returned once during enrollment.
-- `close_expired_sessions` uses `pg_cron`; if unavailable, an edge function `cron-attendance` invoked from a heartbeat in `AppLayout` handles it.
+## Validation
+- Playwright: load app online → go offline (CDP) → create order, add items, pay cash, close till → back online → verify Supabase rows match local state and sync log shows all `synced`.
+- Manual: kill network mid-mutation, confirm queue retries and `failed` entries appear in Sync Log with retry button.
