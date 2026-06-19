@@ -126,11 +126,19 @@ const OrderHistoryPage = () => {
         (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
       }
 
-      return (data ?? []).map((o: any) => ({
-        ...o,
-        waiterName: profileMap[o.created_by]?.full_name || profileMap[o.created_by]?.email || "",
-        cashierName: o.payments?.[0]?.created_by ? (profileMap[o.payments[0].created_by]?.full_name || profileMap[o.payments[0].created_by]?.email || "") : "",
-      })) as HistoryOrder[];
+      return (data ?? []).map((o: any) => {
+        const computedTotal = (o.order_items ?? []).reduce(
+          (s: number, oi: any) =>
+            s + applyLineDiscount(oi.quantity * oi.unit_price, oi.discount ?? 0, oi.discount_amount ?? 0),
+          0
+        );
+        return {
+          ...o,
+          total: computedTotal,
+          waiterName: profileMap[o.created_by]?.full_name || profileMap[o.created_by]?.email || "",
+          cashierName: o.payments?.[0]?.created_by ? (profileMap[o.payments[0].created_by]?.full_name || profileMap[o.payments[0].created_by]?.email || "") : "",
+        };
+      }) as HistoryOrder[];
     },
   });
 
