@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { Banknote, CreditCard, Receipt, DollarSign, TrendingUp, Pencil, Trash2, BarChart3, Vault, Plus, Minus, Download } from "lucide-react";
 import { CashCountCard } from "@/components/billing/CashCountCard";
+import { TillSessionCard } from "@/components/billing/TillSessionCard";
 import { startOfDay, startOfWeek, startOfMonth, format, isAfter, subDays, subWeeks, subMonths } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
