@@ -189,8 +189,26 @@ export async function runSync(qc: QueryClient): Promise<void> {
       const keysToInvalidate = INVALIDATIONS[entry.kind] ?? [];
       for (const k of keysToInvalidate) qc.invalidateQueries({ queryKey: [k] });
     } catch (err: any) {
-      const klass = classifyError(err);
       const errMsg = err?.message || String(err);
+      const isDup =
+        err?.code === "23505" ||
+        String(errMsg).toLowerCase().includes("duplicate key");
+      const isInsertKind =
+        entry.kind === "order.create" ||
+        entry.kind === "order_item.insert" ||
+        entry.kind === "order_item.insertBulk" ||
+        entry.kind === "payment.create";
+      // Idempotency: client-generated UUIDs mean a duplicate-key on insert
+      // is a previously-successful write whose ack we missed. Treat as synced.
+      if (isDup && isInsertKind) {
+        await log.push({ ...entry, status: "synced" });
+        await queue.remove(entry.id);
+        syncedIds.add(entry.id);
+        const keysToInvalidate = INVALIDATIONS[entry.kind] ?? [];
+        for (const k of keysToInvalidate) qc.invalidateQueries({ queryKey: [k] });
+        continue;
+      }
+      const klass = classifyError(err);
       if (klass === "terminal") {
         await log.push({ ...entry, status: "discarded", error: errMsg });
         await queue.remove(entry.id);
