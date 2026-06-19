@@ -13,7 +13,6 @@ import { OfflineProvider } from "@/offline/OfflineProvider";
 import { installPersistence } from "@/offline/persister";
 import { bindQueryClient } from "@/offline/enqueue";
 import { APP_VERSION } from "@/version";
-import { FeatureGate } from "@/components/FeatureGate";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import TablesPage from "@/pages/TablesPage";
