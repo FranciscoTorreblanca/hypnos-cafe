@@ -2321,37 +2321,70 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      attempt_check_in: {
-        Args: {
-          _device_id: string
-          _fingerprint_hash: string
-          _method?: string
-          _user_id: string
-        }
-        Returns: {
-          business_id: string
-          check_in_at: string
-          check_in_method: string
-          check_out_at: string | null
-          check_out_method: string | null
-          created_at: string
-          device_id: string | null
-          fingerprint_hash: string | null
-          id: string
-          late: boolean
-          notes: string | null
-          scheduled_check_in: string | null
-          scheduled_check_out: string | null
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "attendance_sessions"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      attempt_check_in:
+        | {
+            Args: {
+              _device_id: string
+              _fingerprint_hash: string
+              _method?: string
+              _user_id: string
+            }
+            Returns: {
+              business_id: string
+              check_in_at: string
+              check_in_method: string
+              check_out_at: string | null
+              check_out_method: string | null
+              created_at: string
+              device_id: string | null
+              fingerprint_hash: string | null
+              id: string
+              late: boolean
+              notes: string | null
+              scheduled_check_in: string | null
+              scheduled_check_out: string | null
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "attendance_sessions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _device_id: string
+              _fingerprint_hash: string
+              _id?: string
+              _method?: string
+              _user_id: string
+            }
+            Returns: {
+              business_id: string
+              check_in_at: string
+              check_in_method: string
+              check_out_at: string | null
+              check_out_method: string | null
+              created_at: string
+              device_id: string | null
+              fingerprint_hash: string | null
+              id: string
+              late: boolean
+              notes: string | null
+              scheduled_check_in: string | null
+              scheduled_check_out: string | null
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "attendance_sessions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       attempt_check_out: {
         Args: {
           _device_id: string
@@ -2484,34 +2517,63 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_member_of: { Args: { _business_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
-      open_till_session: {
-        Args: { _notes?: string; _opening_float: number }
-        Returns: {
-          business_id: string
-          closed_at: string | null
-          closed_by: string | null
-          closing_counted: number | null
-          closing_denominations: Json | null
-          closing_difference: number | null
-          closing_expected: number | null
-          closing_notes: string | null
-          created_at: string
-          id: string
-          opened_at: string
-          opened_by: string
-          opening_float: number
-          opening_notes: string | null
-          status: string
-          updated_at: string
-          z_report: Json | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "till_sessions"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      open_till_session:
+        | {
+            Args: { _notes?: string; _opening_float: number }
+            Returns: {
+              business_id: string
+              closed_at: string | null
+              closed_by: string | null
+              closing_counted: number | null
+              closing_denominations: Json | null
+              closing_difference: number | null
+              closing_expected: number | null
+              closing_notes: string | null
+              created_at: string
+              id: string
+              opened_at: string
+              opened_by: string
+              opening_float: number
+              opening_notes: string | null
+              status: string
+              updated_at: string
+              z_report: Json | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "till_sessions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _id?: string; _notes?: string; _opening_float: number }
+            Returns: {
+              business_id: string
+              closed_at: string | null
+              closed_by: string | null
+              closing_counted: number | null
+              closing_denominations: Json | null
+              closing_difference: number | null
+              closing_expected: number | null
+              closing_notes: string | null
+              created_at: string
+              id: string
+              opened_at: string
+              opened_by: string
+              opening_float: number
+              opening_notes: string | null
+              status: string
+              updated_at: string
+              z_report: Json | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "till_sessions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       set_active_business: {
         Args: { _business_id: string }
         Returns: undefined
