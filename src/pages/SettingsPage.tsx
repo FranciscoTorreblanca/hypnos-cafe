@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, RefreshCw, Building2, Fingerprint } from "lucide-react";
 import { APP_VERSION } from "@/version";
 import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin";
+import { SyncLog } from "@/components/offline/SyncLog";
 
 interface BusinessInfo {
   name: string; slug: string; legal_name: string | null; tax_id: string | null;
