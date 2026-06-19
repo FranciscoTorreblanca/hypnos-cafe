@@ -8,6 +8,7 @@ import { captureFingerprint } from "@/lib/fingerprintBridge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Fingerprint, RotateCw, LogOut, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const useNow = () => {
@@ -19,6 +20,7 @@ const useNow = () => {
 const CheckInPage = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const now = useNow();
@@ -27,8 +29,8 @@ const CheckInPage = () => {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const t = searchParams.get("device");
-    if (t) { setStoredDeviceToken(t); navigate("/check-in", { replace: true }); }
+    const tk = searchParams.get("device");
+    if (tk) { setStoredDeviceToken(tk); navigate("/check-in", { replace: true }); }
   }, [searchParams, navigate]);
 
   const bridgeReady = status && status !== "loading" && status.reader_connected;
@@ -42,11 +44,11 @@ const CheckInPage = () => {
         _user_id: user.id, _device_id: null, _fingerprint_hash: hash, _method: "fingerprint",
       });
       if (error) throw error;
-      toast({ title: "Checked in" });
+      toast({ title: t("att.checkedIn") });
       await refreshSession();
       navigate("/dashboard");
     } catch (e: any) {
-      toast({ title: "Check-in failed", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: t("att.checkInFailed"), description: e.message ?? String(e), variant: "destructive" });
     } finally { setBusy(false); }
   };
 
@@ -59,10 +61,10 @@ const CheckInPage = () => {
         _user_id: user.id, _device_id: null, _fingerprint_hash: hash, _method: "fingerprint",
       });
       if (error) throw error;
-      toast({ title: "Checked out" });
+      toast({ title: t("att.checkedOut") });
       await refreshSession();
     } catch (e: any) {
-      toast({ title: "Check-out failed", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: t("att.checkOutFailed"), description: e.message ?? String(e), variant: "destructive" });
     } finally { setBusy(false); }
   };
 
@@ -74,15 +76,13 @@ const CheckInPage = () => {
             <Clock className="h-4 w-4" /> {now.toLocaleString()}
           </div>
           <CardTitle className="text-2xl mt-2">
-            {hasOpen ? "Shift in progress" : "Start your shift"}
+            {hasOpen ? t("att.shiftInProgress") : t("att.startShift")}
           </CardTitle>
-          <CardDescription>
-            {user?.email}
-          </CardDescription>
+          <CardDescription>{user?.email}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {status === "loading" && (
-            <p className="text-sm text-muted-foreground text-center">Detecting fingerprint reader…</p>
+            <p className="text-sm text-muted-foreground text-center">{t("att.detectingReader")}</p>
           )}
 
           {status !== "loading" && !bridgeReady && (
@@ -90,20 +90,16 @@ const CheckInPage = () => {
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium">Fingerprint reader not available</p>
-                  <p className="text-muted-foreground mt-1">
-                    This device cannot start a shift. Check in on the dedicated
-                    time-clock device before entering the floor. If you already
-                    did, tap retry.
-                  </p>
+                  <p className="font-medium">{t("att.readerUnavailable")}</p>
+                  <p className="text-muted-foreground mt-1">{t("att.readerUnavailableHint")}</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={refresh} className="gap-1">
-                  <RotateCw className="h-3.5 w-3.5" /> Retry
+                  <RotateCw className="h-3.5 w-3.5" /> {t("att.retry")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => { void refreshSession(); }}>
-                  Refresh status
+                  {t("att.refreshStatus")}
                 </Button>
               </div>
             </div>
@@ -114,19 +110,19 @@ const CheckInPage = () => {
               <div className="rounded-lg bg-muted/50 p-3 text-sm flex gap-2 items-start">
                 <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
                 <div>
-                  <p>Checked in at {new Date(session.check_in_at).toLocaleTimeString()}</p>
+                  <p>{t("att.checkedInAt")} {new Date(session.check_in_at).toLocaleTimeString()}</p>
                   {session.scheduled_check_out && (
                     <p className="text-muted-foreground">
-                      Scheduled end: {new Date(session.scheduled_check_out).toLocaleTimeString()}
+                      {t("att.scheduledEnd")} {new Date(session.scheduled_check_out).toLocaleTimeString()}
                     </p>
                   )}
                 </div>
               </div>
               <Button className="w-full" onClick={() => navigate("/dashboard")}>
-                Go to app
+                {t("att.goToApp")}
               </Button>
               <Button className="w-full gap-2" variant="outline" onClick={doCheckOut} disabled={busy}>
-                <Fingerprint className="h-4 w-4" /> Check out
+                <Fingerprint className="h-4 w-4" /> {t("att.checkOut")}
               </Button>
             </div>
           )}
@@ -134,12 +130,12 @@ const CheckInPage = () => {
           {bridgeReady && !loading && !hasOpen && (
             <Button className="w-full h-14 text-base gap-2" onClick={doCheckIn} disabled={busy}>
               <Fingerprint className="h-5 w-5" />
-              {busy ? "Reading fingerprint…" : "Place finger to check in"}
+              {busy ? t("att.reading") : t("att.placeFinger")}
             </Button>
           )}
 
           <Button variant="ghost" size="sm" className="w-full gap-1" onClick={signOut}>
-            <LogOut className="h-3.5 w-3.5" /> Sign out
+            <LogOut className="h-3.5 w-3.5" /> {t("att.signOut")}
           </Button>
         </CardContent>
       </Card>
