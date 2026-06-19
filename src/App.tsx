@@ -9,6 +9,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { BackofficeRoute } from "@/components/BackofficeRoute";
 import { AppLayout } from "@/components/AppLayout";
 import { FeatureGate } from "@/components/FeatureGate";
+import { OfflineProvider } from "@/offline/OfflineProvider";
+import { installPersistence } from "@/offline/persister";
+import { bindQueryClient } from "@/offline/enqueue";
+import { APP_VERSION } from "@/version";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import TablesPage from "@/pages/TablesPage";
@@ -52,14 +56,22 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000,
       gcTime: 30 * 60 * 1000,
       retry: 1,
+      networkMode: "offlineFirst",
+    },
+    mutations: {
+      networkMode: "offlineFirst",
     },
   },
 });
+
+installPersistence(queryClient, APP_VERSION);
+bindQueryClient(queryClient);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
+        <OfflineProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -119,6 +131,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+        </OfflineProvider>
       </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>

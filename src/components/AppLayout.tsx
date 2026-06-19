@@ -5,6 +5,7 @@ import { Outlet } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { AttendanceGate } from "@/components/AttendanceGate";
+import { ConnectionPill } from "@/components/offline/ConnectionPill";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
@@ -12,7 +13,10 @@ export const AppLayout = () => {
 
   const inner = isMobile ? (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-1 p-4 pb-20">
+      <div className="sticky top-0 z-10 flex justify-end p-2 pointer-events-none">
+        <div className="pointer-events-auto"><ConnectionPill /></div>
+      </div>
+      <main className="flex-1 p-4 pb-20 -mt-12 pt-12">
         <Outlet />
       </main>
       <BottomNav />
@@ -23,6 +27,7 @@ export const AppLayout = () => {
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-6">
           <SidebarTrigger />
+          <div className="ml-auto"><ConnectionPill /></div>
         </header>
         <main className="flex-1 p-6">
           <Outlet />

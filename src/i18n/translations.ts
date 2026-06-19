@@ -786,6 +786,29 @@ export const translations = {
   "att.weekday.fri": { es: "Vie", en: "Fri" },
   "att.weekday.sat": { es: "Sáb", en: "Sat" },
   "att.weekday.sun": { es: "Dom", en: "Sun" },
+
+  // Offline / Sync
+  "offline.online": { es: "En línea", en: "Online" },
+  "offline.offline": { es: "Sin conexión", en: "Offline" },
+  "offline.syncing": { es: "Sincronizando", en: "Syncing" },
+  "offline.syncError": { es: "Error de sync", en: "Sync error" },
+  "offline.syncLog": { es: "Registro de sincronización", en: "Sync log" },
+  "offline.pendingChanges": { es: "Cambios pendientes", en: "Pending changes" },
+  "offline.noPending": { es: "Sin cambios pendientes.", en: "No pending changes." },
+  "offline.recentActivity": { es: "Actividad reciente", en: "Recent activity" },
+  "offline.noActivity": { es: "Sin actividad reciente.", en: "No recent activity." },
+  "offline.retryAll": { es: "Reintentar todo", en: "Retry all" },
+  "offline.retry": { es: "Reintentar", en: "Retry" },
+  "offline.discard": { es: "Descartar", en: "Discard" },
+  "offline.clearSynced": { es: "Limpiar sincronizados", en: "Clear synced" },
+  "offline.tab": { es: "Sincronización", en: "Sync" },
+  "offline.status.pending": { es: "Pendiente", en: "Pending" },
+  "offline.status.syncing": { es: "Enviando", en: "Sending" },
+  "offline.status.failed": { es: "Falló", en: "Failed" },
+  "offline.status.synced": { es: "Sincronizado", en: "Synced" },
+  "offline.status.discarded": { es: "Descartado", en: "Discarded" },
+  "offline.savedLocally": { es: "Guardado localmente", en: "Saved locally" },
+  "offline.willSync": { es: "Se sincronizará al volver la conexión", en: "Will sync when back online" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

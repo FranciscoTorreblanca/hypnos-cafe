@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, RefreshCw, Building2, Fingerprint } from "lucide-react";
 import { APP_VERSION } from "@/version";
 import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin";
+import { SyncLog } from "@/components/offline/SyncLog";
 
 interface BusinessInfo {
   name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -91,11 +92,22 @@ const SettingsPage = () => {
     window.location.replace(url.toString());
   };
 
-  if (!isAdmin) return <p className="text-muted-foreground">{t("common.error")}</p>;
+  if (!isAdmin) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
+        <SyncLog />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
+
+      <SyncLog />
+
+
 
       {/* Business info (read-only) */}
       <Card>
