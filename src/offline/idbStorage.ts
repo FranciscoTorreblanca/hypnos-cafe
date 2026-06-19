@@ -1,9 +1,12 @@
 import { get, set, del, keys, createStore, getMany } from "idb-keyval";
 
-// Three logical stores in a single DB
-export const rqStore = createStore("hypnos-offline", "rq-cache");
-export const queueStore = createStore("hypnos-offline", "mutation-queue");
-export const logStore = createStore("hypnos-offline", "sync-log");
+// idb-keyval's createStore opens a DB at version 1 with a single object store.
+// Calling it multiple times against the same DB name only creates the FIRST store,
+// later calls open the same v1 DB and the requested store is missing -> NotFoundError.
+// Use a separate DB per logical store to avoid that.
+export const rqStore = createStore("hypnos-offline-rq", "rq-cache");
+export const queueStore = createStore("hypnos-offline-queue", "mutation-queue");
+export const logStore = createStore("hypnos-offline-log", "sync-log");
 
 export type QueueEntryKind =
   | "order.create"
