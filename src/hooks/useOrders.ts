@@ -256,11 +256,16 @@ export const useOrders = () => {
       patchOrder(qc, id, (o) => ({ ...o, general_discount_amount: Math.max(0, discount_amount) })),
   });
 
-  const cancelOrder = useOfflineMutation<string>({
+  const cancelOrder = useOfflineMutation<string | { id: string; reason?: string }>({
     kind: "order.cancel",
-    label: (id) => `Cancel order ${id.slice(0, 6)}`,
-    buildPayload: (id) => ({ id }),
-    optimistic: async (qc, id) => patchOrder(qc, id, (o) => ({ ...o, status: "cancelled" })),
+    label: (v) => `Cancel order ${(typeof v === "string" ? v : v.id).slice(0, 6)}`,
+    buildPayload: (v) =>
+      typeof v === "string" ? { id: v, reason: null } : { id: v.id, reason: v.reason ?? null },
+    optimistic: async (qc, v) => {
+      const id = typeof v === "string" ? v : v.id;
+      const reason = typeof v === "string" ? null : v.reason ?? null;
+      patchOrder(qc, id, (o) => ({ ...o, status: "cancelled", cancel_reason: reason } as any));
+    },
   });
 
   const getActiveOrderForTable = (tableNumber: number) =>
