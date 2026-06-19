@@ -131,6 +131,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+        </OfflineProvider>
       </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>
