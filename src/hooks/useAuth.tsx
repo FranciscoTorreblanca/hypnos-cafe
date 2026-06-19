@@ -8,7 +8,7 @@ type AppRole = "admin" | "waiter" | "billing" | "kitchen" | "loyalty_member" | "
 export type FeatureKey =
   | "tickets" | "calendar" | "loyalty" | "kitchen" | "cost_calculator"
   | "stock" | "budget" | "analytics" | "push_notifications"
-  | "mercado_pago" | "menu_generator" | "wifi" | "time_attendance";
+  | "mercado_pago" | "menu_generator" | "wifi" | "time_attendance" | "cash_closing";
 
 export interface BusinessSummary {
   id: string;
