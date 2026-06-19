@@ -43,7 +43,7 @@ const OFFLINE_QUERY_KEYS = new Set([
 export function installPersistence(queryClient: QueryClient, version: string) {
   const persister = createIdbPersister();
   persistQueryClient({
-    queryClient,
+    queryClient: queryClient as any,
     persister,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     buster: version,
