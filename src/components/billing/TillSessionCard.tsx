@@ -11,19 +11,37 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import {
   useCurrentTillSession, useTillXReport, useOpenTillSession, useCloseTillSession,
+  useTillSessionsHistory,
 } from "@/hooks/useTillSessions";
 import { CloseTillDialog } from "./CloseTillDialog";
-import { Vault, PlayCircle, FileText, StopCircle, Clock } from "lucide-react";
+import { Vault, PlayCircle, FileText, StopCircle, Clock, Download } from "lucide-react";
+import { generateTillReportPdf } from "@/lib/tillReportPdf";
 
 export const TillSessionCard = () => {
-  const { t } = useLanguage();
-  const { isAdmin, hasRole } = useAuth();
+  const { t, language } = useLanguage();
+  const { isAdmin, hasRole, currentBusiness } = useAuth();
   const { toast } = useToast();
   const canManage = isAdmin || hasRole("billing");
 
   const { data: session, isLoading } = useCurrentTillSession();
   const { data: xReport } = useTillXReport(session?.id);
+  const { data: history = [] } = useTillSessionsHistory(10);
   const openMut = useOpenTillSession();
+
+  const downloadX = () => {
+    if (!session || !xReport) return;
+    generateTillReportPdf({
+      kind: "X", session, report: xReport,
+      businessName: currentBusiness?.name, lang: language, t,
+    });
+  };
+  const downloadZ = (s: typeof history[number]) => {
+    if (!s.z_report) return;
+    generateTillReportPdf({
+      kind: "Z", session: s, report: s.z_report,
+      businessName: currentBusiness?.name, lang: language, t,
+    });
+  };
 
   const [openingFloat, setOpeningFloat] = useState("");
   const [openingNotes, setOpeningNotes] = useState("");
@@ -147,6 +165,9 @@ export const TillSessionCard = () => {
             <Button variant="outline" size="sm" className="gap-1" onClick={() => setXOpen((v) => !v)}>
               <FileText className="h-4 w-4" /> {xOpen ? t("till.hideX") : t("till.showX")}
             </Button>
+            <Button variant="outline" size="sm" className="gap-1" onClick={downloadX} disabled={!xReport}>
+              <Download className="h-4 w-4" /> {t("till.downloadX")}
+            </Button>
             {canManage && (
               <Button variant="destructive" size="sm" className="gap-1 ml-auto" onClick={() => setCloseOpen(true)}>
                 <StopCircle className="h-4 w-4" /> {t("till.closeSession")}
@@ -155,6 +176,33 @@ export const TillSessionCard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {history.filter((s) => s.status === "closed").length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{t("till.recentClosures")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {history
+              .filter((s) => s.status === "closed")
+              .slice(0, 5)
+              .map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-2 text-xs border-b last:border-0 py-1.5">
+                  <div className="min-w-0">
+                    <p className="truncate">{new Date(s.closed_at ?? s.opened_at).toLocaleString()}</p>
+                    <p className="text-muted-foreground">
+                      {t("till.difference")}: {Number(s.closing_difference ?? 0) > 0 ? "+" : ""}
+                      ${Number(s.closing_difference ?? 0).toFixed(0)}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="gap-1 shrink-0" onClick={() => downloadZ(s)}>
+                    <Download className="h-3 w-3" /> Z
+                  </Button>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      )}
 
       {canManage && (
         <CloseTillDialog

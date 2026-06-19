@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Minus, Plus, RotateCcw } from "lucide-react";
 import { useCloseTillSession, type TillSession, type TillXReport } from "@/hooks/useTillSessions";
+import { useAuth } from "@/hooks/useAuth";
+import { generateTillReportPdf } from "@/lib/tillReportPdf";
 
 const DENOMINATIONS = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
 
@@ -22,7 +24,8 @@ interface Props {
 }
 
 export const CloseTillDialog = ({ open, onOpenChange, session, xReport }: Props) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { currentBusiness } = useAuth();
   const { toast } = useToast();
   const closeMut = useCloseTillSession();
 
@@ -47,12 +50,24 @@ export const CloseTillDialog = ({ open, onOpenChange, session, xReport }: Props)
       const denoms = Object.fromEntries(
         Object.entries(counts).filter(([, v]) => v > 0)
       );
-      await closeMut.mutateAsync({
+      const closed = await closeMut.mutateAsync({
         session_id: session.id,
         counted,
         denominations: Object.keys(denoms).length ? (denoms as any) : undefined,
         notes: notes || undefined,
       });
+      try {
+        generateTillReportPdf({
+          kind: "Z",
+          session: closed,
+          report: (closed as any).z_report ?? xReport,
+          businessName: currentBusiness?.name,
+          lang: language,
+          t,
+        });
+      } catch (pdfErr) {
+        console.error("Z PDF generation failed", pdfErr);
+      }
       toast({ title: t("till.sessionClosed") });
       onOpenChange(false);
       reset();

@@ -237,6 +237,8 @@ export const translations = {
   "till.confirmClose": { es: "Confirmar cierre", en: "Confirm close" },
   "till.cancel": { es: "Cancelar", en: "Cancel" },
   "till.difference": { es: "Diferencia", en: "Difference" },
+  "till.downloadX": { es: "Descargar X (PDF)", en: "Download X (PDF)" },
+  "till.recentClosures": { es: "Cierres recientes", en: "Recent closures" },
   "billing.addCash": { es: "Agregar efectivo", en: "Add Cash" },
   "billing.removeCash": { es: "Retirar efectivo", en: "Remove Cash" },
   "billing.adjustmentNote": { es: "Nota del ajuste", en: "Adjustment note" },
