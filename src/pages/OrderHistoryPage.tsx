@@ -65,6 +65,7 @@ interface HistoryOrder {
   updated_at: string;
   created_by: string;
   order_items: HistoryOrderItem[];
+  cancel_reason?: string | null;
   waiterName?: string;
   cashierName?: string;
   payments: { amount: number; tip: number; payment_method: string; created_at: string; created_by: string }[];
