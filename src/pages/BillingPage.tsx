@@ -51,7 +51,7 @@ const BillingPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [] } = useOrders();
   const { data: payments = [], createPayment, updatePayment, deletePayment } = usePayments();
-  const { isAdmin } = useAuth();
+  const { isAdmin, hasFeature } = useAuth();
   const { toast } = useToast();
   const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
