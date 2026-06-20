@@ -58,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
   const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null);
   const [features, setFeatures] = useState<Record<FeatureKey, boolean>>(ALL_FEATURES_ON);
+  const [currentBusinessRoles, setCurrentBusinessRoles] = useState<string[]>([]);
 
   // Invalidate all cached queries whenever the active business changes so
   // every hook re-fetches scoped data without each one needing to key by it.
