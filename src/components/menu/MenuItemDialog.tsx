@@ -79,6 +79,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
       name: "", name_en: "", description: "", description_en: "",
       price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
       image_url: null,
+      cooking_time_seconds: null, cooking_warning_seconds: 60,
     },
   });
 
@@ -98,6 +99,8 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         is_available: item.is_available,
         inventory_count: item.inventory_count,
         image_url: item.image_url,
+        cooking_time_seconds: item.cooking_time_seconds ?? null,
+        cooking_warning_seconds: item.cooking_warning_seconds ?? 60,
       });
     } else {
       form.reset();
