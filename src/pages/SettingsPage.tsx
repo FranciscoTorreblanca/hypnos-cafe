@@ -179,8 +179,22 @@ const SettingsPage = () => {
                 ) : permission === "denied" ? (
                   <p className="text-sm text-destructive">{t("settings.pushPermissionDenied")}</p>
                 ) : isSubscribed ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-sm text-emerald-600 dark:text-emerald-400">✓ {t("settings.pushSubscribed")}</p>
+                    <div className="rounded-lg border border-border/60 bg-card/40 divide-y divide-border/40">
+                      {NOTIFICATION_EVENTS.map((ev) => (
+                        <div key={ev.key} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{ev.label}</p>
+                            <p className="text-xs text-muted-foreground">{ev.description}</p>
+                          </div>
+                          <Switch
+                            checked={enabledEvents.includes(ev.key)}
+                            onCheckedChange={(v) => toggleEvent(ev.key, v)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                     <Button variant="outline" size="sm" onClick={unsubscribe} disabled={pushLoading}>
                       {t("settings.pushUnsubscribe")}
                     </Button>
@@ -190,6 +204,7 @@ const SettingsPage = () => {
                     {t("settings.pushSubscribe")}
                   </Button>
                 )}
+
               </div>
             )}
             <Button onClick={handleSavePush} disabled={loading} className="w-full">
