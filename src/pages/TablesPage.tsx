@@ -587,7 +587,7 @@ const TablesPage = () => {
         </Button>
       </div>
 
-      {/* Items waiting to be served */}
+      {/* Build to-serve list */}
       {(() => {
         const toServe: Array<{ item: OrderItem; orderId: string; tableNum: number }> = [];
         for (const o of activeOrders) {
@@ -598,125 +598,159 @@ const TablesPage = () => {
           }
         }
         toServe.sort((a, b) => new Date(a.item.created_at).getTime() - new Date(b.item.created_at).getTime());
-        if (toServe.length === 0) return null;
         const fmt = (ms: number) => {
           const total = Math.max(0, Math.floor(ms / 1000));
           const m = Math.floor(total / 60);
           const s = total % 60;
           return `${m}:${s.toString().padStart(2, "0")}`;
         };
+        const overCount = toServe.filter((x) => (now - new Date(x.item.created_at).getTime()) / 60000 >= 10).length;
+        const warnCount = toServe.filter((x) => {
+          const m = (now - new Date(x.item.created_at).getTime()) / 60000;
+          return m >= 5 && m < 10;
+        }).length;
+
         return (
-          <div className="rounded-lg border border-blue-300 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-800 p-2.5 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-sm font-medium text-blue-900 dark:text-blue-200">
-              <UtensilsCrossed className="h-3.5 w-3.5" />
-              {language === "es" ? "Por servir" : "To serve"}
-              <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{toServe.length}</Badge>
-            </div>
-            <div className="flex flex-col gap-1">
-              {toServe.map(({ item, orderId, tableNum }) => {
-                const elapsed = now - new Date(item.created_at).getTime();
-                const mins = elapsed / 60000;
-                const tone = mins >= 10 ? "text-red-700 dark:text-red-300" : mins >= 5 ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground";
-                return (
-                  <div key={item.id} className="flex items-center gap-2 text-xs bg-background/70 rounded px-2 py-1.5 border">
-                    <Badge variant="outline" className="text-[10px] shrink-0">{getTableLabel(tableNum)}</Badge>
-                    <span className="font-medium truncate flex-1">
-                      {item.quantity}x {language === "es" ? item.menu_item?.name : item.menu_item?.name_en || item.menu_item?.name}
-                    </span>
-                    <span className={`font-mono tabular-nums ${tone}`}>{fmt(elapsed)}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 text-emerald-600 hover:text-emerald-700"
-                      onClick={() => updateItemStatus.mutate({ id: item.id, status: "served", order_id: orderId })}
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    </Button>
+          <Tabs defaultValue="tables">
+            <TabsList>
+              <TabsTrigger value="tables">
+                {t("tables.title")}
+                <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-[10px]">{tables.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="serve" className="gap-1.5">
+                <span>{language === "es" ? "Por servir" : "To serve"}</span>
+                {toServe.length > 0 && (
+                  <Badge
+                    variant={overCount > 0 ? "destructive" : "secondary"}
+                    className={cn(
+                      "h-4 px-1.5 text-[10px]",
+                      overCount > 0 && "animate-pulse",
+                      overCount === 0 && warnCount > 0 && "bg-amber-500 text-white hover:bg-amber-500",
+                    )}
+                  >
+                    {toServe.length}
+                  </Badge>
+                )}
+                {overCount > 0 && <Flame className="h-3.5 w-3.5 text-red-600 animate-pulse" />}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tables" className="mt-3 space-y-3">
+              {/* New table input */}
+              {showNewTable && (
+                <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+                  <Input
+                    autoFocus
+                    placeholder={t("tables.newTablePlaceholder")}
+                    value={newTableName}
+                    onChange={(e) => setNewTableName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddTable()}
+                    className="h-9"
+                  />
+                  <Button size="sm" onClick={handleAddTable} disabled={!newTableName.trim()}>
+                    {t("common.add")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowNewTable(false); setNewTableName(""); }}
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {tables.length === 0 && !showNewTable && (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                  <UtensilsCrossed className="h-10 w-10 opacity-40" />
+                  <p className="text-sm">{t("tables.empty")}</p>
+                  <Button size="sm" variant="outline" onClick={() => setShowNewTable(true)}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t("tables.addFirst")}
+                  </Button>
+                </div>
+              )}
+
+              {/* Draggable table list */}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sortedTableNumbers} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col gap-2">
+                    {tables.map((table) => (
+                      <SortableTableCard
+                        key={table.number}
+                        table={table as any}
+                        status={getStatus(table)}
+                        statusConfig={statusConfig}
+                        label={getTableLabel(table.number)}
+                        isExpanded={expandedTable === table.number}
+                        language={language}
+                        t={t}
+                        onToggleExpand={toggleExpand}
+                        onOpenTable={openTable}
+                        onOpenSubOrder={openSubOrder}
+                        onDeleteTable={(num) => setDeleteTableNum(num)}
+                      />
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </SortableContext>
+              </DndContext>
+            </TabsContent>
+
+            <TabsContent value="serve" className="mt-3">
+              {toServe.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                  <CheckCircle2 className="h-8 w-8 opacity-40" />
+                  <p className="text-sm">{language === "es" ? "Nada por servir" : "Nothing to serve"}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {toServe.map(({ item, orderId, tableNum }) => {
+                    const elapsed = now - new Date(item.created_at).getTime();
+                    const mins = elapsed / 60000;
+                    const over = mins >= 10;
+                    const warn = !over && mins >= 5;
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "flex items-center gap-2 text-sm rounded-md px-2.5 py-2 border bg-card",
+                          warn && "border-amber-400 bg-amber-50/60 dark:bg-amber-950/20",
+                          over && "border-red-400 bg-red-50/60 dark:bg-red-950/20 ring-1 ring-red-400/40",
+                        )}
+                      >
+                        <Badge variant="outline" className="text-[10px] shrink-0">{getTableLabel(tableNum)}</Badge>
+                        <span className="font-medium truncate flex-1">
+                          {item.quantity}x {language === "es" ? item.menu_item?.name : item.menu_item?.name_en || item.menu_item?.name}
+                        </span>
+                        {over && <Flame className="h-3.5 w-3.5 text-red-600" />}
+                        <span
+                          className={cn(
+                            "font-mono tabular-nums text-xs",
+                            over ? "text-red-700 dark:text-red-300" : warn ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground",
+                          )}
+                        >
+                          {fmt(elapsed)}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-emerald-600 hover:text-emerald-700"
+                          onClick={() => updateItemStatus.mutate({ id: item.id, status: "served", order_id: orderId })}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         );
       })()}
 
-      {/* New table input */}
-      {showNewTable && (
-        <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
-          <Input
-            autoFocus
-            placeholder={t("tables.newTablePlaceholder")}
-            value={newTableName}
-            onChange={(e) => setNewTableName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddTable()}
-            className="h-9"
-          />
-          <Button
-            size="sm"
-            onClick={handleAddTable}
-            disabled={!newTableName.trim()}
-          >
-            {t("common.add")}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setShowNewTable(false);
-              setNewTableName("");
-            }}
-          >
-            {t("common.cancel")}
-          </Button>
-        </div>
-      )}
 
-      {/* Empty state */}
-      {tables.length === 0 && !showNewTable && (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-          <UtensilsCrossed className="h-10 w-10 opacity-40" />
-          <p className="text-sm">{t("tables.empty")}</p>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowNewTable(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            {t("tables.addFirst")}
-          </Button>
-        </div>
-      )}
-
-      {/* Draggable table list */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={sortedTableNumbers}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="flex flex-col gap-2">
-            {tables.map((table) => (
-              <SortableTableCard
-                key={table.number}
-                table={table as any}
-                status={getStatus(table)}
-                statusConfig={statusConfig}
-                label={getTableLabel(table.number)}
-                isExpanded={expandedTable === table.number}
-                language={language}
-                t={t}
-                onToggleExpand={toggleExpand}
-                onOpenTable={openTable}
-                onOpenSubOrder={openSubOrder}
-                onDeleteTable={(num) => setDeleteTableNum(num)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
 
       {/* Order Dialog */}
       <OrderDialog
