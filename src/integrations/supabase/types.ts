@@ -1559,6 +1559,7 @@ export type Database = {
           general_discount_amount: number
           id: string
           notes: string
+          parent_order_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           table_number: number
           total: number
@@ -1573,6 +1574,7 @@ export type Database = {
           general_discount_amount?: number
           id?: string
           notes?: string
+          parent_order_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           table_number: number
           total?: number
@@ -1587,6 +1589,7 @@ export type Database = {
           general_discount_amount?: number
           id?: string
           notes?: string
+          parent_order_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           table_number?: number
           total?: number
@@ -1598,6 +1601,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_parent_order_id_fkey"
+            columns: ["parent_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
