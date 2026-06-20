@@ -200,6 +200,7 @@ const INVALIDATIONS: Partial<Record<QueueEntry["kind"], string[]>> = {
   "order.updateGeneralDiscount": ["orders"],
   "order.updateGeneralDiscountAmount": ["orders"],
   "order.cancel": ["orders"],
+  "order.split": ["orders"],
   "order_item.insert": ["orders"],
   "order_item.insertBulk": ["orders"],
   "order_item.updateStatus": ["orders"],
