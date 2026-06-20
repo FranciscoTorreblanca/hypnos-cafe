@@ -378,6 +378,11 @@ const OrderHistoryPage = () => {
                       <span className="font-semibold text-sm">
                         {language === "es" ? "Mesa" : "Table"} {order.table_number}
                       </span>
+                      {order.parent_order_id && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {t("orders.subOrder")} · #{order.parent_order_id.slice(0, 6)}
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {dateFmt(order.created_at)}
