@@ -410,41 +410,61 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     <Clock className="h-3.5 w-3.5" />
                     {language === "es" ? "Tiempo de cocina" : "Cooking time"}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField control={form.control} name="cooking_time_seconds" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">
-                          {language === "es" ? "Objetivo (min)" : "Target (min)"}
+                  <FormField control={form.control} name="requires_kitchen" render={({ field }) => (
+                    <FormItem className="flex items-start gap-3 rounded-md border p-2.5 bg-muted/30">
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm mt-0">
+                          {language === "es" ? "Requiere preparación en cocina" : "Requires kitchen preparation"}
                         </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            min={0}
-                            placeholder={language === "es" ? "Sin objetivo" : "No target"}
-                            value={field.value == null ? "" : (field.value / 60).toString()}
-                            onChange={(e) => field.onChange(e.target.value === "" ? null : Math.round(Number(e.target.value) * 60))}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="cooking_warning_seconds" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">
-                          {language === "es" ? "Aviso antes (seg)" : "Warning offset (sec)"}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={field.value ?? 60}
-                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )} />
-                  </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {language === "es"
+                            ? "Desactiva para artículos ya listos (ej. bebidas embotelladas). El mesero los servirá directamente sin pasar por cocina."
+                            : "Turn off for ready-to-serve items (e.g. bottled drinks). The waiter serves them directly without going through the kitchen."}
+                        </p>
+                      </div>
+                    </FormItem>
+                  )} />
+                  {form.watch("requires_kitchen") && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField control={form.control} name="cooking_time_seconds" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">
+                            {language === "es" ? "Objetivo (min)" : "Target (min)"}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.5"
+                              min={0}
+                              placeholder={language === "es" ? "Sin objetivo" : "No target"}
+                              value={field.value == null ? "" : (field.value / 60).toString()}
+                              onChange={(e) => field.onChange(e.target.value === "" ? null : Math.round(Number(e.target.value) * 60))}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="cooking_warning_seconds" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">
+                            {language === "es" ? "Aviso antes (seg)" : "Warning offset (sec)"}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={field.value ?? 60}
+                              onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+                  )}
                 </div>
+
 
 
                 {/* Image upload */}
