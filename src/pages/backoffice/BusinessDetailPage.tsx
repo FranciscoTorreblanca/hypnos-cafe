@@ -75,9 +75,14 @@ const BusinessDetailPage = () => {
   const handleSendTestPush = async () => {
     setSendingTest(true);
     try {
+      const now = new Date().toISOString();
       const data: Record<string, unknown> =
         testType === "order_paid"
-          ? { amount: 250, tip: 30, payment_method: "cash", waiter_name: "Test", table_number: 1, order_id: "test" }
+          ? { amount: 250, tip: 30, payment_method: "cash", waiter_name: "Test", table_number: 1, order_id: "test", paid_at: now }
+          : testType === "order_cancelled"
+          ? { order_id: "test", table_number: 1, total: 250, reason: "Cliente canceló", waiter_name: "Test", cancelled_at: now }
+          : testType === "low_stock"
+          ? { item_name: "Producto de prueba", item_id: "test", inventory_count: 3, threshold: 5 }
           : testType === "out_of_stock"
           ? { item_name: "Producto de prueba", item_id: "test" }
           : { body: "Notificación de prueba desde Back-office" };
@@ -99,6 +104,7 @@ const BusinessDetailPage = () => {
     }
     setSendingTest(false);
   };
+
 
   const fetchAll = async () => {
     const [{ data: b }, { data: f }, { data: m }] = await Promise.all([
