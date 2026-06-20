@@ -46,9 +46,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // --- Invite / add user to business ---
+    // --- Invite / add user to business (supports multi-role) ---
     const { email, full_name, role, business_id } = body;
-    if (!email || !full_name || !role) throw new Error("Missing fields");
+    const rawRoles: string[] = Array.isArray(body.roles) && body.roles.length > 0
+      ? body.roles
+      : (role ? [role] : []);
+    const roles = Array.from(new Set(rawRoles.filter(Boolean)));
+    const ENUM_ROLES = new Set(["admin", "waiter", "billing", "kitchen"]);
+    if (!email || !full_name || roles.length === 0) throw new Error("Missing fields");
 
     // Resolve target business
     let targetBusinessId: string | null = business_id ?? null;
@@ -60,7 +65,6 @@ Deno.serve(async (req) => {
     }
     if (!targetBusinessId) throw new Error("No business context available");
 
-    // Look up business name for the informational email
     const { data: biz } = await adminClient
       .from("businesses").select("name").eq("id", targetBusinessId).maybeSingle();
     const businessName = biz?.name || "your business";
@@ -73,41 +77,45 @@ Deno.serve(async (req) => {
 
     if (existingProfile) {
       userId = existingProfile.id;
-      const { data: existingMember } = await adminClient
-        .from("business_members")
-        .select("id, role")
-        .eq("user_id", userId)
-        .eq("business_id", targetBusinessId)
-        .eq("role", role)
-        .maybeSingle();
-      if (existingMember) {
-        throw new Error("This user is already a member of this business with that role");
-      }
     } else {
-      // Send invite email so the user can set their password.
-      // inviteUserByEmail both creates the auth user AND emails them an invitation link.
       const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
-        {
-          data: { full_name },
-          redirectTo: getRedirectUrl(req),
-        },
+        { data: { full_name }, redirectTo: getRedirectUrl(req) },
       );
       if (inviteError) throw inviteError;
       userId = invited.user.id;
       isNewUser = true;
     }
 
-    // Assign legacy global role (kept for back-compat) - ignore duplicates
-    await adminClient
-      .from("user_roles")
-      .insert({ user_id: userId, role })
-      .then((r) => r);
-
-    // Link user to business with scoped role
-    await adminClient
+    // Existing business memberships (skip duplicates)
+    const { data: existingMembers } = await adminClient
       .from("business_members")
-      .insert({ user_id: userId, business_id: targetBusinessId, role, is_default: isNewUser });
+      .select("role")
+      .eq("user_id", userId)
+      .eq("business_id", targetBusinessId);
+    const existingRoles = new Set((existingMembers ?? []).map((m: any) => m.role));
+
+    // Legacy enum roles (only insert ones the user_roles enum accepts)
+    for (const r of roles) {
+      if (!ENUM_ROLES.has(r)) continue;
+      await adminClient.from("user_roles").insert({ user_id: userId, role: r }).then((x) => x);
+    }
+
+    // Per-business memberships (one row per role)
+    const toInsert = roles
+      .filter((r) => !existingRoles.has(r))
+      .map((r, idx) => ({
+        user_id: userId!,
+        business_id: targetBusinessId!,
+        role: r,
+        is_default: isNewUser && idx === 0,
+      }));
+    if (toInsert.length > 0) {
+      const { error: memErr } = await adminClient.from("business_members").insert(toInsert);
+      if (memErr) throw memErr;
+    } else if (!isNewUser) {
+      throw new Error("This user already has all selected roles in this business");
+    }
 
     return new Response(
       JSON.stringify({
