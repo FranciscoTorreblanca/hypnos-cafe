@@ -169,8 +169,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  const isAdmin = hasRole("admin");
   const isSuperAdmin = hasRole("super_admin");
+  const isBusinessAdmin = currentBusinessRoles.includes("business_admin");
+  // business_admin for the active business is treated as admin in-app
+  const isAdmin = hasRole("admin") || isBusinessAdmin || currentBusinessRoles.includes("admin");
   const isLoyaltyMember = roles.length > 0 && roles.every((role) => role === "loyalty_member");
   const hasFeature = (key: FeatureKey) => features[key] !== false;
   const currentBusiness = businesses.find((b) => b.id === currentBusinessId) ?? null;
@@ -179,8 +181,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.rpc("set_active_business", { _business_id: id });
     setCurrentBusinessId(id);
     if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, id);
-    await fetchFeatures(id);
-  }, []);
+    await Promise.all([
+      fetchFeatures(id),
+      user ? fetchBusinessRoles(user.id, id) : Promise.resolve(),
+    ]);
+  }, [user]);
 
   const refreshBusiness = useCallback(async () => {
     if (!user) return;
@@ -193,6 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoyaltyMemberCode(null);
     setBusinesses([]);
     setCurrentBusinessId(null);
+    setCurrentBusinessRoles([]);
     setFeatures(ALL_FEATURES_ON);
     if (typeof localStorage !== "undefined") localStorage.removeItem(STORAGE_KEY);
   };
@@ -201,11 +207,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user, session, loading, roles, hasRole, isAdmin, isSuperAdmin,
+        isBusinessAdmin, currentBusinessRoles,
         isLoyaltyMember, loyaltyMemberCode,
         businesses, currentBusinessId, currentBusiness,
         features, hasFeature, switchBusiness, refreshBusiness, signOut,
       }}
     >
+
       {children}
     </AuthContext.Provider>
   );
