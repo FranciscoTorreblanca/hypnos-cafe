@@ -102,11 +102,12 @@ const KitchenPage = () => {
     );
   };
 
-  // Flatten all active kitchen items
+  // Flatten all active kitchen items (skip items that don't require kitchen prep)
   const allItems: KitchenItem[] = useMemo(() => {
     const arr: KitchenItem[] = [];
     for (const o of activeOrders) {
       for (const oi of o.order_items ?? []) {
+        if (oi.menu_item?.requires_kitchen === false) continue;
         if (oi.status === "pending" || oi.status === "in_progress") {
           arr.push({ ...oi, order: o });
         }
