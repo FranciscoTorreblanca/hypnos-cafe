@@ -330,6 +330,35 @@ const BusinessDetailPage = () => {
               ))}
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-start gap-2">
+                <Bell className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <CardTitle className="text-base">Test push notification</CardTitle>
+                  <CardDescription>
+                    Sends a notification to admins of this business who have subscribed on their device.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label>Event type</Label>
+                <Select value={testType} onValueChange={setTestType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="test">Test (generic)</SelectItem>
+                    <SelectItem value="order_paid">Order paid</SelectItem>
+                    <SelectItem value="out_of_stock">Out of stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleSendTestPush} disabled={sendingTest} className="gap-1">
+                <Bell className="h-4 w-4" /> {sendingTest ? "Sending…" : "Send test notification"}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
