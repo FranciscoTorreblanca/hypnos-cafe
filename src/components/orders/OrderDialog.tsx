@@ -1415,6 +1415,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </span>
       )}
       <span className="shrink-0">{titleSuffix}</span>
+      {order?.parent_order_id && (
+        <Badge variant="secondary" className="text-[10px] ml-1 shrink-0">
+          {t("orders.subOrder")}
+        </Badge>
+      )}
     </span>
   );
 
