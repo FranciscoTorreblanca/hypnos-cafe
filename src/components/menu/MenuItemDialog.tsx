@@ -401,6 +401,49 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                   </FormItem>
                 )} />
 
+                {/* Cooking time */}
+                <div className="space-y-2 border-t pt-3">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    {language === "es" ? "Tiempo de cocina" : "Cooking time"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField control={form.control} name="cooking_time_seconds" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">
+                          {language === "es" ? "Objetivo (min)" : "Target (min)"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            min={0}
+                            placeholder={language === "es" ? "Sin objetivo" : "No target"}
+                            value={field.value == null ? "" : (field.value / 60).toString()}
+                            onChange={(e) => field.onChange(e.target.value === "" ? null : Math.round(Number(e.target.value) * 60))}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="cooking_warning_seconds" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">
+                          {language === "es" ? "Aviso antes (seg)" : "Warning offset (sec)"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={field.value ?? 60}
+                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
+
+
                 {/* Image upload */}
                 <div className="space-y-2 border-t pt-3">
                   <div className="text-sm font-medium flex items-center gap-2">
