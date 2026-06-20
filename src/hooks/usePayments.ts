@@ -161,7 +161,7 @@ export const usePayments = () => {
             amount: totalAmount, tip: totalTip, payment_method: methodLabel,
             waiter_name: profile?.full_name || user!.email || "Mesero",
             table_number: orderData?.table_number ?? "?", order_id,
-          });
+          }, currentBusinessId);
         } catch {}
       }
 
