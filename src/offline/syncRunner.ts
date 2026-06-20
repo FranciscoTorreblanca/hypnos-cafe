@@ -151,7 +151,10 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
         tip: part.tip,
         payment_method: part.payment_method,
         created_by: p.created_by,
+        evidence_url: part.evidence_url ?? null,
+        evidence_reference: part.evidence_reference ?? null,
       }));
+
       const { error } = await supabase.from("payments").insert(rows);
       if (error) throw error;
       const { error: upErr } = await supabase.from("orders").update({ status: "paid" as any } as any).eq("id", p.order_id);
