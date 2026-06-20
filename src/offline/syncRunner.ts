@@ -63,6 +63,51 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
       if (error) throw error;
       return;
     }
+    case "order.split": {
+      // 1) Insert sub-order
+      const { error: insErr } = await supabase.from("orders").insert({
+        id: p.new_order_id,
+        table_number: p.table_number,
+        created_by: p.created_by,
+        parent_order_id: p.parent_order_id,
+      } as any);
+      if (insErr) throw insErr;
+      // 2) Move full items (re-parent)
+      if (Array.isArray(p.full_move_ids) && p.full_move_ids.length > 0) {
+        const { error: mvErr } = await supabase
+          .from("order_items")
+          .update({ order_id: p.new_order_id } as any)
+          .in("id", p.full_move_ids);
+        if (mvErr) throw mvErr;
+      }
+      // 3) Partial moves: insert new rows then decrement source qty
+      const partials = (p.partial_moves ?? []) as any[];
+      if (partials.length > 0) {
+        const newRows = partials.map((m) => ({
+          id: m.new_id,
+          order_id: p.new_order_id,
+          menu_item_id: m.menu_item_id,
+          quantity: m.move_qty,
+          unit_price: m.unit_price,
+          notes: m.notes ?? "",
+          discount: m.discount ?? 0,
+          discount_amount: m.discount_amount ?? 0,
+          combo_id: m.combo_id ?? null,
+          combo_group_id: m.combo_group_id ?? null,
+          status: m.status ?? "pending",
+        }));
+        const { error: nErr } = await supabase.from("order_items").insert(newRows as any);
+        if (nErr) throw nErr;
+        for (const m of partials) {
+          const { error: dErr } = await supabase
+            .from("order_items")
+            .update({ quantity: m.remaining_qty } as any)
+            .eq("id", m.source_id);
+          if (dErr) throw dErr;
+        }
+      }
+      return;
+    }
     case "order_item.insert": {
       const { error } = await supabase.from("order_items").insert({
         id: p.id, order_id: p.order_id, menu_item_id: p.menu_item_id, quantity: p.quantity,
