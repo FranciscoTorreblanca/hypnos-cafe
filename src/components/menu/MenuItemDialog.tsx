@@ -53,7 +53,7 @@ interface Props {
 
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { t, language } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const { data: categories = [] } = useMenuCategories();
   const { data: skus = [], add: addSku, remove: removeSku } = useMenuItemSkus(item?.id);
@@ -67,6 +67,9 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { saveAll: saveAddons } = useMenuItemAddons();
   const [addons, setAddons] = useState<AddonInput[]>([]);
   const [addonsDirty, setAddonsDirty] = useState(false);
+  const [imgUploading, setImgUploading] = useState(false);
+  const [imgPreviewUrl, setImgPreviewUrl] = useState<string | null>(null);
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
