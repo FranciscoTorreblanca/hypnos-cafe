@@ -104,7 +104,13 @@ export const usePayments = () => {
       parts,
     }: {
       order_id: string;
-      parts: { amount: number; tip: number; payment_method: string }[];
+      parts: {
+        amount: number;
+        tip: number;
+        payment_method: string;
+        evidence_reference?: string | null;
+        evidence_file?: File | null;
+      }[];
     }) => {
       if (!parts.length) throw new Error("No payment parts provided");
 
@@ -114,18 +120,27 @@ export const usePayments = () => {
       const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
       const ids = parts.map(() => crypto.randomUUID());
 
-      // Try Mercado Pago for card when online + configured. Skip silently on failure → still enqueue.
-      let mpResult: any = null;
-      if (isOnline && cardTotal > 0 && currentBusinessId) {
-        try {
-          const mpConfig = await getMpConfig(currentBusinessId);
-          if (mpConfig?.enabled) {
-            mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id, currentBusinessId);
+      // Upload any transfer evidence images before enqueueing the insert.
+      // Only when online — offline we still keep the textual reference.
+      const evidenceUrls: (string | null)[] = parts.map(() => null);
+      if (isOnline && currentBusinessId) {
+        for (let i = 0; i < parts.length; i++) {
+          const file = parts[i].evidence_file;
+          if (!file) continue;
+          try {
+            const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+            const path = `${currentBusinessId}/${ids[i]}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from("payment-evidence")
+              .upload(path, file, { upsert: true, contentType: file.type || undefined });
+            if (!upErr) evidenceUrls[i] = path;
+            else console.warn("[payments] evidence upload failed", upErr);
+          } catch (e) {
+            console.warn("[payments] evidence upload error", e);
           }
-        } catch (e) {
-          console.warn("[payments] MP card terminal unavailable", e);
         }
       }
+
 
       // Optimistic: mark order as paid in the orders cache
       queryClient.setQueryData<any[]>(["orders"], (old) => {
