@@ -10,6 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Activity, Clock, Users, MousePointerClick, TrendingUp, Lightbulb, ArrowRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { subDays } from "date-fns";
+import CookingTimeStats from "@/components/analytics/CookingTimeStats";
 
 type UsageRow = {
   id: string;
@@ -398,7 +399,13 @@ export default function AnalyticsPage() {
           <TabsTrigger value="flows">{t("analytics.flows")}</TabsTrigger>
           <TabsTrigger value="users">{t("analytics.users")}</TabsTrigger>
           <TabsTrigger value="roles">{t("analytics.roles")}</TabsTrigger>
+          <TabsTrigger value="cooking">{language === "es" ? "Cocina" : "Cooking"}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="cooking" className="space-y-4">
+          <CookingTimeStats />
+        </TabsContent>
+
 
         <TabsContent value="screens" className="space-y-4">
           <Card>

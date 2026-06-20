@@ -15,9 +15,11 @@ export interface OrderItem {
   notes: string;
   status: string;
   created_at: string;
+  started_at?: string | null;
+  ready_at?: string | null;
   combo_id?: string | null;
   combo_group_id?: string | null;
-  menu_item?: { name: string; name_en: string };
+  menu_item?: { name: string; name_en: string; cooking_time_seconds?: number | null; cooking_warning_seconds?: number | null };
   combo?: { name: string; name_en: string } | null;
 }
 
@@ -65,7 +67,7 @@ export const useOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*, menu_items(name, name_en), combos(name, name_en))")
+        .select("*, order_items(*, menu_items(name, name_en, cooking_time_seconds, cooking_warning_seconds), combos(name, name_en))")
         .in("status", ["pending", "in_progress", "completed", "ready", "served"])
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -139,7 +141,14 @@ export const useOrders = () => {
     optimistic: async (qc, { id, status, order_id }) =>
       patchOrder(qc, order_id, (o) => ({
         ...o,
-        order_items: (o.order_items ?? []).map((it) => (it.id === id ? { ...it, status } : it)),
+        order_items: (o.order_items ?? []).map((it) => {
+          if (it.id !== id) return it;
+          const nowIso = new Date().toISOString();
+          const next = { ...it, status } as OrderItem;
+          if (["in_progress", "ready", "completed", "served", "paid"].includes(status) && !next.started_at) next.started_at = nowIso;
+          if (["ready", "completed", "served", "paid"].includes(status) && !next.ready_at) next.ready_at = nowIso;
+          return next;
+        }),
         status: (o.order_items ?? []).every((it) => (it.id === id ? status : it.status) === "ready") && (o.order_items?.length ?? 0) > 0
           ? "ready" : o.status,
       })),

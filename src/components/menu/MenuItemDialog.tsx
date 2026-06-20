@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMenuItemSkus } from "@/hooks/useMenuItemSkus";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Calculator, Upload, ImageIcon, Loader2 } from "lucide-react";
+import { Trash2, Plus, Calculator, Upload, ImageIcon, Loader2, Clock } from "lucide-react";
 import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
@@ -39,6 +39,8 @@ const schema = z.object({
   is_available: z.boolean().default(true),
   inventory_count: z.coerce.number().int().nullable().default(null),
   image_url: z.string().nullable().default(null),
+  cooking_time_seconds: z.coerce.number().int().min(0).nullable().default(null),
+  cooking_warning_seconds: z.coerce.number().int().min(0).default(60),
 });
 
 
@@ -77,6 +79,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
       name: "", name_en: "", description: "", description_en: "",
       price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
       image_url: null,
+      cooking_time_seconds: null, cooking_warning_seconds: 60,
     },
   });
 
@@ -96,6 +99,8 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         is_available: item.is_available,
         inventory_count: item.inventory_count,
         image_url: item.image_url,
+        cooking_time_seconds: item.cooking_time_seconds ?? null,
+        cooking_warning_seconds: item.cooking_warning_seconds ?? 60,
       });
     } else {
       form.reset();
@@ -395,6 +400,49 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                   </FormItem>
                 )} />
+
+                {/* Cooking time */}
+                <div className="space-y-2 border-t pt-3">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    {language === "es" ? "Tiempo de cocina" : "Cooking time"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField control={form.control} name="cooking_time_seconds" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">
+                          {language === "es" ? "Objetivo (min)" : "Target (min)"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            min={0}
+                            placeholder={language === "es" ? "Sin objetivo" : "No target"}
+                            value={field.value == null ? "" : (field.value / 60).toString()}
+                            onChange={(e) => field.onChange(e.target.value === "" ? null : Math.round(Number(e.target.value) * 60))}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="cooking_warning_seconds" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">
+                          {language === "es" ? "Aviso antes (seg)" : "Warning offset (sec)"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={field.value ?? 60}
+                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
+
 
                 {/* Image upload */}
                 <div className="space-y-2 border-t pt-3">
