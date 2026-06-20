@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import { MenuItemAddonsDialog } from "@/components/orders/MenuItemAddonsDialog";
+import { SplitOrderDialog } from "@/components/orders/SplitOrderDialog";
+import { SplitSquareHorizontal } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
