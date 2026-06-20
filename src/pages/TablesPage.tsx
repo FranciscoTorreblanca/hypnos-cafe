@@ -551,11 +551,19 @@ const TablesPage = () => {
     [sortedTableNumbers, updateOrder]
   );
 
-  const activeOrder = (orders ?? []).find(
-    (o) =>
-      o.table_number === selectedTable &&
-      !["paid", "cancelled"].includes(o.status)
-  );
+  const activeOrder = selectedOrderId
+    ? (orders ?? []).find((o) => o.id === selectedOrderId)
+    : (orders ?? []).find(
+        (o) =>
+          o.table_number === selectedTable &&
+          !o.parent_order_id &&
+          !["paid", "cancelled"].includes(o.status),
+      ) ??
+      (orders ?? []).find(
+        (o) =>
+          o.table_number === selectedTable &&
+          !["paid", "cancelled"].includes(o.status),
+      );
 
   return (
     <div className="space-y-3">
