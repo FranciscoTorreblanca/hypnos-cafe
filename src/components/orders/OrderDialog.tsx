@@ -1033,6 +1033,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           </Button>
         </>
       )}
+      {order && orderItems.length > 0 && !["paid", "cancelled"].includes(order.status) && (
+        <Button
+          variant="outline"
+          className="w-full gap-1.5"
+          size="sm"
+          onClick={() => setSplitOpen(true)}
+        >
+          <SplitSquareHorizontal className="h-3.5 w-3.5" /> {t("orders.splitOrder")}
+        </Button>
+      )}
       {canCancelOrder && (
         <AlertDialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelReason(""); }}>
           <AlertDialogTrigger asChild>
