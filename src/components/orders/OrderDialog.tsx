@@ -1231,8 +1231,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   <div className="flex items-center gap-2">
                     <RadioGroup
                       value={p.method}
-                      onValueChange={(v) => updatePart(p.id, { method: v as "cash" | "card" })}
-                      className="flex gap-3 flex-1"
+                      onValueChange={(v) => updatePart(p.id, { method: v as PayMethod })}
+                      className="flex gap-3 flex-1 flex-wrap"
                     >
                       <div className="flex items-center gap-1">
                         <RadioGroupItem value="cash" id={`m-${p.id}-cash`} />
@@ -1242,12 +1242,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                         <RadioGroupItem value="card" id={`m-${p.id}-card`} />
                         <Label htmlFor={`m-${p.id}-card`} className="flex items-center gap-1 cursor-pointer text-sm"><CreditCard className="h-3.5 w-3.5" /> {t("billing.card")}</Label>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <RadioGroupItem value="transfer" id={`m-${p.id}-transfer`} />
+                        <Label htmlFor={`m-${p.id}-transfer`} className="flex items-center gap-1 cursor-pointer text-sm"><ArrowLeftRight className="h-3.5 w-3.5" /> {t("billing.transfer")}</Label>
+                      </div>
                     </RadioGroup>
                     {parts.length > 1 && (
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePart(p.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
