@@ -663,7 +663,7 @@ const TablesPage = () => {
       {/* Order Dialog */}
       <OrderDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(o) => { setDialogOpen(o); if (!o) setSelectedOrderId(null); }}
         tableNumber={selectedTable}
         tableName={getTableLabel(selectedTable)}
         order={activeOrder}
