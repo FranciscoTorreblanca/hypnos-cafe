@@ -237,17 +237,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: subs } = await supabase
+    let subsQuery = supabase
       .from("push_subscriptions")
-      .select("endpoint, p256dh, auth, user_id")
+      .select("endpoint, p256dh, auth, user_id, enabled_events")
       .eq("business_id", business_id)
       .in("user_id", recipientIds);
+
+    // For real (non-test) events, only deliver to subscriptions that opted-in to this event type.
+    if (type !== "test") {
+      subsQuery = subsQuery.contains("enabled_events", [type]);
+    }
+
+    const { data: subs } = await subsQuery;
 
     if (!subs?.length) {
       return new Response(JSON.stringify({ ok: true, message: "No subscriptions" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const payload = buildPayload(type, data ?? {});
 
