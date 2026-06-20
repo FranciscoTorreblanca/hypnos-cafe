@@ -15,9 +15,11 @@ export interface OrderItem {
   notes: string;
   status: string;
   created_at: string;
+  started_at?: string | null;
+  ready_at?: string | null;
   combo_id?: string | null;
   combo_group_id?: string | null;
-  menu_item?: { name: string; name_en: string };
+  menu_item?: { name: string; name_en: string; cooking_time_seconds?: number | null; cooking_warning_seconds?: number | null };
   combo?: { name: string; name_en: string } | null;
 }
 
