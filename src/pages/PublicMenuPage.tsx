@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Printer, ArrowLeft, Search, X } from "lucide-react";
+import { signMenuImageUrls } from "@/lib/menuImage";
+
 
 /* ── types ── */
 interface PublicMenuItem {
@@ -75,6 +77,8 @@ const PublicMenuPage = () => {
   const [lang, setLang] = useState<"es" | "en">("es");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
 
   useEffect(() => {
     const browserLang = navigator.language.startsWith("en") ? "en" : "es";
@@ -111,6 +115,23 @@ const PublicMenuPage = () => {
     };
     load();
   }, [menuId, isPreview]);
+
+  // Sign image URLs for items/combos that have an image_url path
+  useEffect(() => {
+    if (!menu) return;
+    const paths: string[] = [];
+    for (const e of menu.menu_entries) {
+      if (e.menu_items?.image_url) paths.push(e.menu_items.image_url);
+      if (e.combos?.image_url) paths.push(e.combos.image_url);
+    }
+    if (paths.length === 0) { setImageUrls({}); return; }
+    let cancelled = false;
+    signMenuImageUrls(paths, 60 * 60).then((map) => {
+      if (!cancelled) setImageUrls(map);
+    });
+    return () => { cancelled = true; };
+  }, [menu]);
+
 
   const handlePrint = () => window.print();
 
@@ -328,14 +349,24 @@ const PublicMenuPage = () => {
                 if (!item) return null;
                 const isAvailable = item.is_available;
                 const isCombo = !!entry.combos;
+                const imgPath = item.image_url;
+                const imgSrc = imgPath ? imageUrls[imgPath] : undefined;
 
                 return (
                   <div
                     key={entry.id}
-                    className={`flex items-start justify-between gap-3 p-3 rounded-lg border transition-opacity ${
+                    className={`flex items-start gap-3 p-3 rounded-lg border transition-opacity ${
                       !isAvailable ? "opacity-40" : ""
                     }`}
                   >
+                    {imgSrc && (
+                      <img
+                        src={imgSrc}
+                        alt={getName(item)}
+                        loading="lazy"
+                        className="h-16 w-16 sm:h-20 sm:w-20 rounded-md object-cover shrink-0 bg-muted"
+                      />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-medium text-sm">{getName(item)}</span>
@@ -360,6 +391,7 @@ const PublicMenuPage = () => {
                   </div>
                 );
               })}
+
             </div>
           </div>
         ))}

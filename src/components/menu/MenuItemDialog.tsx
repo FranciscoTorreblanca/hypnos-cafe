@@ -7,6 +7,7 @@ import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useMenuItemIngredients } from "@/hooks/useMenuItemIngredients";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -18,12 +19,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMenuItemSkus } from "@/hooks/useMenuItemSkus";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Calculator } from "lucide-react";
+import { Trash2, Plus, Calculator, Upload, ImageIcon, Loader2 } from "lucide-react";
 import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
 import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
 import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
+import { signMenuImageUrl } from "@/lib/menuImage";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -36,7 +38,9 @@ const schema = z.object({
   category_id: z.string().nullable().default(null),
   is_available: z.boolean().default(true),
   inventory_count: z.coerce.number().int().nullable().default(null),
+  image_url: z.string().nullable().default(null),
 });
+
 
 type FormValues = z.infer<typeof schema>;
 
@@ -49,7 +53,7 @@ interface Props {
 
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { t, language } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const { data: categories = [] } = useMenuCategories();
   const { data: skus = [], add: addSku, remove: removeSku } = useMenuItemSkus(item?.id);
@@ -63,14 +67,20 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { saveAll: saveAddons } = useMenuItemAddons();
   const [addons, setAddons] = useState<AddonInput[]>([]);
   const [addonsDirty, setAddonsDirty] = useState(false);
+  const [imgUploading, setImgUploading] = useState(false);
+  const [imgPreviewUrl, setImgPreviewUrl] = useState<string | null>(null);
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: "", name_en: "", description: "", description_en: "",
       price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
+      image_url: null,
     },
   });
+
+  const currentImageUrl = form.watch("image_url");
 
   useEffect(() => {
     if (item) {
@@ -85,12 +95,54 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         category_id: item.category_id,
         is_available: item.is_available,
         inventory_count: item.inventory_count,
+        image_url: item.image_url,
       });
     } else {
       form.reset();
     }
     setRecipeDirty(false);
   }, [item, open]);
+
+  // Resolve a viewable URL for the stored image path
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentImageUrl) { setImgPreviewUrl(null); return; }
+    signMenuImageUrl(currentImageUrl).then((url) => {
+      if (!cancelled) setImgPreviewUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [currentImageUrl]);
+
+  const handleImageUpload = async (file: File) => {
+    if (!currentBusinessId) {
+      toast({ title: language === "es" ? "Sin negocio activo" : "No active business", variant: "destructive" });
+      return;
+    }
+    setImgUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${currentBusinessId}/${item?.id ?? "new"}-${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("menu-images")
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+      if (error) throw error;
+      if (currentImageUrl) {
+        try { await supabase.storage.from("menu-images").remove([currentImageUrl]); } catch {}
+      }
+      form.setValue("image_url", path, { shouldDirty: true });
+    } catch (err: any) {
+      toast({ title: language === "es" ? "Error al subir imagen" : "Image upload failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setImgUploading(false);
+    }
+  };
+
+  const handleImageRemove = async () => {
+    if (currentImageUrl) {
+      try { await supabase.storage.from("menu-images").remove([currentImageUrl]); } catch {}
+    }
+    form.setValue("image_url", null, { shouldDirty: true });
+  };
 
   // Sync loaded recipe into local state only when the dialog opens for a new
   // item — not on every query refetch (which would clobber unsaved edits and
@@ -343,6 +395,54 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                   </FormItem>
                 )} />
+
+                {/* Image upload */}
+                <div className="space-y-2 border-t pt-3">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {language === "es" ? "Imagen" : "Image"}
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="h-20 w-20 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                      {imgPreviewUrl ? (
+                        <img src={imgPreviewUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="inline-flex items-center gap-1.5 text-sm cursor-pointer px-3 py-1.5 rounded-md border bg-background hover:bg-accent transition-colors">
+                        {imgUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        {currentImageUrl
+                          ? (language === "es" ? "Reemplazar" : "Replace")
+                          : (language === "es" ? "Subir imagen" : "Upload image")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={imgUploading}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleImageUpload(f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {currentImageUrl && (
+                        <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={handleImageRemove}>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          {language === "es" ? "Quitar" : "Remove"}
+                        </Button>
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        {language === "es"
+                          ? "JPG/PNG/WebP. Se muestra en el menú digital."
+                          : "JPG/PNG/WebP. Displayed in the digital menu."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
 
                 {item?.id && (
                   <div className="space-y-2 border-t pt-3">
