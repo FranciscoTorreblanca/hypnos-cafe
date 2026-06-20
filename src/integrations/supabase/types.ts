@@ -1344,6 +1344,8 @@ export type Database = {
         Row: {
           business_id: string
           category_id: string | null
+          cooking_time_seconds: number | null
+          cooking_warning_seconds: number
           cost: number
           created_at: string
           description: string
@@ -1362,6 +1364,8 @@ export type Database = {
         Insert: {
           business_id?: string
           category_id?: string | null
+          cooking_time_seconds?: number | null
+          cooking_warning_seconds?: number
           cost?: number
           created_at?: string
           description?: string
@@ -1380,6 +1384,8 @@ export type Database = {
         Update: {
           business_id?: string
           category_id?: string | null
+          cooking_time_seconds?: number | null
+          cooking_warning_seconds?: number
           cost?: number
           created_at?: string
           description?: string
@@ -1488,6 +1494,8 @@ export type Database = {
           notes: string
           order_id: string
           quantity: number
+          ready_at: string | null
+          started_at: string | null
           status: string
           unit_price: number
         }
@@ -1503,6 +1511,8 @@ export type Database = {
           notes?: string
           order_id: string
           quantity?: number
+          ready_at?: string | null
+          started_at?: string | null
           status?: string
           unit_price?: number
         }
@@ -1518,6 +1528,8 @@ export type Database = {
           notes?: string
           order_id?: string
           quantity?: number
+          ready_at?: string | null
+          started_at?: string | null
           status?: string
           unit_price?: number
         }
