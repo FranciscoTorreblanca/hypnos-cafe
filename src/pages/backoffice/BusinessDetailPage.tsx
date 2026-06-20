@@ -67,8 +67,13 @@ const BusinessDetailPage = () => {
   const [members, setMembers] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [memberDialog, setMemberDialog] = useState(false);
-  const [memberForm, setMemberForm] = useState({ email: "", full_name: "", role: "business_admin" });
+  const [memberForm, setMemberForm] = useState<{ email: string; full_name: string; roles: string[] }>({
+    email: "", full_name: "", roles: ["business_admin"],
+  });
   const [creatingMember, setCreatingMember] = useState(false);
+  const [editMember, setEditMember] = useState<any | null>(null);
+  const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [savingRoles, setSavingRoles] = useState(false);
   const [testType, setTestType] = useState<string>("test");
   const [testUserId, setTestUserId] = useState<string>("all");
   const [sendingTest, setSendingTest] = useState(false);
