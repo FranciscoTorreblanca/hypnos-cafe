@@ -7,6 +7,7 @@ import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { useMenuItemIngredients } from "@/hooks/useMenuItemIngredients";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -18,12 +19,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMenuItemSkus } from "@/hooks/useMenuItemSkus";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Calculator } from "lucide-react";
+import { Trash2, Plus, Calculator, Upload, ImageIcon, Loader2 } from "lucide-react";
 import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
 import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
 import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
+import { signMenuImageUrl } from "@/lib/menuImage";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -36,7 +38,9 @@ const schema = z.object({
   category_id: z.string().nullable().default(null),
   is_available: z.boolean().default(true),
   inventory_count: z.coerce.number().int().nullable().default(null),
+  image_url: z.string().nullable().default(null),
 });
+
 
 type FormValues = z.infer<typeof schema>;
 
