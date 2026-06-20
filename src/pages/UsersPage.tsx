@@ -86,15 +86,17 @@ const UsersPage = () => {
   }, [isAdmin, currentBusinessId]);
 
   const handleCreate = async () => {
-    if (!form.email || !form.full_name || !form.role) return;
+    if (!form.email || !form.full_name || form.roles.length === 0) return;
     setCreating(true);
     try {
-      const res = await supabase.functions.invoke("create-user", { body: form });
+      const res = await supabase.functions.invoke("create-user", {
+        body: { email: form.email, full_name: form.full_name, roles: form.roles, business_id: currentBusinessId },
+      });
       if (res.error) throw new Error(res.error.message);
       if (res.data?.error) throw new Error(res.data.error);
       toast({ title: t("common.success"), description: t("users.created") });
       setDialogOpen(false);
-      setForm({ email: "", full_name: "", role: "" });
+      setForm({ email: "", full_name: "", roles: [] });
       fetchUsers();
     } catch (error: any) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
