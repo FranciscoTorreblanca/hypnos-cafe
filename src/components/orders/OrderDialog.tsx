@@ -36,8 +36,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer, ArrowLeftRight, Upload,
 } from "lucide-react";
+
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import { MenuItemAddonsDialog } from "@/components/orders/MenuItemAddonsDialog";
 import { SplitOrderDialog } from "@/components/orders/SplitOrderDialog";
@@ -90,10 +91,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [showPayment, setShowPayment] = useState(false);
-  type PayPart = { id: string; method: "cash" | "card"; amount: string; tip: string };
+  type PayMethod = "cash" | "card" | "transfer";
+  type PayPart = { id: string; method: PayMethod; amount: string; tip: string; evidence_reference?: string; evidence_file?: File | null };
   const [parts, setParts] = useState<PayPart[]>([
     { id: "p1", method: "cash", amount: "", tip: "0" },
   ]);
+
   const [cashDenoms, setCashDenoms] = useState<Record<number, number>>({});
   const [cashManual, setCashManual] = useState("");
   const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0) + (parseFloat(cashManual) || 0);
@@ -379,8 +382,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           amount: Math.round((parseFloat(p.amount) || 0) * 100) / 100,
           tip: Math.round((parseFloat(p.tip) || 0) * 100) / 100,
           payment_method: p.method,
+          evidence_reference: p.method === "transfer" ? (p.evidence_reference?.trim() || null) : null,
+          evidence_file: p.method === "transfer" ? (p.evidence_file ?? null) : null,
         }))
         .filter((p) => p.amount > 0 || p.tip > 0);
+
 
       if (built.length === 0) {
         toast({ title: t("common.error"), description: t("billing.splitInvalid"), variant: "destructive" });
@@ -1225,8 +1231,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   <div className="flex items-center gap-2">
                     <RadioGroup
                       value={p.method}
-                      onValueChange={(v) => updatePart(p.id, { method: v as "cash" | "card" })}
-                      className="flex gap-3 flex-1"
+                      onValueChange={(v) => updatePart(p.id, { method: v as PayMethod })}
+                      className="flex gap-3 flex-1 flex-wrap"
                     >
                       <div className="flex items-center gap-1">
                         <RadioGroupItem value="cash" id={`m-${p.id}-cash`} />
@@ -1236,12 +1242,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                         <RadioGroupItem value="card" id={`m-${p.id}-card`} />
                         <Label htmlFor={`m-${p.id}-card`} className="flex items-center gap-1 cursor-pointer text-sm"><CreditCard className="h-3.5 w-3.5" /> {t("billing.card")}</Label>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <RadioGroupItem value="transfer" id={`m-${p.id}-transfer`} />
+                        <Label htmlFor={`m-${p.id}-transfer`} className="flex items-center gap-1 cursor-pointer text-sm"><ArrowLeftRight className="h-3.5 w-3.5" /> {t("billing.transfer")}</Label>
+                      </div>
                     </RadioGroup>
                     {parts.length > 1 && (
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePart(p.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
@@ -1276,7 +1287,35 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                       />
                     </div>
                   </div>
+                  {p.method === "transfer" && (
+                    <div className="space-y-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">{t("billing.transferReference")}</Label>
+                        <Input
+                          value={p.evidence_reference ?? ""}
+                          onChange={(e) => updatePart(p.id, { evidence_reference: e.target.value })}
+                          placeholder="REF-123456"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Upload className="h-3 w-3" /> {t("billing.transferEvidence")}
+                        </Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => updatePart(p.id, { evidence_file: e.target.files?.[0] ?? null })}
+                          className="h-9 text-xs"
+                        />
+                        {p.evidence_file && (
+                          <p className="text-[11px] text-muted-foreground truncate">{p.evidence_file.name}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
               ))}
               <Button type="button" variant="outline" size="sm" className="w-full gap-1" onClick={addPart}>
                 <Plus className="h-3.5 w-3.5" /> {language === "es" ? "Agregar otro pago" : "Add another payment"}

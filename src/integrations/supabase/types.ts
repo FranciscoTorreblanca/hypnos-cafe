@@ -1621,6 +1621,8 @@ export type Database = {
           business_id: string
           created_at: string
           created_by: string
+          evidence_reference: string | null
+          evidence_url: string | null
           id: string
           order_id: string
           payment_method: string
@@ -1631,6 +1633,8 @@ export type Database = {
           business_id?: string
           created_at?: string
           created_by: string
+          evidence_reference?: string | null
+          evidence_url?: string | null
           id?: string
           order_id: string
           payment_method?: string
@@ -1641,6 +1645,8 @@ export type Database = {
           business_id?: string
           created_at?: string
           created_by?: string
+          evidence_reference?: string | null
+          evidence_url?: string | null
           id?: string
           order_id?: string
           payment_method?: string

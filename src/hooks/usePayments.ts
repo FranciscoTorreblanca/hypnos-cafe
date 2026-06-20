@@ -104,7 +104,13 @@ export const usePayments = () => {
       parts,
     }: {
       order_id: string;
-      parts: { amount: number; tip: number; payment_method: string }[];
+      parts: {
+        amount: number;
+        tip: number;
+        payment_method: string;
+        evidence_reference?: string | null;
+        evidence_file?: File | null;
+      }[];
     }) => {
       if (!parts.length) throw new Error("No payment parts provided");
 
@@ -113,6 +119,27 @@ export const usePayments = () => {
       const cardTotal = cardParts.reduce((s, p) => s + p.amount + p.tip, 0);
       const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
       const ids = parts.map(() => crypto.randomUUID());
+
+      // Upload any transfer evidence images before enqueueing the insert.
+      // Only when online — offline we still keep the textual reference.
+      const evidenceUrls: (string | null)[] = parts.map(() => null);
+      if (isOnline && currentBusinessId) {
+        for (let i = 0; i < parts.length; i++) {
+          const file = parts[i].evidence_file;
+          if (!file) continue;
+          try {
+            const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+            const path = `${currentBusinessId}/${ids[i]}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from("payment-evidence")
+              .upload(path, file, { upsert: true, contentType: file.type || undefined });
+            if (!upErr) evidenceUrls[i] = path;
+            else console.warn("[payments] evidence upload failed", upErr);
+          } catch (e) {
+            console.warn("[payments] evidence upload error", e);
+          }
+        }
+      }
 
       // Try Mercado Pago for card when online + configured. Skip silently on failure → still enqueue.
       let mpResult: any = null;
@@ -138,13 +165,23 @@ export const usePayments = () => {
         id: ids[i], order_id, amount: p.amount, tip: p.tip,
         payment_method: p.payment_method, created_by: user!.id,
         created_at: new Date().toISOString(),
+        evidence_url: evidenceUrls[i], evidence_reference: p.evidence_reference ?? null,
       }));
       queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
+
+      // Build enqueue-safe parts (strip File objects, attach uploaded url)
+      const safeParts = parts.map((p, i) => ({
+        amount: p.amount,
+        tip: p.tip,
+        payment_method: p.payment_method,
+        evidence_url: evidenceUrls[i],
+        evidence_reference: p.evidence_reference ?? null,
+      }));
 
       // Enqueue (auto-runs if online)
       const { enqueue } = await import("@/offline/enqueue");
       await enqueue("payment.create", {
-        order_id, parts, ids, created_by: user!.id,
+        order_id, parts: safeParts, ids, created_by: user!.id,
       }, { label: `Payment · order ${order_id.slice(0, 6)}` });
 
       // Best-effort push notification (only when online — never enqueue this)
@@ -166,8 +203,8 @@ export const usePayments = () => {
         } catch {}
       }
 
-
       return { mpResult, payment_id: ids[0], payment_ids: ids };
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
