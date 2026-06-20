@@ -16,8 +16,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, KeyRound, Trash2, UserPlus, Bell } from "lucide-react";
+import { ArrowLeft, KeyRound, Trash2, UserPlus, Bell, Pencil } from "lucide-react";
 
 interface Business {
   id: string; name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -66,8 +67,13 @@ const BusinessDetailPage = () => {
   const [members, setMembers] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [memberDialog, setMemberDialog] = useState(false);
-  const [memberForm, setMemberForm] = useState({ email: "", full_name: "", role: "business_admin" });
+  const [memberForm, setMemberForm] = useState<{ email: string; full_name: string; roles: string[] }>({
+    email: "", full_name: "", roles: ["business_admin"],
+  });
   const [creatingMember, setCreatingMember] = useState(false);
+  const [editMember, setEditMember] = useState<any | null>(null);
+  const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [savingRoles, setSavingRoles] = useState(false);
   const [testType, setTestType] = useState<string>("test");
   const [testUserId, setTestUserId] = useState<string>("all");
   const [sendingTest, setSendingTest] = useState(false);
@@ -162,7 +168,7 @@ const BusinessDetailPage = () => {
   };
 
   const handleAddMember = async () => {
-    if (!memberForm.email || !memberForm.full_name) return;
+    if (!memberForm.email || !memberForm.full_name || memberForm.roles.length === 0) return;
     setCreatingMember(true);
     try {
       const res = await supabase.functions.invoke("create-user", {
@@ -172,22 +178,49 @@ const BusinessDetailPage = () => {
       if (res.data?.error) throw new Error(res.data.error);
       toast({ title: "User invited" });
       setMemberDialog(false);
-      setMemberForm({ email: "", full_name: "", role: "business_admin" });
+      setMemberForm({ email: "", full_name: "", roles: ["business_admin"] });
       await fetchAll();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setCreatingMember(false); }
   };
 
-  const removeMember = async (memberId: string) => {
+  const openEditRoles = (userRow: any) => {
+    setEditMember(userRow);
+    setEditRoles([...userRow.roles]);
+  };
+
+  const handleSaveRoles = async () => {
+    if (!editMember) return;
+    setSavingRoles(true);
+    try {
+      const res = await supabase.functions.invoke("create-user", {
+        body: { action: "update_roles", user_id: editMember.user_id, business_id: id, roles: editRoles },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({ title: "Roles updated" });
+      setEditMember(null);
+      await fetchAll();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally { setSavingRoles(false); }
+  };
+
+  const removeMemberAllRoles = async (userId: string) => {
     if (!confirm("Remove this user from the business?")) return;
-    const { error } = await supabase.from("business_members").delete().eq("id", memberId);
+    const { error } = await supabase
+      .from("business_members")
+      .delete()
+      .eq("business_id", id)
+      .eq("user_id", userId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
     await fetchAll();
   };
+
 
   const handleSendReset = async (email: string) => {
     if (!confirm(`Send password reset email to ${email}?`)) return;
@@ -206,6 +239,19 @@ const BusinessDetailPage = () => {
   if (!business) {
     return <p className="text-muted-foreground text-sm">Loading…</p>;
   }
+
+  type GroupedMember = { user_id: string; profiles: any; roles: string[] };
+  const groupedMap = new Map<string, GroupedMember>();
+  for (const m of members) {
+    const existing = groupedMap.get(m.user_id);
+    if (existing) existing.roles.push(m.role);
+    else groupedMap.set(m.user_id, { user_id: m.user_id, profiles: m.profiles, roles: [m.role] });
+  }
+  const groupedMembers: GroupedMember[] = Array.from(groupedMap.values());
+
+
+
+
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -375,9 +421,9 @@ const BusinessDetailPage = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All admins</SelectItem>
-                    {members.map((m) => (
+                    {groupedMembers.map((m) => (
                       <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.profiles?.full_name || m.profiles?.email || m.user_id.slice(0, 8)} · {m.role}
+                        {m.profiles?.full_name || m.profiles?.email || m.user_id.slice(0, 8)} · {m.roles.join(", ")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -395,7 +441,7 @@ const BusinessDetailPage = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-base">Users</CardTitle>
-                <CardDescription>Members and roles for this business.</CardDescription>
+                <CardDescription>Members and roles for this business. A user can hold multiple roles.</CardDescription>
               </div>
               <Button size="sm" onClick={() => setMemberDialog(true)} className="gap-1">
                 <UserPlus className="h-4 w-4" /> Invite user
@@ -407,29 +453,36 @@ const BusinessDetailPage = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Roles</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {members.map((m) => (
-                    <TableRow key={m.id}>
+                  {groupedMembers.map((m) => (
+                    <TableRow key={m.user_id}>
                       <TableCell>{m.profiles?.full_name || "—"}</TableCell>
                       <TableCell>{m.profiles?.email}</TableCell>
-                      <TableCell><Badge variant="secondary">{m.role}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {m.roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEditRoles(m)} title="Edit roles">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleSendReset(m.profiles?.email)} title="Send password reset email">
                             <KeyRound className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => removeMemberAllRoles(m.user_id)} title="Remove from business">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {members.length === 0 && (
+                  {groupedMembers.length === 0 && (
                     <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No users yet</TableCell></TableRow>
                   )}
                 </TableBody>
@@ -449,13 +502,24 @@ const BusinessDetailPage = () => {
             <div className="space-y-2"><Label>Email</Label>
               <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} />
             </div>
-            <div className="space-y-2"><Label>Role</Label>
-              <Select value={memberForm.role} onValueChange={(v) => setMemberForm({ ...memberForm, role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {BUSINESS_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label>Roles</Label>
+              <div className="space-y-2 rounded-md border border-border/60 p-3">
+                {BUSINESS_ROLES.map((r) => (
+                  <label key={r} className="flex items-center gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={memberForm.roles.includes(r)}
+                      onCheckedChange={() =>
+                        setMemberForm((p) => ({
+                          ...p,
+                          roles: p.roles.includes(r) ? p.roles.filter((x) => x !== r) : [...p.roles, r],
+                        }))
+                      }
+                    />
+                    <span className="text-sm">{r}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -466,8 +530,36 @@ const BusinessDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editMember} onOpenChange={(o) => !o && setEditMember(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit roles — {editMember?.profiles?.full_name || editMember?.profiles?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 rounded-md border border-border/60 p-3">
+            {BUSINESS_ROLES.map((r) => (
+              <label key={r} className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={editRoles.includes(r)}
+                  onCheckedChange={() =>
+                    setEditRoles((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r])
+                  }
+                />
+                <span className="text-sm">{r}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditMember(null)}>Cancel</Button>
+            <Button onClick={handleSaveRoles} disabled={savingRoles || editRoles.length === 0}>
+              {savingRoles ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default BusinessDetailPage;

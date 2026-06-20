@@ -24,6 +24,8 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isBusinessAdmin: boolean;
+  currentBusinessRoles: string[];
   isLoyaltyMember: boolean;
   loyaltyMemberCode: string | null;
   businesses: BusinessSummary[];
@@ -56,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
   const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null);
   const [features, setFeatures] = useState<Record<FeatureKey, boolean>>(ALL_FEATURES_ON);
+  const [currentBusinessRoles, setCurrentBusinessRoles] = useState<string[]>([]);
 
   // Invalidate all cached queries whenever the active business changes so
   // every hook re-fetches scoped data without each one needing to key by it.
@@ -104,8 +107,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (chosen && typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, chosen);
     if (chosen) {
       await supabase.rpc("set_active_business", { _business_id: chosen });
-      await fetchFeatures(chosen);
+      await Promise.all([fetchFeatures(chosen), fetchBusinessRoles(userId, chosen)]);
+    } else {
+      setCurrentBusinessRoles([]);
     }
+  };
+
+  const fetchBusinessRoles = async (userId: string, businessId: string) => {
+    const { data } = await supabase
+      .from("business_members")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("business_id", businessId);
+    setCurrentBusinessRoles((data ?? []).map((r: any) => r.role));
   };
 
   const fetchFeatures = async (businessId: string) => {
@@ -124,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFeatures(ALL_FEATURES_ON);
     }
   };
+
 
   useEffect(() => {
     let currentUserId: string | null = null;
@@ -154,8 +169,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  const isAdmin = hasRole("admin");
   const isSuperAdmin = hasRole("super_admin");
+  const isBusinessAdmin = currentBusinessRoles.includes("business_admin");
+  // business_admin for the active business is treated as admin in-app
+  const isAdmin = hasRole("admin") || isBusinessAdmin || currentBusinessRoles.includes("admin");
   const isLoyaltyMember = roles.length > 0 && roles.every((role) => role === "loyalty_member");
   const hasFeature = (key: FeatureKey) => features[key] !== false;
   const currentBusiness = businesses.find((b) => b.id === currentBusinessId) ?? null;
@@ -164,8 +181,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.rpc("set_active_business", { _business_id: id });
     setCurrentBusinessId(id);
     if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, id);
-    await fetchFeatures(id);
-  }, []);
+    await Promise.all([
+      fetchFeatures(id),
+      user ? fetchBusinessRoles(user.id, id) : Promise.resolve(),
+    ]);
+  }, [user]);
 
   const refreshBusiness = useCallback(async () => {
     if (!user) return;
@@ -178,6 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoyaltyMemberCode(null);
     setBusinesses([]);
     setCurrentBusinessId(null);
+    setCurrentBusinessRoles([]);
     setFeatures(ALL_FEATURES_ON);
     if (typeof localStorage !== "undefined") localStorage.removeItem(STORAGE_KEY);
   };
@@ -186,11 +207,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user, session, loading, roles, hasRole, isAdmin, isSuperAdmin,
+        isBusinessAdmin, currentBusinessRoles,
         isLoyaltyMember, loyaltyMemberCode,
         businesses, currentBusinessId, currentBusiness,
         features, hasFeature, switchBusiness, refreshBusiness, signOut,
       }}
     >
+
       {children}
     </AuthContext.Provider>
   );
