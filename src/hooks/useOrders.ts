@@ -26,6 +26,7 @@ export interface Order {
   table_number: number;
   status: "pending" | "in_progress" | "completed" | "ready" | "served" | "paid" | "cancelled";
   cancel_reason?: string | null;
+  parent_order_id?: string | null;
   notes: string;
   created_by: string;
   total: number;
