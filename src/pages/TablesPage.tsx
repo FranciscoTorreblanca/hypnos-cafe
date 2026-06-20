@@ -51,6 +51,7 @@ import { CSS } from "@dnd-kit/utilities";
 interface TableData {
   number: number;
   order: ReturnType<typeof useOrders>["data"] extends (infer T)[] ? T : never;
+  subOrders?: ReturnType<typeof useOrders>["data"];
 }
 
 interface SortableTableCardProps {
@@ -63,6 +64,7 @@ interface SortableTableCardProps {
   t: (key: any) => string;
   onToggleExpand: (num: number) => void;
   onOpenTable: (num: number) => void;
+  onOpenSubOrder: (orderId: string, tableNum: number) => void;
   onDeleteTable: (num: number) => void;
 }
 
@@ -76,6 +78,7 @@ const SortableTableCard = ({
   t,
   onToggleExpand,
   onOpenTable,
+  onOpenSubOrder,
   onDeleteTable,
 }: SortableTableCardProps) => {
   const {
@@ -353,6 +356,42 @@ const SortableTableCard = ({
           })()}
         </div>
       )}
+      {/* Sub-orders (splits) */}
+      {table.subOrders && table.subOrders.length > 0 && (
+        <div className="border-t bg-muted/20 px-3 py-2 space-y-1">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+            {t("orders.subOrder")}s
+          </p>
+          {table.subOrders.map((sub, idx) => {
+            const subItems = sub?.order_items ?? [];
+            const subTotal = sub?.total ?? 0;
+            const isReady = sub?.status === "ready";
+            const isServed = sub?.status === "served";
+            return (
+              <div
+                key={sub!.id}
+                className="flex items-center gap-2 rounded border bg-card px-2 py-1.5 cursor-pointer hover:bg-accent/50"
+                onClick={() => onOpenSubOrder(sub!.id, table.number)}
+              >
+                <div
+                  className={`shrink-0 w-1.5 h-6 rounded-full ${
+                    isReady ? "bg-blue-500" : isServed ? "bg-purple-500" : "bg-amber-500"
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium">
+                    {t("orders.subOrder")} #{idx + 1}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {subItems.length} items · {t(`orders.${sub!.status as any}` as any) || sub!.status}
+                  </div>
+                </div>
+                <div className="text-xs font-semibold">${subTotal.toFixed(0)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -365,6 +404,7 @@ const TablesPage = () => {
     useTableNames();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [expandedTable, setExpandedTable] = useState<number | null>(null);
   const [showNewTable, setShowNewTable] = useState(false);
   const [newTableName, setNewTableName] = useState("");
@@ -400,8 +440,13 @@ const TablesPage = () => {
   })();
 
   const tables = sortedTableNumbers.map((num) => {
-    const activeOrder = activeOrders.find((o) => o.table_number === num);
-    return { number: num, order: activeOrder };
+    const ordersForTable = activeOrders.filter((o) => o.table_number === num);
+    // Primary = order without parent_order_id, fallback to oldest
+    const primary =
+      ordersForTable.find((o) => !o.parent_order_id) ??
+      [...ordersForTable].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+    const subOrders = ordersForTable.filter((o) => o.id !== primary?.id);
+    return { number: num, order: primary, subOrders };
   });
 
   const getStatus = (table: (typeof tables)[0]) => {
@@ -439,6 +484,13 @@ const TablesPage = () => {
 
   const openTable = (num: number) => {
     setSelectedTable(num);
+    setSelectedOrderId(null);
+    setDialogOpen(true);
+  };
+
+  const openSubOrder = (orderId: string, tableNum: number) => {
+    setSelectedTable(tableNum);
+    setSelectedOrderId(orderId);
     setDialogOpen(true);
   };
 
@@ -499,11 +551,19 @@ const TablesPage = () => {
     [sortedTableNumbers, updateOrder]
   );
 
-  const activeOrder = (orders ?? []).find(
-    (o) =>
-      o.table_number === selectedTable &&
-      !["paid", "cancelled"].includes(o.status)
-  );
+  const activeOrder = selectedOrderId
+    ? (orders ?? []).find((o) => o.id === selectedOrderId)
+    : (orders ?? []).find(
+        (o) =>
+          o.table_number === selectedTable &&
+          !o.parent_order_id &&
+          !["paid", "cancelled"].includes(o.status),
+      ) ??
+      (orders ?? []).find(
+        (o) =>
+          o.table_number === selectedTable &&
+          !["paid", "cancelled"].includes(o.status),
+      );
 
   return (
     <div className="space-y-3">
@@ -592,6 +652,7 @@ const TablesPage = () => {
                 t={t}
                 onToggleExpand={toggleExpand}
                 onOpenTable={openTable}
+                onOpenSubOrder={openSubOrder}
                 onDeleteTable={(num) => setDeleteTableNum(num)}
               />
             ))}
@@ -602,7 +663,7 @@ const TablesPage = () => {
       {/* Order Dialog */}
       <OrderDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(o) => { setDialogOpen(o); if (!o) setSelectedOrderId(null); }}
         tableNumber={selectedTable}
         tableName={getTableLabel(selectedTable)}
         order={activeOrder}

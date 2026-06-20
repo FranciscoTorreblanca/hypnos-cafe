@@ -14,6 +14,7 @@ export type QueueEntryKind =
   | "order.updateGeneralDiscount"
   | "order.updateGeneralDiscountAmount"
   | "order.cancel"
+  | "order.split"
   | "order_item.insert"
   | "order_item.insertBulk"
   | "order_item.updateStatus"

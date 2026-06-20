@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import { MenuItemAddonsDialog } from "@/components/orders/MenuItemAddonsDialog";
+import { SplitOrderDialog } from "@/components/orders/SplitOrderDialog";
+import { SplitSquareHorizontal } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -110,6 +112,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [cancelReason, setCancelReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [addonsOpen, setAddonsOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
 
   const dismissMobileKeyboard = useCallback(() => {
     if (!isMobile) return;
@@ -1030,6 +1033,16 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           </Button>
         </>
       )}
+      {order && orderItems.length > 0 && !["paid", "cancelled"].includes(order.status) && (
+        <Button
+          variant="outline"
+          className="w-full gap-1.5"
+          size="sm"
+          onClick={() => setSplitOpen(true)}
+        >
+          <SplitSquareHorizontal className="h-3.5 w-3.5" /> {t("orders.splitOrder")}
+        </Button>
+      )}
       {canCancelOrder && (
         <AlertDialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelReason(""); }}>
           <AlertDialogTrigger asChild>
@@ -1402,6 +1415,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         </span>
       )}
       <span className="shrink-0">{titleSuffix}</span>
+      {order?.parent_order_id && (
+        <Badge variant="secondary" className="text-[10px] ml-1 shrink-0">
+          {t("orders.subOrder")}
+        </Badge>
+      )}
     </span>
   );
 
@@ -1429,6 +1447,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         onOpenChange={(v) => { setPrePaymentOpen(v); if (!v) setPrePaymentTicket(null); }}
         ticket={prePaymentTicket}
       />
+      {order && (
+        <SplitOrderDialog
+          open={splitOpen}
+          onOpenChange={setSplitOpen}
+          order={order}
+          onSplit={() => {
+            // Close parent dialog so the user can see the new sub-order in tables list
+            onOpenChange(false);
+          }}
+        />
+      )}
     </>
   );
 
