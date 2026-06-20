@@ -24,6 +24,8 @@ export interface MenuItem {
   image_url: string | null;
   is_available: boolean;
   inventory_count: number | null;
+  cooking_time_seconds: number | null;
+  cooking_warning_seconds: number | null;
   menu_item_addons?: MenuItemAddon[];
 }
 
