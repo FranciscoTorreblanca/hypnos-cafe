@@ -1287,7 +1287,35 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                       />
                     </div>
                   </div>
+                  {p.method === "transfer" && (
+                    <div className="space-y-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">{t("billing.transferReference")}</Label>
+                        <Input
+                          value={p.evidence_reference ?? ""}
+                          onChange={(e) => updatePart(p.id, { evidence_reference: e.target.value })}
+                          placeholder="REF-123456"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Upload className="h-3 w-3" /> {t("billing.transferEvidence")}
+                        </Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => updatePart(p.id, { evidence_file: e.target.files?.[0] ?? null })}
+                          className="h-9 text-xs"
+                        />
+                        {p.evidence_file && (
+                          <p className="text-[11px] text-muted-foreground truncate">{p.evidence_file.name}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
               ))}
               <Button type="button" variant="outline" size="sm" className="w-full gap-1" onClick={addPart}>
                 <Plus className="h-3.5 w-3.5" /> {language === "es" ? "Agregar otro pago" : "Add another payment"}
