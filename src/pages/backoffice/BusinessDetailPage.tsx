@@ -408,9 +408,9 @@ const BusinessDetailPage = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All admins</SelectItem>
-                    {members.map((m) => (
+                    {groupedMembers.map((m) => (
                       <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.profiles?.full_name || m.profiles?.email || m.user_id.slice(0, 8)} · {m.role}
+                        {m.profiles?.full_name || m.profiles?.email || m.user_id.slice(0, 8)} · {m.roles.join(", ")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -428,7 +428,7 @@ const BusinessDetailPage = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-base">Users</CardTitle>
-                <CardDescription>Members and roles for this business.</CardDescription>
+                <CardDescription>Members and roles for this business. A user can hold multiple roles.</CardDescription>
               </div>
               <Button size="sm" onClick={() => setMemberDialog(true)} className="gap-1">
                 <UserPlus className="h-4 w-4" /> Invite user
@@ -440,29 +440,36 @@ const BusinessDetailPage = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Roles</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {members.map((m) => (
-                    <TableRow key={m.id}>
+                  {groupedMembers.map((m) => (
+                    <TableRow key={m.user_id}>
                       <TableCell>{m.profiles?.full_name || "—"}</TableCell>
                       <TableCell>{m.profiles?.email}</TableCell>
-                      <TableCell><Badge variant="secondary">{m.role}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {m.roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEditRoles(m)} title="Edit roles">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleSendReset(m.profiles?.email)} title="Send password reset email">
                             <KeyRound className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => removeMemberAllRoles(m.user_id)} title="Remove from business">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {members.length === 0 && (
+                  {groupedMembers.length === 0 && (
                     <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No users yet</TableCell></TableRow>
                   )}
                 </TableBody>
@@ -482,13 +489,24 @@ const BusinessDetailPage = () => {
             <div className="space-y-2"><Label>Email</Label>
               <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} />
             </div>
-            <div className="space-y-2"><Label>Role</Label>
-              <Select value={memberForm.role} onValueChange={(v) => setMemberForm({ ...memberForm, role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {BUSINESS_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label>Roles</Label>
+              <div className="space-y-2 rounded-md border border-border/60 p-3">
+                {BUSINESS_ROLES.map((r) => (
+                  <label key={r} className="flex items-center gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={memberForm.roles.includes(r)}
+                      onCheckedChange={() =>
+                        setMemberForm((p) => ({
+                          ...p,
+                          roles: p.roles.includes(r) ? p.roles.filter((x) => x !== r) : [...p.roles, r],
+                        }))
+                      }
+                    />
+                    <span className="text-sm">{r}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -499,8 +517,36 @@ const BusinessDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editMember} onOpenChange={(o) => !o && setEditMember(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit roles — {editMember?.profiles?.full_name || editMember?.profiles?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 rounded-md border border-border/60 p-3">
+            {BUSINESS_ROLES.map((r) => (
+              <label key={r} className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={editRoles.includes(r)}
+                  onCheckedChange={() =>
+                    setEditRoles((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r])
+                  }
+                />
+                <span className="text-sm">{r}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditMember(null)}>Cancel</Button>
+            <Button onClick={handleSaveRoles} disabled={savingRoles || editRoles.length === 0}>
+              {savingRoles ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default BusinessDetailPage;
