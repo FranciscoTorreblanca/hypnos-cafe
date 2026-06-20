@@ -68,6 +68,31 @@ const BusinessDetailPage = () => {
   const [memberDialog, setMemberDialog] = useState(false);
   const [memberForm, setMemberForm] = useState({ email: "", full_name: "", role: "business_admin" });
   const [creatingMember, setCreatingMember] = useState(false);
+  const [testType, setTestType] = useState<string>("test");
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleSendTestPush = async () => {
+    setSendingTest(true);
+    try {
+      const data: Record<string, unknown> =
+        testType === "order_paid"
+          ? { amount: 250, tip: 30, payment_method: "cash", waiter_name: "Test", table_number: 1, order_id: "test" }
+          : testType === "out_of_stock"
+          ? { item_name: "Producto de prueba", item_id: "test" }
+          : { body: "Notificación de prueba desde Back-office" };
+      const { data: res, error } = await supabase.functions.invoke("send-push-notification", {
+        body: { type: testType, data, business_id: id },
+      });
+      if (error) throw error;
+      toast({
+        title: "Test sent",
+        description: `Delivered to ${(res as any)?.sent ?? 0} of ${(res as any)?.total ?? 0} subscriptions. ${(res as any)?.message ?? ""}`,
+      });
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+    setSendingTest(false);
+  };
 
   const fetchAll = async () => {
     const [{ data: b }, { data: f }, { data: m }] = await Promise.all([
