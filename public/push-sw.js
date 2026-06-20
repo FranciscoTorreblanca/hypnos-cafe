@@ -21,14 +21,16 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/dashboard";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes("/billing") || client.url.includes("/dashboard")) {
+        if ("focus" in client && "navigate" in client) {
+          client.navigate(target).catch(() => {});
           return client.focus();
         }
       }
-      return clients.openWindow("/dashboard");
+      return clients.openWindow(target);
     })
   );
 });

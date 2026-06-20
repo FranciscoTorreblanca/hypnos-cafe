@@ -57,7 +57,7 @@ function patchOrder(qc: any, id: string, patch: (o: Order) => Order) {
 
 export const useOrders = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, currentBusinessId } = useAuth();
 
   const query = useQuery({
     queryKey: ORDERS_KEY,
@@ -267,8 +267,27 @@ export const useOrders = () => {
       const id = typeof v === "string" ? v : v.id;
       const reason = typeof v === "string" ? null : v.reason ?? null;
       patchOrder(qc, id, (o) => ({ ...o, status: "cancelled", cancel_reason: reason } as any));
+
+      // Fire-and-forget push notification (online only)
+      if (typeof navigator !== "undefined" && navigator.onLine && currentBusinessId) {
+        try {
+          const order = (qc.getQueryData<Order[]>(ORDERS_KEY) ?? []).find((o) => o.id === id);
+          const { triggerPushNotification } = await import("@/hooks/usePushNotifications");
+          const { data: profile } = await supabase
+            .from("profiles").select("full_name").eq("id", user!.id).single();
+          triggerPushNotification("order_cancelled", {
+            order_id: id,
+            table_number: order?.table_number ?? "?",
+            total: order?.total ?? 0,
+            reason: reason ?? "",
+            waiter_name: profile?.full_name || user!.email || "Mesero",
+            cancelled_at: new Date().toISOString(),
+          }, currentBusinessId);
+        } catch {}
+      }
     },
   });
+
 
   /**
    * Split an order into a new sub-order.

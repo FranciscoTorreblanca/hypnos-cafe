@@ -114,17 +114,42 @@ async function sendWebPush(
   await res.text();
 }
 
+function fmtTime(iso?: string) {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+}
+
 function buildPayload(type: string, data: any): PushPayload {
   switch (type) {
     case "order_paid": {
-      const { amount, tip, payment_method, waiter_name, table_number, order_id } = data;
-      const method = payment_method === "cash" ? "Efectivo" : "Tarjeta";
-      const tipText = tip > 0 ? ` | Propina: $${Number(tip).toFixed(2)}` : "";
+      const { amount, tip, payment_method, waiter_name, table_number, order_id, paid_at } = data;
+      const methodMap: Record<string, string> = { cash: "Efectivo", card: "Tarjeta", split: "Mixto" };
+      const method = methodMap[payment_method] || payment_method || "";
+      const tipText = Number(tip) > 0 ? ` +$${Number(tip).toFixed(2)} prop.` : "";
       return {
-        title: `💰 Orden cobrada - Mesa ${table_number}`,
-        body: `$${Number(amount).toFixed(2)} ${method}${tipText} — ${waiter_name}`,
+        title: `💰 Orden cobrada · Mesa ${table_number}`,
+        body: `$${Number(amount).toFixed(2)} ${method}${tipText} · ${waiter_name} · ${fmtTime(paid_at)}`,
         tag: `order-paid-${order_id}`,
-        data: { type, order_id },
+        data: { type, order_id, url: "/order-history" },
+      };
+    }
+    case "order_cancelled": {
+      const { table_number, total, reason, waiter_name, order_id, cancelled_at } = data;
+      const reasonText = reason ? ` · ${reason}` : "";
+      return {
+        title: `❌ Orden cancelada · Mesa ${table_number}`,
+        body: `$${Number(total).toFixed(2)} · ${waiter_name} · ${fmtTime(cancelled_at)}${reasonText}`,
+        tag: `order-cancelled-${order_id}`,
+        data: { type, order_id, url: "/order-history" },
+      };
+    }
+    case "low_stock": {
+      const { item_name, item_id, inventory_count, threshold } = data;
+      return {
+        title: `📉 Inventario bajo`,
+        body: `"${item_name}" tiene ${inventory_count} unidades (umbral ${threshold}). Reabastece pronto.`,
+        tag: `low-stock-${item_id}`,
+        data: { type, item_id, url: "/stock" },
       };
     }
     case "out_of_stock": {
@@ -133,7 +158,7 @@ function buildPayload(type: string, data: any): PushPayload {
         title: `⚠️ Producto agotado`,
         body: `Se vendió la última unidad de "${item_name}". Reabastece o márcalo como no disponible.`,
         tag: `out-of-stock-${item_id}`,
-        data: { type, item_id },
+        data: { type, item_id, url: "/stock" },
       };
     }
     case "test": {
@@ -141,13 +166,14 @@ function buildPayload(type: string, data: any): PushPayload {
         title: `🔔 Notificación de prueba`,
         body: data?.body || "Si ves esto, las notificaciones funcionan correctamente.",
         tag: `test-${Date.now()}`,
-        data: { type },
+        data: { type, url: "/settings" },
       };
     }
     default:
-      return { title: data?.title || "Notificación", body: data?.body || "", tag: type };
+      return { title: data?.title || "Notificación", body: data?.body || "", tag: type, data: { type } };
   }
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -211,17 +237,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: subs } = await supabase
+    let subsQuery = supabase
       .from("push_subscriptions")
-      .select("endpoint, p256dh, auth, user_id")
+      .select("endpoint, p256dh, auth, user_id, enabled_events")
       .eq("business_id", business_id)
       .in("user_id", recipientIds);
+
+    // For real (non-test) events, only deliver to subscriptions that opted-in to this event type.
+    if (type !== "test") {
+      subsQuery = subsQuery.contains("enabled_events", [type]);
+    }
+
+    const { data: subs } = await subsQuery;
 
     if (!subs?.length) {
       return new Response(JSON.stringify({ ok: true, message: "No subscriptions" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const payload = buildPayload(type, data ?? {});
 
