@@ -16,8 +16,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, KeyRound, Trash2, UserPlus, Bell } from "lucide-react";
+import { ArrowLeft, KeyRound, Trash2, UserPlus, Bell, Pencil } from "lucide-react";
 
 interface Business {
   id: string; name: string; slug: string; legal_name: string | null; tax_id: string | null;
