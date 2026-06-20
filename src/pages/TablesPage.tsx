@@ -644,6 +644,7 @@ const TablesPage = () => {
                 t={t}
                 onToggleExpand={toggleExpand}
                 onOpenTable={openTable}
+                onOpenSubOrder={openSubOrder}
                 onDeleteTable={(num) => setDeleteTableNum(num)}
               />
             ))}
