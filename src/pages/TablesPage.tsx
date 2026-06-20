@@ -78,6 +78,7 @@ const SortableTableCard = ({
   t,
   onToggleExpand,
   onOpenTable,
+  onOpenSubOrder,
   onDeleteTable,
 }: SortableTableCardProps) => {
   const {
