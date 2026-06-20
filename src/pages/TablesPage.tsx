@@ -484,6 +484,13 @@ const TablesPage = () => {
 
   const openTable = (num: number) => {
     setSelectedTable(num);
+    setSelectedOrderId(null);
+    setDialogOpen(true);
+  };
+
+  const openSubOrder = (orderId: string, tableNum: number) => {
+    setSelectedTable(tableNum);
+    setSelectedOrderId(orderId);
     setDialogOpen(true);
   };
 
