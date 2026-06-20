@@ -1359,6 +1359,7 @@ export type Database = {
           name_en: string
           price: number
           promo_price: number | null
+          requires_kitchen: boolean
           updated_at: string
         }
         Insert: {
@@ -1379,6 +1380,7 @@ export type Database = {
           name_en?: string
           price?: number
           promo_price?: number | null
+          requires_kitchen?: boolean
           updated_at?: string
         }
         Update: {
@@ -1399,6 +1401,7 @@ export type Database = {
           name_en?: string
           price?: number
           promo_price?: number | null
+          requires_kitchen?: boolean
           updated_at?: string
         }
         Relationships: [
