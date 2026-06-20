@@ -391,6 +391,7 @@ export const useOrders = () => {
     addItemsBulk,
     removeItem,
     cancelOrder,
+    splitOrder,
     updateItemDiscount,
     updateItemDiscountAmount,
     updateGeneralDiscount,
