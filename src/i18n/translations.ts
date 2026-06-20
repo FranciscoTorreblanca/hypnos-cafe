@@ -177,6 +177,10 @@ export const translations = {
   "billing.paymentMethod": { es: "Método de pago", en: "Payment method" },
   "billing.cash": { es: "Efectivo", en: "Cash" },
   "billing.card": { es: "Tarjeta", en: "Card" },
+  "billing.transfer": { es: "Transferencia", en: "Transfer" },
+  "billing.transferReference": { es: "Referencia (opcional)", en: "Reference (optional)" },
+  "billing.transferEvidence": { es: "Comprobante (imagen)", en: "Evidence (image)" },
+
   "billing.tip": { es: "Propina", en: "Tip" },
   "billing.subtotal": { es: "Subtotal", en: "Subtotal" },
   "billing.total": { es: "Total", en: "Total" },
