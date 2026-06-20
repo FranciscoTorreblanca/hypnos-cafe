@@ -240,15 +240,16 @@ const BusinessDetailPage = () => {
     return <p className="text-muted-foreground text-sm">Loading…</p>;
   }
 
-  // Group business_members rows by user_id so each user is one row with all their roles
-  const groupedMembers = Array.from(
-    members.reduce((acc, m) => {
-      const existing = acc.get(m.user_id);
-      if (existing) existing.roles.push(m.role);
-      else acc.set(m.user_id, { user_id: m.user_id, profiles: m.profiles, roles: [m.role] });
-      return acc;
-    }, new Map<string, { user_id: string; profiles: any; roles: string[] }>()).values()
-  );
+  type GroupedMember = { user_id: string; profiles: any; roles: string[] };
+  const groupedMap = new Map<string, GroupedMember>();
+  for (const m of members) {
+    const existing = groupedMap.get(m.user_id);
+    if (existing) existing.roles.push(m.role);
+    else groupedMap.set(m.user_id, { user_id: m.user_id, profiles: m.profiles, roles: [m.role] });
+  }
+  const groupedMembers: GroupedMember[] = Array.from(groupedMap.values());
+
+
 
 
 
