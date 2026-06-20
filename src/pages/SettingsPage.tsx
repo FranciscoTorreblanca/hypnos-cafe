@@ -33,7 +33,7 @@ const SettingsPage = () => {
   const { t } = useLanguage();
   const { isAdmin, currentBusiness, hasFeature } = useAuth();
   const { toast } = useToast();
-  const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
+  const { isSubscribed, isSupported, permission, loading: pushLoading, subscribe, unsubscribe, enabledEvents, toggleEvent } = usePushNotifications();
 
   const [info, setInfo] = useState<BusinessInfo | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
