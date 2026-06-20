@@ -356,6 +356,42 @@ const SortableTableCard = ({
           })()}
         </div>
       )}
+      {/* Sub-orders (splits) */}
+      {table.subOrders && table.subOrders.length > 0 && (
+        <div className="border-t bg-muted/20 px-3 py-2 space-y-1">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+            {t("orders.subOrder")}s
+          </p>
+          {table.subOrders.map((sub, idx) => {
+            const subItems = sub?.order_items ?? [];
+            const subTotal = sub?.total ?? 0;
+            const isReady = sub?.status === "ready";
+            const isServed = sub?.status === "served";
+            return (
+              <div
+                key={sub!.id}
+                className="flex items-center gap-2 rounded border bg-card px-2 py-1.5 cursor-pointer hover:bg-accent/50"
+                onClick={() => onOpenSubOrder(sub!.id, table.number)}
+              >
+                <div
+                  className={`shrink-0 w-1.5 h-6 rounded-full ${
+                    isReady ? "bg-blue-500" : isServed ? "bg-purple-500" : "bg-amber-500"
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium">
+                    {t("orders.subOrder")} #{idx + 1}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {subItems.length} items · {t(`orders.${sub!.status as any}` as any) || sub!.status}
+                  </div>
+                </div>
+                <div className="text-xs font-semibold">${subTotal.toFixed(0)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
