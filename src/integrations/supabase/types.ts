@@ -1352,6 +1352,7 @@ export type Database = {
           image_url: string | null
           inventory_count: number | null
           is_available: boolean
+          low_stock_threshold: number | null
           name: string
           name_en: string
           price: number
@@ -1369,6 +1370,7 @@ export type Database = {
           image_url?: string | null
           inventory_count?: number | null
           is_available?: boolean
+          low_stock_threshold?: number | null
           name: string
           name_en?: string
           price?: number
@@ -1386,6 +1388,7 @@ export type Database = {
           image_url?: string | null
           inventory_count?: number | null
           is_available?: boolean
+          low_stock_threshold?: number | null
           name?: string
           name_en?: string
           price?: number
@@ -1706,6 +1709,7 @@ export type Database = {
           auth: string
           business_id: string
           created_at: string
+          enabled_events: string[]
           endpoint: string
           id: string
           p256dh: string
@@ -1715,6 +1719,7 @@ export type Database = {
           auth: string
           business_id?: string
           created_at?: string
+          enabled_events?: string[]
           endpoint: string
           id?: string
           p256dh: string
@@ -1724,6 +1729,7 @@ export type Database = {
           auth?: string
           business_id?: string
           created_at?: string
+          enabled_events?: string[]
           endpoint?: string
           id?: string
           p256dh?: string
