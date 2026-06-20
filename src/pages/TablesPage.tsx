@@ -51,6 +51,7 @@ import { CSS } from "@dnd-kit/utilities";
 interface TableData {
   number: number;
   order: ReturnType<typeof useOrders>["data"] extends (infer T)[] ? T : never;
+  subOrders?: ReturnType<typeof useOrders>["data"];
 }
 
 interface SortableTableCardProps {
@@ -63,6 +64,7 @@ interface SortableTableCardProps {
   t: (key: any) => string;
   onToggleExpand: (num: number) => void;
   onOpenTable: (num: number) => void;
+  onOpenSubOrder: (orderId: string, tableNum: number) => void;
   onDeleteTable: (num: number) => void;
 }
 
