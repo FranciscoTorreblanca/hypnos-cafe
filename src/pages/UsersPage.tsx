@@ -283,18 +283,22 @@ const UsersPage = () => {
             </div>
             <div className="space-y-2">
               <Label>{t("users.role")}</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("users.selectRole")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {INTERNAL_ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {t(`role.${r}` as any)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 rounded-md border border-border/60 p-3">
+                {INTERNAL_ROLES.map((r) => (
+                  <label key={r} className="flex items-center gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={form.roles.includes(r)}
+                      onCheckedChange={() =>
+                        setForm((p) => ({
+                          ...p,
+                          roles: p.roles.includes(r) ? p.roles.filter((x) => x !== r) : [...p.roles, r],
+                        }))
+                      }
+                    />
+                    <span className="text-sm">{t(`role.${r}` as any)}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
