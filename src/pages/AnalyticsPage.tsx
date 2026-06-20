@@ -398,7 +398,13 @@ export default function AnalyticsPage() {
           <TabsTrigger value="flows">{t("analytics.flows")}</TabsTrigger>
           <TabsTrigger value="users">{t("analytics.users")}</TabsTrigger>
           <TabsTrigger value="roles">{t("analytics.roles")}</TabsTrigger>
+          <TabsTrigger value="cooking">{language === "es" ? "Cocina" : "Cooking"}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="cooking" className="space-y-4">
+          <CookingTimeStats />
+        </TabsContent>
+
 
         <TabsContent value="screens" className="space-y-4">
           <Card>
