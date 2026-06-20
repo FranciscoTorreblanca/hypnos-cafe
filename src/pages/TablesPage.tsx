@@ -404,6 +404,7 @@ const TablesPage = () => {
     useTableNames();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [expandedTable, setExpandedTable] = useState<number | null>(null);
   const [showNewTable, setShowNewTable] = useState(false);
   const [newTableName, setNewTableName] = useState("");
