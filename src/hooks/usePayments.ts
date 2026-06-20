@@ -141,6 +141,18 @@ export const usePayments = () => {
         }
       }
 
+      // Try Mercado Pago for card when online + configured. Skip silently on failure → still enqueue.
+      let mpResult: any = null;
+      if (isOnline && cardTotal > 0 && currentBusinessId) {
+        try {
+          const mpConfig = await getMpConfig(currentBusinessId);
+          if (mpConfig?.enabled) {
+            mpResult = await sendToPointMini(mpConfig.deviceId, cardTotal, order_id, currentBusinessId);
+          }
+        } catch (e) {
+          console.warn("[payments] MP card terminal unavailable", e);
+        }
+      }
 
       // Optimistic: mark order as paid in the orders cache
       queryClient.setQueryData<any[]>(["orders"], (old) => {
@@ -153,13 +165,23 @@ export const usePayments = () => {
         id: ids[i], order_id, amount: p.amount, tip: p.tip,
         payment_method: p.payment_method, created_by: user!.id,
         created_at: new Date().toISOString(),
+        evidence_url: evidenceUrls[i], evidence_reference: p.evidence_reference ?? null,
       }));
       queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
+
+      // Build enqueue-safe parts (strip File objects, attach uploaded url)
+      const safeParts = parts.map((p, i) => ({
+        amount: p.amount,
+        tip: p.tip,
+        payment_method: p.payment_method,
+        evidence_url: evidenceUrls[i],
+        evidence_reference: p.evidence_reference ?? null,
+      }));
 
       // Enqueue (auto-runs if online)
       const { enqueue } = await import("@/offline/enqueue");
       await enqueue("payment.create", {
-        order_id, parts, ids, created_by: user!.id,
+        order_id, parts: safeParts, ids, created_by: user!.id,
       }, { label: `Payment · order ${order_id.slice(0, 6)}` });
 
       // Best-effort push notification (only when online — never enqueue this)
@@ -181,8 +203,8 @@ export const usePayments = () => {
         } catch {}
       }
 
-
       return { mpResult, payment_id: ids[0], payment_ids: ids };
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
