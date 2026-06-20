@@ -77,6 +77,8 @@ const PublicMenuPage = () => {
   const [lang, setLang] = useState<"es" | "en">("es");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
 
   useEffect(() => {
     const browserLang = navigator.language.startsWith("en") ? "en" : "es";
