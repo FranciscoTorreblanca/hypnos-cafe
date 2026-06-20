@@ -47,20 +47,21 @@ const SettingsPage = () => {
         supabase.from("businesses")
           .select("name,slug,legal_name,tax_id,address,phone,email,ticket_header,ticket_footer,currency,language,timezone,vat_rate,card_commission_rate,status")
           .eq("id", currentBusiness.id).maybeSingle(),
-        supabase.from("restaurant_settings").select("key, value").eq("key", "push_enabled"),
+        supabase.from("restaurant_settings").select("key, value").eq("business_id", currentBusiness.id).eq("key", "push_enabled"),
       ]);
       if (biz) setInfo(biz as BusinessInfo);
       const map: Record<string, string> = {};
       (settings ?? []).forEach((s) => (map[s.key] = s.value));
-      setPushEnabled(map.push_enabled === "true");
+      setPushEnabled(map.push_enabled !== "false");
     };
     load();
   }, [currentBusiness?.id]);
 
   const upsertSetting = async (key: string, value: string) => {
-    const { data } = await supabase.from("restaurant_settings").update({ value }).eq("key", key).select();
+    if (!currentBusiness?.id) return;
+    const { data } = await supabase.from("restaurant_settings").update({ value }).eq("business_id", currentBusiness.id).eq("key", key).select();
     if (!data || data.length === 0) {
-      await supabase.from("restaurant_settings").insert({ key, value });
+      await supabase.from("restaurant_settings").insert({ key, value, business_id: currentBusiness.id });
     }
   };
 
