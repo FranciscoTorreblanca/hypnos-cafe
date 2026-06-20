@@ -514,7 +514,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   {getName(combo)}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
-                  {combo.combo_items.map((ci) => ci.menu_items?.name).filter(Boolean).join(" + ")}
+                  {(combo.combo_items ?? []).map((ci) => ci.menu_items?.name).filter(Boolean).join(" + ")}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
