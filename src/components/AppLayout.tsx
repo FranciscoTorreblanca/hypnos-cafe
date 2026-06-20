@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Outlet } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { useKitchenAlerts } from "@/hooks/useKitchenAlerts";
 import { AttendanceGate } from "@/components/AttendanceGate";
 import { ConnectionPill } from "@/components/offline/ConnectionPill";
 import { FirstRunBanner } from "@/components/offline/FirstRunBanner";
@@ -11,6 +12,7 @@ import { FirstRunBanner } from "@/components/offline/FirstRunBanner";
 export const AppLayout = () => {
   const isMobile = useIsMobile();
   useUsageTracking();
+  useKitchenAlerts();
 
   const inner = isMobile ? (
     <div className="min-h-screen flex flex-col">
