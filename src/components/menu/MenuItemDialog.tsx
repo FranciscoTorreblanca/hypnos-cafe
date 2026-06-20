@@ -41,6 +41,7 @@ const schema = z.object({
   image_url: z.string().nullable().default(null),
   cooking_time_seconds: z.coerce.number().int().min(0).nullable().default(null),
   cooking_warning_seconds: z.coerce.number().int().min(0).default(60),
+  requires_kitchen: z.boolean().default(true),
 });
 
 
@@ -80,6 +81,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
       price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
       image_url: null,
       cooking_time_seconds: null, cooking_warning_seconds: 60,
+      requires_kitchen: true,
     },
   });
 
@@ -101,6 +103,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         image_url: item.image_url,
         cooking_time_seconds: item.cooking_time_seconds ?? null,
         cooking_warning_seconds: item.cooking_warning_seconds ?? 60,
+        requires_kitchen: (item as any).requires_kitchen ?? true,
       });
     } else {
       form.reset();
