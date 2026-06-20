@@ -69,6 +69,7 @@ const BusinessDetailPage = () => {
   const [memberForm, setMemberForm] = useState({ email: "", full_name: "", role: "business_admin" });
   const [creatingMember, setCreatingMember] = useState(false);
   const [testType, setTestType] = useState<string>("test");
+  const [testUserId, setTestUserId] = useState<string>("all");
   const [sendingTest, setSendingTest] = useState(false);
 
   const handleSendTestPush = async () => {
@@ -81,7 +82,12 @@ const BusinessDetailPage = () => {
           ? { item_name: "Producto de prueba", item_id: "test" }
           : { body: "Notificación de prueba desde Back-office" };
       const { data: res, error } = await supabase.functions.invoke("send-push-notification", {
-        body: { type: testType, data, business_id: id },
+        body: {
+          type: testType,
+          data,
+          business_id: id,
+          target_user_id: testUserId === "all" ? null : testUserId,
+        },
       });
       if (error) throw error;
       toast({
@@ -351,6 +357,20 @@ const BusinessDetailPage = () => {
                     <SelectItem value="test">Test (generic)</SelectItem>
                     <SelectItem value="order_paid">Order paid</SelectItem>
                     <SelectItem value="out_of_stock">Out of stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Recipient</Label>
+                <Select value={testUserId} onValueChange={setTestUserId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All admins</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.profiles?.full_name || m.profiles?.email || m.user_id.slice(0, 8)} · {m.role}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
