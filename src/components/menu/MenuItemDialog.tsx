@@ -76,8 +76,11 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
     defaultValues: {
       name: "", name_en: "", description: "", description_en: "",
       price: 0, promo_price: null, cost: 0, category_id: null, is_available: true, inventory_count: null,
+      image_url: null,
     },
   });
+
+  const currentImageUrl = form.watch("image_url");
 
   useEffect(() => {
     if (item) {
@@ -92,12 +95,54 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         category_id: item.category_id,
         is_available: item.is_available,
         inventory_count: item.inventory_count,
+        image_url: item.image_url,
       });
     } else {
       form.reset();
     }
     setRecipeDirty(false);
   }, [item, open]);
+
+  // Resolve a viewable URL for the stored image path
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentImageUrl) { setImgPreviewUrl(null); return; }
+    signMenuImageUrl(currentImageUrl).then((url) => {
+      if (!cancelled) setImgPreviewUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [currentImageUrl]);
+
+  const handleImageUpload = async (file: File) => {
+    if (!currentBusinessId) {
+      toast({ title: language === "es" ? "Sin negocio activo" : "No active business", variant: "destructive" });
+      return;
+    }
+    setImgUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${currentBusinessId}/${item?.id ?? "new"}-${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("menu-images")
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+      if (error) throw error;
+      if (currentImageUrl) {
+        try { await supabase.storage.from("menu-images").remove([currentImageUrl]); } catch {}
+      }
+      form.setValue("image_url", path, { shouldDirty: true });
+    } catch (err: any) {
+      toast({ title: language === "es" ? "Error al subir imagen" : "Image upload failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setImgUploading(false);
+    }
+  };
+
+  const handleImageRemove = async () => {
+    if (currentImageUrl) {
+      try { await supabase.storage.from("menu-images").remove([currentImageUrl]); } catch {}
+    }
+    form.setValue("image_url", null, { shouldDirty: true });
+  };
 
   // Sync loaded recipe into local state only when the dialog opens for a new
   // item — not on every query refetch (which would clobber unsaved edits and
