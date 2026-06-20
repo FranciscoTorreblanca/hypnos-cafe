@@ -39,6 +39,8 @@ const schema = z.object({
   is_available: z.boolean().default(true),
   inventory_count: z.coerce.number().int().nullable().default(null),
   image_url: z.string().nullable().default(null),
+  cooking_time_seconds: z.coerce.number().int().min(0).nullable().default(null),
+  cooking_warning_seconds: z.coerce.number().int().min(0).default(60),
 });
 
 
