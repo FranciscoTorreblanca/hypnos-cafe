@@ -24,6 +24,8 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isBusinessAdmin: boolean;
+  currentBusinessRoles: string[];
   isLoyaltyMember: boolean;
   loyaltyMemberCode: string | null;
   businesses: BusinessSummary[];
