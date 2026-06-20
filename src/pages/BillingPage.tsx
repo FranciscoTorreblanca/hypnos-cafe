@@ -324,7 +324,10 @@ const BillingPage = () => {
   const todayStart = startOfDay(new Date());
   const todayPayments = payments.filter((p) => new Date(p.created_at) >= todayStart);
   const todayCash = todayPayments.filter((p) => p.payment_method === "cash").reduce((s, p) => s + p.amount, 0);
-  const todayCardNet = todayPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount * 0.95, 0);
+  const todayCardNet =
+    todayPayments.filter((p) => p.payment_method === "card").reduce((s, p) => s + p.amount * 0.95, 0) +
+    todayPayments.filter((p) => p.payment_method === "transfer").reduce((s, p) => s + p.amount, 0);
+
   const todayNet = todayCash + todayCardNet;
   const todayTips = todayPayments.reduce((s, p) => s + p.tip, 0);
 
