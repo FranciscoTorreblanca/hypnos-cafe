@@ -32,7 +32,7 @@ const UsersPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ email: "", full_name: "", role: "" });
+  const [form, setForm] = useState<{ email: string; full_name: string; roles: string[] }>({ email: "", full_name: "", roles: [] });
 
   // Role editing state
   const [editUser, setEditUser] = useState<UserProfile | null>(null);
