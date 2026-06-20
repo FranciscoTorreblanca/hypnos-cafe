@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { type, data, business_id } = await req.json();
+    const { type, data, business_id, target_user_id } = await req.json();
     if (!business_id) {
       return new Response(JSON.stringify({ error: "business_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -181,25 +181,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Recipients = business members whose role is admin/business_admin in THIS business.
-    const { data: members } = await supabase
-      .from("business_members")
-      .select("user_id")
-      .eq("business_id", business_id)
-      .in("role", ["admin", "business_admin"]);
-
-    const memberIds = (members ?? []).map((m: any) => m.user_id);
-    if (memberIds.length === 0) {
-      return new Response(JSON.stringify({ ok: true, message: "No admins for business" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Determine recipient user IDs: a specific target, or all admins of the business.
+    let recipientIds: string[];
+    if (target_user_id) {
+      // Verify they belong to the business
+      const { data: m } = await supabase
+        .from("business_members")
+        .select("user_id")
+        .eq("business_id", business_id)
+        .eq("user_id", target_user_id)
+        .maybeSingle();
+      if (!m) {
+        return new Response(JSON.stringify({ ok: true, message: "User is not a member of business" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      recipientIds = [target_user_id];
+    } else {
+      const { data: members } = await supabase
+        .from("business_members")
+        .select("user_id")
+        .eq("business_id", business_id)
+        .in("role", ["admin", "business_admin"]);
+      recipientIds = (members ?? []).map((m: any) => m.user_id);
+      if (recipientIds.length === 0) {
+        return new Response(JSON.stringify({ ok: true, message: "No admins for business" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth, user_id")
       .eq("business_id", business_id)
-      .in("user_id", memberIds);
+      .in("user_id", recipientIds);
 
     if (!subs?.length) {
       return new Response(JSON.stringify({ ok: true, message: "No subscriptions" }), {
