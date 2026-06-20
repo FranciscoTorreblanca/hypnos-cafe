@@ -440,8 +440,13 @@ const TablesPage = () => {
   })();
 
   const tables = sortedTableNumbers.map((num) => {
-    const activeOrder = activeOrders.find((o) => o.table_number === num);
-    return { number: num, order: activeOrder };
+    const ordersForTable = activeOrders.filter((o) => o.table_number === num);
+    // Primary = order without parent_order_id, fallback to oldest
+    const primary =
+      ordersForTable.find((o) => !o.parent_order_id) ??
+      [...ordersForTable].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+    const subOrders = ordersForTable.filter((o) => o.id !== primary?.id);
+    return { number: num, order: primary, subOrders };
   });
 
   const getStatus = (table: (typeof tables)[0]) => {
