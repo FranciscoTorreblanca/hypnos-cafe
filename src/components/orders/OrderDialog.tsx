@@ -90,10 +90,12 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [showPayment, setShowPayment] = useState(false);
-  type PayPart = { id: string; method: "cash" | "card"; amount: string; tip: string };
+  type PayMethod = "cash" | "card" | "transfer";
+  type PayPart = { id: string; method: PayMethod; amount: string; tip: string; evidence_reference?: string; evidence_file?: File | null };
   const [parts, setParts] = useState<PayPart[]>([
     { id: "p1", method: "cash", amount: "", tip: "0" },
   ]);
+
   const [cashDenoms, setCashDenoms] = useState<Record<number, number>>({});
   const [cashManual, setCashManual] = useState("");
   const cashReceived = Object.entries(cashDenoms).reduce((sum, [d, count]) => sum + Number(d) * count, 0) + (parseFloat(cashManual) || 0);
