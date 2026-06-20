@@ -57,7 +57,7 @@ function patchOrder(qc: any, id: string, patch: (o: Order) => Order) {
 
 export const useOrders = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, currentBusinessId } = useAuth();
 
   const query = useQuery({
     queryKey: ORDERS_KEY,
