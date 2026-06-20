@@ -168,7 +168,7 @@ const BusinessDetailPage = () => {
   };
 
   const handleAddMember = async () => {
-    if (!memberForm.email || !memberForm.full_name) return;
+    if (!memberForm.email || !memberForm.full_name || memberForm.roles.length === 0) return;
     setCreatingMember(true);
     try {
       const res = await supabase.functions.invoke("create-user", {
@@ -178,22 +178,49 @@ const BusinessDetailPage = () => {
       if (res.data?.error) throw new Error(res.data.error);
       toast({ title: "User invited" });
       setMemberDialog(false);
-      setMemberForm({ email: "", full_name: "", role: "business_admin" });
+      setMemberForm({ email: "", full_name: "", roles: ["business_admin"] });
       await fetchAll();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setCreatingMember(false); }
   };
 
-  const removeMember = async (memberId: string) => {
+  const openEditRoles = (userRow: any) => {
+    setEditMember(userRow);
+    setEditRoles([...userRow.roles]);
+  };
+
+  const handleSaveRoles = async () => {
+    if (!editMember) return;
+    setSavingRoles(true);
+    try {
+      const res = await supabase.functions.invoke("create-user", {
+        body: { action: "update_roles", user_id: editMember.user_id, business_id: id, roles: editRoles },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({ title: "Roles updated" });
+      setEditMember(null);
+      await fetchAll();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally { setSavingRoles(false); }
+  };
+
+  const removeMemberAllRoles = async (userId: string) => {
     if (!confirm("Remove this user from the business?")) return;
-    const { error } = await supabase.from("business_members").delete().eq("id", memberId);
+    const { error } = await supabase
+      .from("business_members")
+      .delete()
+      .eq("business_id", id)
+      .eq("user_id", userId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
     await fetchAll();
   };
+
 
   const handleSendReset = async (email: string) => {
     if (!confirm(`Send password reset email to ${email}?`)) return;
