@@ -381,8 +381,11 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
           amount: Math.round((parseFloat(p.amount) || 0) * 100) / 100,
           tip: Math.round((parseFloat(p.tip) || 0) * 100) / 100,
           payment_method: p.method,
+          evidence_reference: p.method === "transfer" ? (p.evidence_reference?.trim() || null) : null,
+          evidence_file: p.method === "transfer" ? (p.evidence_file ?? null) : null,
         }))
         .filter((p) => p.amount > 0 || p.tip > 0);
+
 
       if (built.length === 0) {
         toast({ title: t("common.error"), description: t("billing.splitInvalid"), variant: "destructive" });
