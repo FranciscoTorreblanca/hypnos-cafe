@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useOrders, OrderItem } from "@/hooks/useOrders";
@@ -399,9 +399,14 @@ const SortableTableCard = ({
 // ─── Main Page ───
 const TablesPage = () => {
   const { t, language } = useLanguage();
-  const { data: orders = [], cancelOrder } = useOrders();
+  const { data: orders = [], cancelOrder, updateItemStatus } = useOrders();
   const { tableNames, tableOrder, getTableLabel, updateNames, updateOrder } =
     useTableNames();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(id);
+  }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
