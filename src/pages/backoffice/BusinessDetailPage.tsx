@@ -360,6 +360,20 @@ const BusinessDetailPage = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Recipient</Label>
+                <Select value={testUserId} onValueChange={setTestUserId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All admins</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.profiles?.full_name || m.profiles?.email || m.user_id.slice(0, 8)} · {m.role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button onClick={handleSendTestPush} disabled={sendingTest} className="gap-1">
                 <Bell className="h-4 w-4" /> {sendingTest ? "Sending…" : "Send test notification"}
               </Button>
