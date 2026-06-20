@@ -19,7 +19,10 @@ import {
   Trash2,
   Package,
   GripVertical,
+  Flame,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
