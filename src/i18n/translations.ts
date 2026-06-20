@@ -295,6 +295,9 @@ export const translations = {
   "kitchen.recipeBook": { es: "Recetario", en: "Recipe Book" },
   "kitchen.searchItems": { es: "Buscar platillo...", en: "Search item..." },
   "kitchen.noIngredients": { es: "Sin receta registrada", en: "No recipe registered" },
+  "kitchen.alertNew": { es: "Nuevo ítem en cocina", en: "New item in the kitchen" },
+  "kitchen.alertWarn": { es: "Cerca del tiempo límite — ¡apúrate!", en: "Close to time limit — hurry up!" },
+  "kitchen.alertOver": { es: "Fuera de tiempo — entrega ya", en: "Out of time — serve now" },
 
   // Performance
   "nav.performance": { es: "Rendimiento", en: "Performance" },
