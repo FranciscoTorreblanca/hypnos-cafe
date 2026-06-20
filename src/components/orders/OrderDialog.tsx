@@ -112,6 +112,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
   const [cancelReason, setCancelReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [addonsOpen, setAddonsOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
 
   const dismissMobileKeyboard = useCallback(() => {
     if (!isMobile) return;
