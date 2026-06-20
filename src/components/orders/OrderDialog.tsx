@@ -408,8 +408,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     }
   };
 
-  const getName = (item: { name?: string; name_en?: string }) =>
-    language === "es" ? item.name : item.name_en;
+  const getName = (item?: { name?: string; name_en?: string } | null) =>
+    item ? (language === "es" ? item.name : (item.name_en ?? item.name)) : "—";
 
   const orderItems = order?.order_items ?? [];
   const canAddItems = !order || ["pending", "in_progress", "ready", "served"].includes(order.status);
