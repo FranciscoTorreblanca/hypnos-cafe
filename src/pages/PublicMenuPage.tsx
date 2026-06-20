@@ -349,14 +349,24 @@ const PublicMenuPage = () => {
                 if (!item) return null;
                 const isAvailable = item.is_available;
                 const isCombo = !!entry.combos;
+                const imgPath = item.image_url;
+                const imgSrc = imgPath ? imageUrls[imgPath] : undefined;
 
                 return (
                   <div
                     key={entry.id}
-                    className={`flex items-start justify-between gap-3 p-3 rounded-lg border transition-opacity ${
+                    className={`flex items-start gap-3 p-3 rounded-lg border transition-opacity ${
                       !isAvailable ? "opacity-40" : ""
                     }`}
                   >
+                    {imgSrc && (
+                      <img
+                        src={imgSrc}
+                        alt={getName(item)}
+                        loading="lazy"
+                        className="h-16 w-16 sm:h-20 sm:w-20 rounded-md object-cover shrink-0 bg-muted"
+                      />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-medium text-sm">{getName(item)}</span>
@@ -381,6 +391,7 @@ const PublicMenuPage = () => {
                   </div>
                 );
               })}
+
             </div>
           </div>
         ))}
