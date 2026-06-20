@@ -141,7 +141,14 @@ export const useOrders = () => {
     optimistic: async (qc, { id, status, order_id }) =>
       patchOrder(qc, order_id, (o) => ({
         ...o,
-        order_items: (o.order_items ?? []).map((it) => (it.id === id ? { ...it, status } : it)),
+        order_items: (o.order_items ?? []).map((it) => {
+          if (it.id !== id) return it;
+          const nowIso = new Date().toISOString();
+          const next = { ...it, status } as OrderItem;
+          if (["in_progress", "ready", "completed", "served", "paid"].includes(status) && !next.started_at) next.started_at = nowIso;
+          if (["ready", "completed", "served", "paid"].includes(status) && !next.ready_at) next.ready_at = nowIso;
+          return next;
+        }),
         status: (o.order_items ?? []).every((it) => (it.id === id ? status : it.status) === "ready") && (o.order_items?.length ?? 0) > 0
           ? "ready" : o.status,
       })),
