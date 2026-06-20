@@ -396,6 +396,54 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                   </FormItem>
                 )} />
 
+                {/* Image upload */}
+                <div className="space-y-2 border-t pt-3">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {language === "es" ? "Imagen" : "Image"}
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="h-20 w-20 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                      {imgPreviewUrl ? (
+                        <img src={imgPreviewUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="inline-flex items-center gap-1.5 text-sm cursor-pointer px-3 py-1.5 rounded-md border bg-background hover:bg-accent transition-colors">
+                        {imgUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        {currentImageUrl
+                          ? (language === "es" ? "Reemplazar" : "Replace")
+                          : (language === "es" ? "Subir imagen" : "Upload image")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={imgUploading}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleImageUpload(f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {currentImageUrl && (
+                        <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={handleImageRemove}>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          {language === "es" ? "Quitar" : "Remove"}
+                        </Button>
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        {language === "es"
+                          ? "JPG/PNG/WebP. Se muestra en el menú digital."
+                          : "JPG/PNG/WebP. Displayed in the digital menu."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+
                 {item?.id && (
                   <div className="space-y-2 border-t pt-3">
                     <div className="text-sm font-medium">{t("stock.skus")}</div>
