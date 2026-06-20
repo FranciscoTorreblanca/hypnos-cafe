@@ -26,6 +26,7 @@ export interface MenuItem {
   inventory_count: number | null;
   cooking_time_seconds: number | null;
   cooking_warning_seconds: number | null;
+  requires_kitchen: boolean;
   menu_item_addons?: MenuItemAddon[];
 }
 

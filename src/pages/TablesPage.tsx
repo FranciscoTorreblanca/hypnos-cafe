@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useOrders, OrderItem } from "@/hooks/useOrders";
@@ -399,9 +399,14 @@ const SortableTableCard = ({
 // ─── Main Page ───
 const TablesPage = () => {
   const { t, language } = useLanguage();
-  const { data: orders = [], cancelOrder } = useOrders();
+  const { data: orders = [], cancelOrder, updateItemStatus } = useOrders();
   const { tableNames, tableOrder, getTableLabel, updateNames, updateOrder } =
     useTableNames();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(id);
+  }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number>(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -581,6 +586,59 @@ const TablesPage = () => {
           <span>{t("tables.addTable")}</span>
         </Button>
       </div>
+
+      {/* Items waiting to be served */}
+      {(() => {
+        const toServe: Array<{ item: OrderItem; orderId: string; tableNum: number }> = [];
+        for (const o of activeOrders) {
+          for (const oi of o.order_items ?? []) {
+            if (oi.status === "ready") {
+              toServe.push({ item: oi, orderId: o.id, tableNum: o.table_number });
+            }
+          }
+        }
+        toServe.sort((a, b) => new Date(a.item.created_at).getTime() - new Date(b.item.created_at).getTime());
+        if (toServe.length === 0) return null;
+        const fmt = (ms: number) => {
+          const total = Math.max(0, Math.floor(ms / 1000));
+          const m = Math.floor(total / 60);
+          const s = total % 60;
+          return `${m}:${s.toString().padStart(2, "0")}`;
+        };
+        return (
+          <div className="rounded-lg border border-blue-300 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-800 p-2.5 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-blue-900 dark:text-blue-200">
+              <UtensilsCrossed className="h-3.5 w-3.5" />
+              {language === "es" ? "Por servir" : "To serve"}
+              <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{toServe.length}</Badge>
+            </div>
+            <div className="flex flex-col gap-1">
+              {toServe.map(({ item, orderId, tableNum }) => {
+                const elapsed = now - new Date(item.created_at).getTime();
+                const mins = elapsed / 60000;
+                const tone = mins >= 10 ? "text-red-700 dark:text-red-300" : mins >= 5 ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground";
+                return (
+                  <div key={item.id} className="flex items-center gap-2 text-xs bg-background/70 rounded px-2 py-1.5 border">
+                    <Badge variant="outline" className="text-[10px] shrink-0">{getTableLabel(tableNum)}</Badge>
+                    <span className="font-medium truncate flex-1">
+                      {item.quantity}x {language === "es" ? item.menu_item?.name : item.menu_item?.name_en || item.menu_item?.name}
+                    </span>
+                    <span className={`font-mono tabular-nums ${tone}`}>{fmt(elapsed)}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-emerald-600 hover:text-emerald-700"
+                      onClick={() => updateItemStatus.mutate({ id: item.id, status: "served", order_id: orderId })}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* New table input */}
       {showNewTable && (

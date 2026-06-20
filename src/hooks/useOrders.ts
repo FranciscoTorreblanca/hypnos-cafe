@@ -19,7 +19,7 @@ export interface OrderItem {
   ready_at?: string | null;
   combo_id?: string | null;
   combo_group_id?: string | null;
-  menu_item?: { name: string; name_en: string; cooking_time_seconds?: number | null; cooking_warning_seconds?: number | null };
+  menu_item?: { name: string; name_en: string; cooking_time_seconds?: number | null; cooking_warning_seconds?: number | null; requires_kitchen?: boolean };
   combo?: { name: string; name_en: string } | null;
 }
 
@@ -67,7 +67,7 @@ export const useOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*, menu_items(name, name_en, cooking_time_seconds, cooking_warning_seconds), combos(name, name_en))")
+        .select("*, order_items(*, menu_items(name, name_en, cooking_time_seconds, cooking_warning_seconds, requires_kitchen), combos(name, name_en))")
         .in("status", ["pending", "in_progress", "completed", "ready", "served"])
         .order("created_at", { ascending: false });
       if (error) throw error;
