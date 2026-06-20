@@ -106,8 +106,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (chosen && typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, chosen);
     if (chosen) {
       await supabase.rpc("set_active_business", { _business_id: chosen });
-      await fetchFeatures(chosen);
+      await Promise.all([fetchFeatures(chosen), fetchBusinessRoles(userId, chosen)]);
+    } else {
+      setCurrentBusinessRoles([]);
     }
+  };
+
+  const fetchBusinessRoles = async (userId: string, businessId: string) => {
+    const { data } = await supabase
+      .from("business_members")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("business_id", businessId);
+    setCurrentBusinessRoles((data ?? []).map((r: any) => r.role));
   };
 
   const fetchFeatures = async (businessId: string) => {
@@ -126,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFeatures(ALL_FEATURES_ON);
     }
   };
+
 
   useEffect(() => {
     let currentUserId: string | null = null;
