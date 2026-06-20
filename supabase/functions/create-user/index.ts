@@ -27,11 +27,22 @@ Deno.serve(async (req) => {
 
     const { data: isAdmin } = await callerClient.rpc("is_admin");
     const { data: isSuper } = await callerClient.rpc("is_super_admin");
-    if (!isAdmin && !isSuper) throw new Error("Not authorized");
 
     const body = await req.json();
     const action: string = body.action || "invite";
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Allow business_admin (per-business) callers in addition to global admin/super_admin
+    let isBusinessAdmin = false;
+    if (!isAdmin && !isSuper && body.business_id) {
+      const { data: m } = await adminClient
+        .from("business_members")
+        .select("role")
+        .eq("user_id", caller.id)
+        .eq("business_id", body.business_id);
+      isBusinessAdmin = (m ?? []).some((r: any) => r.role === "business_admin" || r.role === "admin");
+    }
+    if (!isAdmin && !isSuper && !isBusinessAdmin) throw new Error("Not authorized");
 
     // --- Send password reset email to an existing user ---
     if (action === "reset_password") {
@@ -45,6 +56,45 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // --- Replace a user's roles within a business ---
+    if (action === "update_roles") {
+      const targetUserId: string = body.user_id;
+      const targetBusinessId: string = body.business_id;
+      const nextRoles: string[] = Array.from(new Set((body.roles ?? []).filter(Boolean)));
+      if (!targetUserId || !targetBusinessId) throw new Error("Missing user_id or business_id");
+      const ENUM_ROLES = new Set(["admin", "waiter", "billing", "kitchen"]);
+
+      // Wipe and recreate business memberships for this user/business
+      const { error: delErr } = await adminClient
+        .from("business_members")
+        .delete()
+        .eq("user_id", targetUserId)
+        .eq("business_id", targetBusinessId);
+      if (delErr) throw delErr;
+
+      if (nextRoles.length > 0) {
+        const rows = nextRoles.map((r, idx) => ({
+          user_id: targetUserId,
+          business_id: targetBusinessId,
+          role: r,
+          is_default: idx === 0,
+        }));
+        const { error: insErr } = await adminClient.from("business_members").insert(rows);
+        if (insErr) throw insErr;
+      }
+
+      // Sync legacy enum roles (additive only; we don't strip global roles that may apply to other businesses)
+      for (const r of nextRoles) {
+        if (!ENUM_ROLES.has(r)) continue;
+        await adminClient.from("user_roles").insert({ user_id: targetUserId, role: r }).then((x) => x);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     // --- Invite / add user to business (supports multi-role) ---
     const { email, full_name, role, business_id } = body;
