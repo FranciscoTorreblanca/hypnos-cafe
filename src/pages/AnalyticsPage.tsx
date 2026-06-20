@@ -10,6 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Activity, Clock, Users, MousePointerClick, TrendingUp, Lightbulb, ArrowRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { subDays } from "date-fns";
+import CookingTimeStats from "@/components/analytics/CookingTimeStats";
 
 type UsageRow = {
   id: string;
