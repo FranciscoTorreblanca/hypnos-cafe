@@ -36,8 +36,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus, Minus, Trash2, Send, Search, UtensilsCrossed, Receipt,
-  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer,
+  Banknote, CreditCard, XCircle, MessageSquare, ShoppingCart, Package, Percent, DollarSign, Pencil, CheckCircle, Clock, Printer, ArrowLeftRight, Upload,
 } from "lucide-react";
+
 import { ComboChoiceDialog } from "@/components/orders/ComboChoiceDialog";
 import { MenuItemAddonsDialog } from "@/components/orders/MenuItemAddonsDialog";
 import { SplitOrderDialog } from "@/components/orders/SplitOrderDialog";
