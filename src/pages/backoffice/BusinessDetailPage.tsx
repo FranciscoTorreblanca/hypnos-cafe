@@ -362,7 +362,10 @@ const BusinessDetailPage = () => {
                   <SelectContent>
                     <SelectItem value="test">Test (generic)</SelectItem>
                     <SelectItem value="order_paid">Order paid</SelectItem>
+                    <SelectItem value="order_cancelled">Order cancelled</SelectItem>
+                    <SelectItem value="low_stock">Low stock</SelectItem>
                     <SelectItem value="out_of_stock">Out of stock</SelectItem>
+
                   </SelectContent>
                 </Select>
               </div>
