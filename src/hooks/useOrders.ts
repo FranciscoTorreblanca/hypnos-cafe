@@ -270,6 +270,106 @@ export const useOrders = () => {
     },
   });
 
+  /**
+   * Split an order into a new sub-order.
+   * `selections` lists which items to move and how many (qty must be > 0 and <= existing).
+   * Returns the new sub-order id so the caller can open it immediately.
+   */
+  const splitOrder = async (
+    parentOrder: Order,
+    selections: { item_id: string; qty: number }[],
+  ): Promise<string> => {
+    const items = parentOrder.order_items ?? [];
+    const valid = selections
+      .map((s) => ({ s, src: items.find((i) => i.id === s.item_id) }))
+      .filter((x) => !!x.src && x.s.qty > 0 && x.s.qty <= (x.src!.quantity || 0));
+    if (valid.length === 0) throw new Error("split.noItems");
+
+    const newOrderId = crypto.randomUUID();
+    const full_move_ids: string[] = [];
+    const partial_moves: any[] = [];
+    const optimisticSubItems: OrderItem[] = [];
+    const optimisticParentItems: OrderItem[] = items
+      .map((it) => {
+        const sel = valid.find((v) => v.src!.id === it.id);
+        if (!sel) return it;
+        if (sel.s.qty >= it.quantity) {
+          full_move_ids.push(it.id);
+          optimisticSubItems.push({ ...it, order_id: newOrderId });
+          return null;
+        }
+        const newId = crypto.randomUUID();
+        const remaining = it.quantity - sel.s.qty;
+        partial_moves.push({
+          source_id: it.id,
+          new_id: newId,
+          move_qty: sel.s.qty,
+          remaining_qty: remaining,
+          menu_item_id: it.menu_item_id,
+          unit_price: it.unit_price,
+          notes: it.notes,
+          discount: it.discount,
+          discount_amount: it.discount_amount,
+          combo_id: it.combo_id,
+          combo_group_id: it.combo_group_id,
+          status: it.status,
+        });
+        optimisticSubItems.push({
+          ...it,
+          id: newId,
+          order_id: newOrderId,
+          quantity: sel.s.qty,
+        });
+        return { ...it, quantity: remaining };
+      })
+      .filter(Boolean) as OrderItem[];
+
+    const subOrder: Order = {
+      id: newOrderId,
+      table_number: parentOrder.table_number,
+      status: "in_progress",
+      cancel_reason: null,
+      parent_order_id: parentOrder.id,
+      notes: "",
+      created_by: user!.id,
+      total: 0,
+      general_discount: 0,
+      general_discount_amount: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      order_items: optimisticSubItems,
+      _pending: true,
+    };
+    subOrder.total = optimisticSubItems.reduce(
+      (s, i) => s + applyLineDiscount(i.quantity * i.unit_price, i.discount ?? 0, i.discount_amount ?? 0),
+      0,
+    );
+
+    // Optimistic cache update
+    queryClient.setQueryData<Order[]>(ORDERS_KEY, (old) => {
+      const list = (old ?? []).map((o) =>
+        o.id === parentOrder.id ? recalc({ ...o, order_items: optimisticParentItems }) : o,
+      );
+      return [subOrder, ...list];
+    });
+
+    const { enqueue } = await import("@/offline/enqueue");
+    await enqueue(
+      "order.split",
+      {
+        new_order_id: newOrderId,
+        parent_order_id: parentOrder.id,
+        table_number: parentOrder.table_number,
+        created_by: user!.id,
+        full_move_ids,
+        partial_moves,
+      },
+      { label: `Split order ${parentOrder.id.slice(0, 6)} → ${newOrderId.slice(0, 6)}` },
+    );
+    return newOrderId;
+  };
+
+
   const getActiveOrderForTable = (tableNumber: number) =>
     (query.data ?? []).find(
       (o) => o.table_number === tableNumber && !["paid", "cancelled"].includes(o.status)
