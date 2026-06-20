@@ -116,6 +116,23 @@ const PublicMenuPage = () => {
     load();
   }, [menuId, isPreview]);
 
+  // Sign image URLs for items/combos that have an image_url path
+  useEffect(() => {
+    if (!menu) return;
+    const paths: string[] = [];
+    for (const e of menu.menu_entries) {
+      if (e.menu_items?.image_url) paths.push(e.menu_items.image_url);
+      if (e.combos?.image_url) paths.push(e.combos.image_url);
+    }
+    if (paths.length === 0) { setImageUrls({}); return; }
+    let cancelled = false;
+    signMenuImageUrls(paths, 60 * 60).then((map) => {
+      if (!cancelled) setImageUrls(map);
+    });
+    return () => { cancelled = true; };
+  }, [menu]);
+
+
   const handlePrint = () => window.print();
 
   const getName = (item: { name: string; name_en: string }) =>
