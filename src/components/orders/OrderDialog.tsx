@@ -1442,6 +1442,17 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
         onOpenChange={(v) => { setPrePaymentOpen(v); if (!v) setPrePaymentTicket(null); }}
         ticket={prePaymentTicket}
       />
+      {order && (
+        <SplitOrderDialog
+          open={splitOpen}
+          onOpenChange={setSplitOpen}
+          order={order}
+          onSplit={() => {
+            // Close parent dialog so the user can see the new sub-order in tables list
+            onOpenChange(false);
+          }}
+        />
+      )}
     </>
   );
 
