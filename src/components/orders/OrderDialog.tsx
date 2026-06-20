@@ -408,8 +408,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     }
   };
 
-  const getName = (item: { name?: string; name_en?: string }) =>
-    language === "es" ? item.name : item.name_en;
+  const getName = (item?: { name?: string; name_en?: string } | null) =>
+    item ? (language === "es" ? item.name : (item.name_en ?? item.name)) : "—";
 
   const orderItems = order?.order_items ?? [];
   const canAddItems = !order || ["pending", "in_progress", "ready", "served"].includes(order.status);
@@ -514,7 +514,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
                   {getName(combo)}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
-                  {combo.combo_items.map((ci) => ci.menu_items?.name).filter(Boolean).join(" + ")}
+                  {(combo.combo_items ?? []).map((ci) => ci.menu_items?.name).filter(Boolean).join(" + ")}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
