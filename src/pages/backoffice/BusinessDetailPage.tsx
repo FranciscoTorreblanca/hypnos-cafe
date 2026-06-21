@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, KeyRound, Trash2, UserPlus, Bell, Pencil } from "lucide-react";
+import { extractEdgeError } from "@/lib/edgeError";
 
 interface Business {
   id: string; name: string; slug: string; legal_name: string | null; tax_id: string | null;
