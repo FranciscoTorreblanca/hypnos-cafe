@@ -229,8 +229,8 @@ const BusinessDetailPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { action: "reset_password", email },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: "Success", description: "Password reset email sent" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
