@@ -151,8 +151,8 @@ const UsersPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { action: "reset_password", email: u.email },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: t("common.success"), description: "Password reset email sent" });
     } catch (error: any) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
