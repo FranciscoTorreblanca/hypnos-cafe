@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Wallet, CreditCard, Coins, TrendingDown, TrendingUp, Plus, Trash2, Pencil, AlertCircle, CheckCircle2, Receipt, CalendarClock } from "lucide-react";
+import { Wallet, CreditCard, Coins, TrendingDown, TrendingUp, Plus, Trash2, Pencil, AlertCircle, CheckCircle2, Receipt, CalendarClock, ArrowLeftRight, ArrowRight } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from "recharts";
 
 type Frequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | "one_time";
@@ -283,6 +283,31 @@ export default function BudgetPage() {
   const [quickAdjSource, setQuickAdjSource] = useState<"cash" | "card">("cash");
   const [quickAdjTarget, setQuickAdjTarget] = useState("");
   const [quickAdjNote, setQuickAdjNote] = useState("");
+
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState({ from: "cash" as "cash" | "card", to: "card" as "cash" | "card", amount: "", note: "" });
+
+  const addTransfer = useMutation({
+    mutationFn: async (p: { from: "cash" | "card"; to: "cash" | "card"; amount: number; note: string }) => {
+      if (p.from === p.to) throw new Error(t("budget.sameSourceError") as string);
+      const transferId = crypto.randomUUID();
+      const baseNote = p.note?.trim() || (t("budget.transferNote") as string);
+      const fromNote = `${baseNote} → ${sourceLabel(p.to)} [${transferId.slice(0, 8)}]`;
+      const toNote = `${baseNote} ← ${sourceLabel(p.from)} [${transferId.slice(0, 8)}]`;
+      const { error } = await (supabase.from("balance_adjustments") as any).insert([
+        { source: p.from, amount: -Math.abs(p.amount), kind: "transfer", note: fromNote, created_by: user!.id },
+        { source: p.to, amount: Math.abs(p.amount), kind: "transfer", note: toNote, created_by: user!.id },
+      ]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      toast({ title: t("budget.transferDone") });
+      setTransferOpen(false);
+      setTransferForm({ from: "cash", to: "card", amount: "", note: "" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
 
   const openNewExpense = (recurring_id = "", category_id = "") => {
     setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id, paid_at: format(new Date(), "yyyy-MM-dd") });
@@ -762,7 +787,12 @@ export default function BudgetPage() {
 
         {/* BALANCE */}
         <TabsContent value="balance" className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {isAdmin && (
+              <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}>
+                <ArrowLeftRight className="h-4 w-4 mr-1" />{t("budget.transfer")}
+              </Button>
+            )}
             {isAdmin && (
               <Button size="sm" onClick={() => setAdjOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" />{t("budget.addAdjustment")}
@@ -792,7 +822,7 @@ export default function BudgetPage() {
                     <TableRow key={a.id}>
                       <TableCell className="whitespace-nowrap">{format(new Date(a.created_at), "dd MMM yyyy", { locale })}</TableCell>
                       <TableCell><Badge variant="outline">{sourceLabel(a.source)}</Badge></TableCell>
-                      <TableCell>{a.kind === "starting_balance" ? t("budget.startingBalance") : t("budget.adjustment")}</TableCell>
+                      <TableCell>{a.kind === "starting_balance" ? t("budget.startingBalance") : a.kind === "transfer" ? t("budget.transfer") : t("budget.adjustment")}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">{a.note}</TableCell>
                       <TableCell className={`text-right font-semibold ${Number(a.amount) < 0 ? "text-destructive" : ""}`}>
                         {fmtMXN(Number(a.amount))}
@@ -1040,6 +1070,71 @@ export default function BudgetPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setQuickAdjOpen(false)}>{t("common.cancel")}</Button>
             <Button onClick={submitQuickAdjust} disabled={addAdjustment.isPending || Number.isNaN(Number(quickAdjTarget))}>
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer dialog */}
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowLeftRight className="h-4 w-4" />{t("budget.transferBetween")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+              <div>
+                <Label>{t("budget.from")}</Label>
+                <Select value={transferForm.from} onValueChange={(v) => setTransferForm((f) => ({ ...f, from: v as "cash" | "card", to: v === f.to ? (v === "cash" ? "card" : "cash") : f.to }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">{sourceLabel("cash")}</SelectItem>
+                    <SelectItem value="card">{sourceLabel("card")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  {fmtMXN(transferForm.from === "cash" ? totalsBySource.cash : totalsBySource.card)}
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 mb-8 text-muted-foreground" />
+              <div>
+                <Label>{t("budget.to")}</Label>
+                <Select value={transferForm.to} onValueChange={(v) => setTransferForm((f) => ({ ...f, to: v as "cash" | "card", from: v === f.from ? (v === "cash" ? "card" : "cash") : f.from }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">{sourceLabel("cash")}</SelectItem>
+                    <SelectItem value="card">{sourceLabel("card")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  {fmtMXN(transferForm.to === "cash" ? totalsBySource.cash : totalsBySource.card)}
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label>{t("budget.amount")}</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={transferForm.amount}
+                onChange={(e) => setTransferForm((f) => ({ ...f, amount: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>{t("budget.note")}</Label>
+              <Textarea value={transferForm.note} onChange={(e) => setTransferForm((f) => ({ ...f, note: e.target.value }))} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOpen(false)}>{t("common.cancel")}</Button>
+            <Button
+              onClick={() => addTransfer.mutate({ from: transferForm.from, to: transferForm.to, amount: Number(transferForm.amount), note: transferForm.note })}
+              disabled={addTransfer.isPending || !Number(transferForm.amount) || transferForm.from === transferForm.to}
+            >
               {t("common.save")}
             </Button>
           </DialogFooter>

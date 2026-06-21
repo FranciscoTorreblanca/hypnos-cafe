@@ -555,6 +555,13 @@ export const translations = {
   "budget.paid": { es: "Pagado", en: "Paid" },
   "budget.lastPaid": { es: "Último pago", en: "Last paid" },
   "budget.paidAt": { es: "Fecha de pago", en: "Payment date" },
+  "budget.transfer": { es: "Transferir", en: "Transfer" },
+  "budget.transferBetween": { es: "Transferir entre cuentas", en: "Transfer between accounts" },
+  "budget.from": { es: "Desde", en: "From" },
+  "budget.to": { es: "Hacia", en: "To" },
+  "budget.transferDone": { es: "Transferencia registrada", en: "Transfer recorded" },
+  "budget.sameSourceError": { es: "Origen y destino deben ser diferentes", en: "Source and destination must differ" },
+  "budget.transferNote": { es: "Transferencia", en: "Transfer" },
 
 
 
