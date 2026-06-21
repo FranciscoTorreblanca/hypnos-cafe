@@ -269,7 +269,7 @@ const BusinessDetailPage = () => {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="billing">Billing & Tickets</TabsTrigger>
           <TabsTrigger value="features">Features</TabsTrigger>
-          <TabsTrigger value="members">Users ({members.length})</TabsTrigger>
+          <TabsTrigger value="members">Users ({groupedMembers.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
