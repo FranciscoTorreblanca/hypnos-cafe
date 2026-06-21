@@ -92,8 +92,8 @@ const UsersPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { email: form.email, full_name: form.full_name, roles: form.roles, business_id: currentBusinessId },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: t("common.success"), description: t("users.created") });
       setDialogOpen(false);
       setForm({ email: "", full_name: "", roles: [] });
