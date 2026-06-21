@@ -284,6 +284,31 @@ export default function BudgetPage() {
   const [quickAdjTarget, setQuickAdjTarget] = useState("");
   const [quickAdjNote, setQuickAdjNote] = useState("");
 
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState({ from: "cash" as "cash" | "card", to: "card" as "cash" | "card", amount: "", note: "" });
+
+  const addTransfer = useMutation({
+    mutationFn: async (p: { from: "cash" | "card"; to: "cash" | "card"; amount: number; note: string }) => {
+      if (p.from === p.to) throw new Error(t("budget.sameSourceError") as string);
+      const transferId = crypto.randomUUID();
+      const baseNote = p.note?.trim() || (t("budget.transferNote") as string);
+      const fromNote = `${baseNote} → ${sourceLabel(p.to)} [${transferId.slice(0, 8)}]`;
+      const toNote = `${baseNote} ← ${sourceLabel(p.from)} [${transferId.slice(0, 8)}]`;
+      const { error } = await (supabase.from("balance_adjustments") as any).insert([
+        { source: p.from, amount: -Math.abs(p.amount), kind: "transfer", note: fromNote, created_by: user!.id },
+        { source: p.to, amount: Math.abs(p.amount), kind: "transfer", note: toNote, created_by: user!.id },
+      ]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      toast({ title: t("budget.transferDone") });
+      setTransferOpen(false);
+      setTransferForm({ from: "cash", to: "card", amount: "", note: "" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const openNewExpense = (recurring_id = "", category_id = "") => {
     setExpForm({ category_id: category_id || categories[0]?.id || "", amount: "", payment_source: "card", note: "", recurring_id, paid_at: format(new Date(), "yyyy-MM-dd") });
     setExpenseOpen(true);
