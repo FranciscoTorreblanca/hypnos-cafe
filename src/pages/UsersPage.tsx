@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, KeyRound } from "lucide-react";
+import { extractEdgeError } from "@/lib/edgeError";
 
 interface UserProfile {
   id: string;
