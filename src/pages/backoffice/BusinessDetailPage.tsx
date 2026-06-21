@@ -198,8 +198,8 @@ const BusinessDetailPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { action: "update_roles", user_id: editMember.user_id, business_id: id, roles: editRoles },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: "Roles updated" });
       setEditMember(null);
       await fetchAll();
