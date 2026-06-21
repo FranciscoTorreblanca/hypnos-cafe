@@ -107,6 +107,8 @@ const App = () => (
                 <Route path="/wifi" element={<FeatureGate feature="wifi"><WifiPage /></FeatureGate>} />
                 <Route path="/analytics" element={<FeatureGate feature="analytics"><AnalyticsPage /></FeatureGate>} />
                 <Route path="/budget" element={<FeatureGate feature="budget"><BudgetPage /></FeatureGate>} />
+                <Route path="/check-in" element={<CheckInPage />} />
+                <Route path="/time-clock" element={<TimeClockPage />} />
               </Route>
               <Route
                 path="/backoffice"
