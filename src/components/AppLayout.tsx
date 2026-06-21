@@ -1,20 +1,32 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { useKitchenAlerts } from "@/hooks/useKitchenAlerts";
+import { useAuth } from "@/hooks/useAuth";
 import { AttendanceGate } from "@/components/AttendanceGate";
 import { ConnectionPill } from "@/components/offline/ConnectionPill";
 import { FirstRunBanner } from "@/components/offline/FirstRunBanner";
 
+const KIOSK_PATHS = ["/check-in", "/time-clock"];
+
 export const AppLayout = () => {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const { isAdmin, isSuperAdmin } = useAuth();
   useUsageTracking();
   useKitchenAlerts();
 
-  const inner = isMobile ? (
+  const isKioskPath = KIOSK_PATHS.some((p) => location.pathname.startsWith(p));
+  // Non-admin staff on the check-in/time-clock screens see only the page,
+  // no sidebar or bottom nav (they must check in before navigating).
+  const bareLayout = isKioskPath && !(isAdmin || isSuperAdmin);
+
+  const inner = bareLayout ? (
+    <Outlet />
+  ) : isMobile ? (
     <div className="min-h-screen flex flex-col">
       <div className="sticky top-0 z-10 flex justify-end p-2 pointer-events-none">
         <div className="pointer-events-auto"><ConnectionPill /></div>
