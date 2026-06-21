@@ -1075,6 +1075,71 @@ export default function BudgetPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Transfer dialog */}
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowLeftRight className="h-4 w-4" />{t("budget.transferBetween")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+              <div>
+                <Label>{t("budget.from")}</Label>
+                <Select value={transferForm.from} onValueChange={(v) => setTransferForm((f) => ({ ...f, from: v as "cash" | "card", to: v === f.to ? (v === "cash" ? "card" : "cash") : f.to }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">{sourceLabel("cash")}</SelectItem>
+                    <SelectItem value="card">{sourceLabel("card")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  {fmtMXN(transferForm.from === "cash" ? totalsBySource.cash : totalsBySource.card)}
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 mb-8 text-muted-foreground" />
+              <div>
+                <Label>{t("budget.to")}</Label>
+                <Select value={transferForm.to} onValueChange={(v) => setTransferForm((f) => ({ ...f, to: v as "cash" | "card", from: v === f.from ? (v === "cash" ? "card" : "cash") : f.from }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">{sourceLabel("cash")}</SelectItem>
+                    <SelectItem value="card">{sourceLabel("card")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  {fmtMXN(transferForm.to === "cash" ? totalsBySource.cash : totalsBySource.card)}
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label>{t("budget.amount")}</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={transferForm.amount}
+                onChange={(e) => setTransferForm((f) => ({ ...f, amount: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>{t("budget.note")}</Label>
+              <Textarea value={transferForm.note} onChange={(e) => setTransferForm((f) => ({ ...f, note: e.target.value }))} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOpen(false)}>{t("common.cancel")}</Button>
+            <Button
+              onClick={() => addTransfer.mutate({ from: transferForm.from, to: transferForm.to, amount: Number(transferForm.amount), note: transferForm.note })}
+              disabled={addTransfer.isPending || !Number(transferForm.amount) || transferForm.from === transferForm.to}
+            >
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
