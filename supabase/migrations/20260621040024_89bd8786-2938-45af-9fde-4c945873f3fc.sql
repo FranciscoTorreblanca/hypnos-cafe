@@ -1,0 +1,1 @@
+ALTER TABLE public.business_members DROP CONSTRAINT IF EXISTS business_members_user_id_business_id_key;

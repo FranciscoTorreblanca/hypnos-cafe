@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, KeyRound } from "lucide-react";
+import { extractEdgeError } from "@/lib/edgeError";
 
 interface UserProfile {
   id: string;
@@ -92,8 +93,8 @@ const UsersPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { email: form.email, full_name: form.full_name, roles: form.roles, business_id: currentBusinessId },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: t("common.success"), description: t("users.created") });
       setDialogOpen(false);
       setForm({ email: "", full_name: "", roles: [] });
@@ -151,8 +152,8 @@ const UsersPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { action: "reset_password", email: u.email },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: t("common.success"), description: "Password reset email sent" });
     } catch (error: any) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });

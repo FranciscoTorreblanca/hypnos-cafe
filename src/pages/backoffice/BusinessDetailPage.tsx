@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, KeyRound, Trash2, UserPlus, Bell, Pencil } from "lucide-react";
+import { extractEdgeError } from "@/lib/edgeError";
 
 interface Business {
   id: string; name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -174,8 +175,8 @@ const BusinessDetailPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { ...memberForm, business_id: id },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: "User invited" });
       setMemberDialog(false);
       setMemberForm({ email: "", full_name: "", roles: ["business_admin"] });
@@ -197,8 +198,8 @@ const BusinessDetailPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { action: "update_roles", user_id: editMember.user_id, business_id: id, roles: editRoles },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: "Roles updated" });
       setEditMember(null);
       await fetchAll();
@@ -228,8 +229,8 @@ const BusinessDetailPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { action: "reset_password", email },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: "Success", description: "Password reset email sent" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
