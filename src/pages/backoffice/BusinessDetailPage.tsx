@@ -175,8 +175,8 @@ const BusinessDetailPage = () => {
       const res = await supabase.functions.invoke("create-user", {
         body: { ...memberForm, business_id: id },
       });
-      if (res.error) throw new Error(res.error.message);
-      if (res.data?.error) throw new Error(res.data.error);
+      const errMsg = await extractEdgeError(res);
+      if (errMsg) throw new Error(errMsg);
       toast({ title: "User invited" });
       setMemberDialog(false);
       setMemberForm({ email: "", full_name: "", roles: ["business_admin"] });
