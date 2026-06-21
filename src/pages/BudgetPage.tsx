@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Wallet, CreditCard, Coins, TrendingDown, TrendingUp, Plus, Trash2, Pencil, AlertCircle, CheckCircle2, Receipt, CalendarClock } from "lucide-react";
+import { Wallet, CreditCard, Coins, TrendingDown, TrendingUp, Plus, Trash2, Pencil, AlertCircle, CheckCircle2, Receipt, CalendarClock, ArrowLeftRight, ArrowRight } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from "recharts";
 
 type Frequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | "one_time";
