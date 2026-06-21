@@ -184,32 +184,53 @@ export const usePayments = () => {
         order_id, parts: safeParts, ids, created_by: user!.id,
       }, { label: `Payment · order ${order_id.slice(0, 6)}` });
 
-      // Best-effort push notification (only when online — never enqueue this)
-      if (isOnline) {
-        try {
-          const totalAmount = parts.reduce((s, p) => s + p.amount, 0);
-          const totalTip = parts.reduce((s, p) => s + p.tip, 0);
-          const methodLabel = parts.length > 1 ? "split" : parts[0].payment_method;
-          const { data: orderData } = await supabase
-            .from("orders").select("table_number").eq("id", order_id).single();
-          const { data: profile } = await supabase
-            .from("profiles").select("full_name").eq("id", user!.id).single();
-          triggerPushNotification("order_paid", {
-            amount: totalAmount, tip: totalTip, payment_method: methodLabel,
-            waiter_name: profile?.full_name || user!.email || "Mesero",
-            table_number: orderData?.table_number ?? "?", order_id,
-            paid_at: new Date().toISOString(),
-          }, currentBusinessId);
-        } catch {}
-      }
-
-      return { mpResult, payment_id: ids[0], payment_ids: ids };
-
+      return { mpResult, payment_id: ids[0], payment_ids: ids, order_id, parts };
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
+
+      // Best-effort push notification — must run even if any DB lookup fails.
+      const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+      if (!isOnline || !currentBusinessId || !result?.order_id) return;
+      try {
+        const parts = result.parts ?? [];
+        const totalAmount = parts.reduce((s: number, p: any) => s + p.amount, 0);
+        const totalTip = parts.reduce((s: number, p: any) => s + (p.tip || 0), 0);
+        const methodLabel = parts.length > 1 ? "split" : (parts[0]?.payment_method || "");
+
+        // Pull table_number / waiter from cache first; fall back to DB.
+        const cachedOrder = (queryClient.getQueryData<any[]>(["orders"]) ?? []).find(
+          (o) => o.id === result.order_id,
+        );
+        let tableNumber: number | string = cachedOrder?.table_number ?? "?";
+        if (tableNumber === "?" && result.order_id) {
+          const { data: orderData } = await supabase
+            .from("orders").select("table_number").eq("id", result.order_id).maybeSingle();
+          if (orderData?.table_number != null) tableNumber = orderData.table_number;
+        }
+
+        let waiterName = user?.email || "Mesero";
+        try {
+          const { data: profile } = await supabase
+            .from("profiles").select("full_name").eq("id", user!.id).maybeSingle();
+          if (profile?.full_name) waiterName = profile.full_name;
+        } catch {}
+
+        console.log("[push] firing order_paid", { order_id: result.order_id, totalAmount, methodLabel });
+        await triggerPushNotification("order_paid", {
+          amount: totalAmount,
+          tip: totalTip,
+          payment_method: methodLabel,
+          waiter_name: waiterName,
+          table_number: tableNumber,
+          order_id: result.order_id,
+          paid_at: new Date().toISOString(),
+        }, currentBusinessId);
+      } catch (e) {
+        console.error("[push] order_paid failed to fire", e);
+      }
     },
   });
 
