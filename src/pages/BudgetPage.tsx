@@ -787,7 +787,12 @@ export default function BudgetPage() {
 
         {/* BALANCE */}
         <TabsContent value="balance" className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {isAdmin && (
+              <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}>
+                <ArrowLeftRight className="h-4 w-4 mr-1" />{t("budget.transfer")}
+              </Button>
+            )}
             {isAdmin && (
               <Button size="sm" onClick={() => setAdjOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" />{t("budget.addAdjustment")}
