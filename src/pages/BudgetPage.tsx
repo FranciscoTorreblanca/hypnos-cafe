@@ -822,7 +822,7 @@ export default function BudgetPage() {
                     <TableRow key={a.id}>
                       <TableCell className="whitespace-nowrap">{format(new Date(a.created_at), "dd MMM yyyy", { locale })}</TableCell>
                       <TableCell><Badge variant="outline">{sourceLabel(a.source)}</Badge></TableCell>
-                      <TableCell>{a.kind === "starting_balance" ? t("budget.startingBalance") : t("budget.adjustment")}</TableCell>
+                      <TableCell>{a.kind === "starting_balance" ? t("budget.startingBalance") : a.kind === "transfer" ? t("budget.transfer") : t("budget.adjustment")}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">{a.note}</TableCell>
                       <TableCell className={`text-right font-semibold ${Number(a.amount) < 0 ? "text-destructive" : ""}`}>
                         {fmtMXN(Number(a.amount))}
