@@ -47,6 +47,7 @@ export function useUsageTracking() {
 
   useEffect(() => {
     if (!user) return;
+    if ((roles as string[]).includes("super_admin")) return;
     const path = location.pathname;
     if (PUBLIC_PATHS.some((p) => path.startsWith(p))) return;
 
