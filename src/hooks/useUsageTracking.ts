@@ -23,7 +23,9 @@ export async function trackUsageAction(
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id);
-    const role = primaryRole((rolesData ?? []).map((r: any) => r.role));
+    const roleList = (rolesData ?? []).map((r: any) => r.role);
+    if (roleList.includes("super_admin")) return;
+    const role = primaryRole(roleList);
     await (supabase.from("usage_events") as any).insert({
       user_id: user.id,
       role,
