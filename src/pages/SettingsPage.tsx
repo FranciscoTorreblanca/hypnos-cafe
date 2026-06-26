@@ -232,6 +232,27 @@ const SettingsPage = () => {
         </Card>
       )}
 
+      {isAdmin && hasFeature("delivery") && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bike className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-base">Delivery</CardTitle>
+                <CardDescription className="text-sm">
+                  {/* simple label, no i18n entry to add */}
+                  Plataformas, comisión y calendario de pagos / Platforms, commission &amp; payout schedule
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <DeliveryPlatformsAdmin />
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* App Updates */}
       <Card>
         <CardHeader>
