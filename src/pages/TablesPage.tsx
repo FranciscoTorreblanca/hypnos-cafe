@@ -777,6 +777,51 @@ const TablesPage = () => {
                 </div>
               )}
             </TabsContent>
+            {deliveryEnabled && (
+              <TabsContent value="delivery" className="mt-3 space-y-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => { setSelectedDeliveryOrderId(null); setDeliveryDialogOpen(true); }}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>{language === "es" ? "Nueva orden delivery" : "New delivery order"}</span>
+                </Button>
+                {activeDeliveryOrders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                    <Bike className="h-8 w-8 opacity-40" />
+                    <p className="text-sm">{language === "es" ? "Sin órdenes activas" : "No active orders"}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {activeDeliveryOrders.map((o) => {
+                      const itemCount = (o.order_items ?? []).reduce((s, i) => s + i.quantity, 0);
+                      const total = (o.order_items ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0);
+                      const statusBadge = o.delivery_status === "accepted"
+                        ? { label: language === "es" ? "Aceptada" : "Accepted", cls: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300" }
+                        : o.delivery_status === "ready"
+                        ? { label: language === "es" ? "Lista" : "Ready", cls: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300" }
+                        : { label: o.delivery_status ?? "", cls: "" };
+                      return (
+                        <button
+                          key={o.id}
+                          className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-2 text-sm hover:bg-accent text-left"
+                          onClick={() => { setSelectedDeliveryOrderId(o.id); setDeliveryDialogOpen(true); }}
+                        >
+                          <Bike className="h-4 w-4 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{o.external_ref || o.id.slice(0, 8)}</div>
+                            <div className="text-xs text-muted-foreground">{itemCount} {language === "es" ? "items" : "items"} · ${total.toFixed(0)}</div>
+                          </div>
+                          <Badge variant="outline" className={cn("text-[10px]", statusBadge.cls)}>{statusBadge.label}</Badge>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         );
       })()}
