@@ -648,6 +648,11 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                   </Button>
                 </TabsContent>
               )}
+              {showDeliveryTab && item?.id && (
+                <TabsContent value="delivery" className="mt-4">
+                  <MenuItemPlatformsTab menuItemId={item.id} basePrice={form.watch("price") || item.price || 0} />
+                </TabsContent>
+              )}
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-2 border-t">
