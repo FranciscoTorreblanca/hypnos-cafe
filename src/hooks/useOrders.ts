@@ -187,13 +187,7 @@ export const useOrders = () => {
             : o.status,
       })),
   });
-    queryClient.setQueryData<Order[]>(ORDERS_KEY, (old) => [optimistic, ...(old ?? [])]);
-    const { enqueue } = await import("@/offline/enqueue");
-    await enqueue("order.create", { id, table_number: tableNumber, created_by: user!.id }, {
-      id, label: `Create order · Table ${tableNumber}`,
-    });
-    return optimistic;
-  };
+
 
   const updateOrderStatus = useOfflineMutation<{ id: string; status: Order["status"] }>({
     kind: "order.updateStatus",
