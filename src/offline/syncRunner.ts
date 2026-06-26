@@ -33,9 +33,24 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
   const p = e.payload;
   switch (e.kind) {
     case "order.create": {
-      const { error } = await supabase.from("orders").insert({
+      const insertRow: any = {
         id: p.id, table_number: p.table_number, created_by: p.created_by,
-      } as any);
+      };
+      if (p.is_delivery) {
+        insertRow.is_delivery = true;
+        insertRow.delivery_platform_id = p.delivery_platform_id ?? null;
+        insertRow.delivery_status = p.delivery_status ?? "accepted";
+        insertRow.external_ref = p.external_ref ?? null;
+      }
+      const { error } = await supabase.from("orders").insert(insertRow);
+      if (error) throw error;
+      return;
+    }
+    case "order.updateDeliveryStatus": {
+      const patch: any = { delivery_status: p.delivery_status };
+      if (p.delivery_status === "ready") patch.status = "ready";
+      if (p.delivery_status === "delivered") patch.status = "served";
+      const { error } = await supabase.from("orders").update(patch).eq("id", p.id);
       if (error) throw error;
       return;
     }
@@ -153,6 +168,7 @@ async function execEntry(e: QueueEntry, _qc: QueryClient): Promise<void> {
         created_by: p.created_by,
         evidence_url: part.evidence_url ?? null,
         evidence_reference: part.evidence_reference ?? null,
+        delivery_platform_id: part.delivery_platform_id ?? null,
       }));
 
       const { error } = await supabase.from("payments").insert(rows);
@@ -203,6 +219,7 @@ const INVALIDATIONS: Partial<Record<QueueEntry["kind"], string[]>> = {
   "order.updateGeneralDiscount": ["orders"],
   "order.updateGeneralDiscountAmount": ["orders"],
   "order.cancel": ["orders"],
+  "order.updateDeliveryStatus": ["orders"],
   "order.split": ["orders"],
   "order_item.insert": ["orders"],
   "order_item.insertBulk": ["orders"],
