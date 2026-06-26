@@ -130,6 +130,28 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
     }
   };
 
+  const handleCancel = async () => {
+    if (!order) return;
+    const txt = cancelReason.trim();
+    if (!txt) {
+      toast({ title: language === "es" ? "Indica un motivo" : "Provide a reason", variant: "destructive" });
+      return;
+    }
+    const prefix = cancelSide === "platform"
+      ? (language === "es" ? "Cancelada por plataforma" : "Cancelled by platform")
+      : (language === "es" ? "Cancelada internamente" : "Cancelled internally");
+    try {
+      await cancelOrder.mutateAsync({ id: order.id, reason: `[${prefix}] ${txt}` });
+      toast({ title: language === "es" ? "Delivery cancelado" : "Delivery cancelled" });
+      setCancelOpen(false);
+      setCancelReason("");
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Error", variant: "destructive" });
+    }
+  };
+
+
   const statusLabel = (s?: string | null) => {
     if (s === "accepted") return language === "es" ? "Aceptada" : "Accepted";
     if (s === "ready") return language === "es" ? "Lista" : "Ready";
