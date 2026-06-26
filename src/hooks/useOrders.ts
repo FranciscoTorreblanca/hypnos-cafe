@@ -122,7 +122,15 @@ export const useOrders = () => {
       created_by: user!.id, total: 0, general_discount: 0, general_discount_amount: 0,
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       order_items: [], _pending: true,
+    };
+    queryClient.setQueryData<Order[]>(ORDERS_KEY, (old) => [optimistic, ...(old ?? [])]);
+    const { enqueue } = await import("@/offline/enqueue");
+    await enqueue("order.create", { id, table_number: tableNumber, created_by: user!.id }, {
+      id, label: `Create order · Table ${tableNumber}`,
+    });
+    return optimistic;
   };
+
 
   /** Create a delivery order (e.g. Rappi). Returns optimistic order id. */
   const createDeliveryOrder = async (input: {
