@@ -36,6 +36,10 @@ export interface Order {
   general_discount_amount: number;
   created_at: string;
   updated_at: string;
+  is_delivery?: boolean;
+  delivery_platform_id?: string | null;
+  delivery_status?: "accepted" | "ready" | "delivered" | null;
+  external_ref?: string | null;
   order_items?: OrderItem[];
   _pending?: boolean; // offline marker
 }
