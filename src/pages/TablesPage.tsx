@@ -646,7 +646,25 @@ const TablesPage = () => {
                 )}
                 {overCount > 0 && <Flame className="h-3.5 w-3.5 text-red-600 animate-pulse" />}
               </TabsTrigger>
+              {deliveryEnabled && (() => {
+                const readyCount = activeDeliveryOrders.filter(o => o.delivery_status === "ready").length;
+                return (
+                  <TabsTrigger value="delivery" className="gap-1.5">
+                    <Bike className="h-3.5 w-3.5" />
+                    <span>{language === "es" ? "Delivery" : "Delivery"}</span>
+                    {activeDeliveryOrders.length > 0 && (
+                      <Badge
+                        variant={readyCount > 0 ? "default" : "secondary"}
+                        className="ml-1 h-4 px-1.5 text-[10px]"
+                      >
+                        {activeDeliveryOrders.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                );
+              })()}
             </TabsList>
+
 
             <TabsContent value="tables" className="mt-3 space-y-3">
               {/* New table input */}
