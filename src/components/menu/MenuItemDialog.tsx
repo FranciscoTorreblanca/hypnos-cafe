@@ -57,7 +57,7 @@ interface Props {
 
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { t, language } = useLanguage();
-  const { isAdmin, currentBusinessId } = useAuth();
+  const { isAdmin, currentBusinessId, hasFeature } = useAuth();
   const { toast } = useToast();
   const { data: categories = [] } = useMenuCategories();
   const { data: skus = [], add: addSku, remove: removeSku } = useMenuItemSkus(item?.id);
