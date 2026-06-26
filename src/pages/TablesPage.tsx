@@ -418,9 +418,12 @@ const TablesPage = () => {
   const [newTableName, setNewTableName] = useState("");
   const [deleteTableNum, setDeleteTableNum] = useState<number | null>(null);
 
-  // Build list of active tables
+  // Build list of active tables (excludes delivery orders, which live in their own tab)
   const activeOrders = (orders ?? []).filter(
-    (o) => !["paid", "cancelled"].includes(o.status)
+    (o) => !["paid", "cancelled"].includes(o.status) && !o.is_delivery
+  );
+  const activeDeliveryOrders = (orders ?? []).filter(
+    (o) => o.is_delivery && o.delivery_status !== "delivered" && o.status !== "cancelled"
   );
 
   const tableNumbersSet = new Set<number>();
