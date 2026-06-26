@@ -493,5 +493,7 @@ export const useOrders = () => {
     updateGeneralDiscount,
     updateGeneralDiscountAmount,
     getActiveOrderForTable,
+    createDeliveryOrder,
+    updateDeliveryStatus,
   };
 };
