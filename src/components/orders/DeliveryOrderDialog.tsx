@@ -270,6 +270,12 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
             </div>
 
             <DialogFooter className="gap-2 flex-wrap">
+              {order?.delivery_status !== "delivered" && order?.status !== "cancelled" && (
+                <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+                  <XCircle className="h-4 w-4 mr-1" />
+                  {language === "es" ? "Cancelar delivery" : "Cancel delivery"}
+                </Button>
+              )}
               {order?.delivery_status === "accepted" && items.length > 0 && (
                 <Button onClick={handleMarkReady} disabled={updateDeliveryStatus.isPending}>
                   {language === "es" ? "Marcar como lista" : "Mark as ready"}
@@ -285,7 +291,59 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
             </DialogFooter>
           </div>
         )}
+
+        <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{language === "es" ? "Cancelar delivery" : "Cancel delivery"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {language === "es"
+                  ? "Esta acción no se puede deshacer. El stock será restaurado."
+                  : "This cannot be undone. Stock will be restored."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3 py-1">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={cancelSide === "platform" ? "default" : "outline"}
+                  onClick={() => setCancelSide("platform")}
+                  size="sm"
+                >
+                  {language === "es" ? "Por plataforma" : "By platform"}
+                </Button>
+                <Button
+                  type="button"
+                  variant={cancelSide === "internal" ? "default" : "outline"}
+                  onClick={() => setCancelSide("internal")}
+                  size="sm"
+                >
+                  {language === "es" ? "Por nosotros" : "By us"}
+                </Button>
+              </div>
+              <div className="space-y-1">
+                <Label>{language === "es" ? "Motivo" : "Reason"}</Label>
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder={language === "es" ? "Ej: cliente canceló, producto agotado…" : "e.g. customer cancelled, out of stock…"}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleCancel(); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {language === "es" ? "Cancelar delivery" : "Cancel delivery"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
+
 };
