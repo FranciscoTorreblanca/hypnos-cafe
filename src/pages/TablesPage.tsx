@@ -422,6 +422,8 @@ const TablesPage = () => {
   const [showNewTable, setShowNewTable] = useState(false);
   const [newTableName, setNewTableName] = useState("");
   const [deleteTableNum, setDeleteTableNum] = useState<number | null>(null);
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [selectedDeliveryOrderId, setSelectedDeliveryOrderId] = useState<string | null>(null);
 
   // Build list of active tables (excludes delivery orders, which live in their own tab)
   const activeOrders = (orders ?? []).filter(
