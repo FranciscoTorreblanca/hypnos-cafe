@@ -26,6 +26,7 @@ import { useMenuItems } from "@/hooks/useMenuItems";
 import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
 import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { signMenuImageUrl } from "@/lib/menuImage";
+import { MenuItemPlatformsTab } from "@/components/menu/MenuItemPlatformsTab";
 
 const schema = z.object({
   name: z.string().min(1),
