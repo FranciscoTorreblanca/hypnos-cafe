@@ -32,7 +32,7 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
   const { toast } = useToast();
   const { data: platforms = [] } = useDeliveryPlatforms();
   const { data: menuItems = [] } = useMenuItems();
-  const { createDeliveryOrder, updateDeliveryStatus, addItem, removeItem } = useOrders();
+  const { createDeliveryOrder, updateDeliveryStatus, addItem, removeItem, cancelOrder } = useOrders();
   const { createPayment } = usePayments();
 
   const isNew = !order;
