@@ -226,6 +226,7 @@ export type Database = {
           calendar: boolean
           cash_closing: boolean
           cost_calculator: boolean
+          delivery: boolean
           kitchen: boolean
           loyalty: boolean
           menu_generator: boolean
@@ -244,6 +245,7 @@ export type Database = {
           calendar?: boolean
           cash_closing?: boolean
           cost_calculator?: boolean
+          delivery?: boolean
           kitchen?: boolean
           loyalty?: boolean
           menu_generator?: boolean
@@ -262,6 +264,7 @@ export type Database = {
           calendar?: boolean
           cash_closing?: boolean
           cost_calculator?: boolean
+          delivery?: boolean
           kitchen?: boolean
           loyalty?: boolean
           menu_generator?: boolean
@@ -564,6 +567,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "combos_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_platforms: {
+        Row: {
+          business_id: string
+          commission_pct: number
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          payout_offset_days: number
+          payout_weekday: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          commission_pct?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          payout_offset_days?: number
+          payout_weekday?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          commission_pct?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          payout_offset_days?: number
+          payout_weekday?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_platforms_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
@@ -1295,6 +1345,61 @@ export type Database = {
           },
         ]
       }
+      menu_item_platforms: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          is_available: boolean
+          menu_item_id: string
+          platform_id: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          menu_item_id: string
+          platform_id: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          menu_item_id?: string
+          platform_id?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_platforms_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_platforms_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_platforms_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_item_skus: {
         Row: {
           business_id: string
@@ -1573,9 +1678,13 @@ export type Database = {
           cancel_reason: string | null
           created_at: string
           created_by: string
+          delivery_platform_id: string | null
+          delivery_status: string | null
+          external_ref: string | null
           general_discount: number
           general_discount_amount: number
           id: string
+          is_delivery: boolean
           notes: string
           parent_order_id: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -1588,9 +1697,13 @@ export type Database = {
           cancel_reason?: string | null
           created_at?: string
           created_by: string
+          delivery_platform_id?: string | null
+          delivery_status?: string | null
+          external_ref?: string | null
           general_discount?: number
           general_discount_amount?: number
           id?: string
+          is_delivery?: boolean
           notes?: string
           parent_order_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -1603,9 +1716,13 @@ export type Database = {
           cancel_reason?: string | null
           created_at?: string
           created_by?: string
+          delivery_platform_id?: string | null
+          delivery_status?: string | null
+          external_ref?: string | null
           general_discount?: number
           general_discount_amount?: number
           id?: string
+          is_delivery?: boolean
           notes?: string
           parent_order_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -1619,6 +1736,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_delivery_platform_id_fkey"
+            columns: ["delivery_platform_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_platforms"
             referencedColumns: ["id"]
           },
           {
@@ -1636,6 +1760,7 @@ export type Database = {
           business_id: string
           created_at: string
           created_by: string
+          delivery_platform_id: string | null
           evidence_reference: string | null
           evidence_url: string | null
           id: string
@@ -1648,6 +1773,7 @@ export type Database = {
           business_id?: string
           created_at?: string
           created_by: string
+          delivery_platform_id?: string | null
           evidence_reference?: string | null
           evidence_url?: string | null
           id?: string
@@ -1660,6 +1786,7 @@ export type Database = {
           business_id?: string
           created_at?: string
           created_by?: string
+          delivery_platform_id?: string | null
           evidence_reference?: string | null
           evidence_url?: string | null
           id?: string
@@ -1673,6 +1800,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_delivery_platform_id_fkey"
+            columns: ["delivery_platform_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_platforms"
             referencedColumns: ["id"]
           },
           {

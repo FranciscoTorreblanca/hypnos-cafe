@@ -19,13 +19,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMenuItemSkus } from "@/hooks/useMenuItemSkus";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Calculator, Upload, ImageIcon, Loader2, Clock } from "lucide-react";
+import { Trash2, Plus, Calculator, Upload, ImageIcon, Loader2, Clock, Bike } from "lucide-react";
 import { MenuItemCostTab, RecipeRow, computeRecipeCost } from "@/components/menu/MenuItemCostTab";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useMenuItems } from "@/hooks/useMenuItems";
 import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
 import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { signMenuImageUrl } from "@/lib/menuImage";
+import { MenuItemPlatformsTab } from "@/components/menu/MenuItemPlatformsTab";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -56,7 +57,7 @@ interface Props {
 
 export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const { t, language } = useLanguage();
-  const { isAdmin, currentBusinessId } = useAuth();
+  const { isAdmin, currentBusinessId, hasFeature } = useAuth();
   const { toast } = useToast();
   const { data: categories = [] } = useMenuCategories();
   const { data: skus = [], add: addSku, remove: removeSku } = useMenuItemSkus(item?.id);
@@ -238,6 +239,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
 
   const showCostTab = isAdmin && !!item?.id;
   const showAddonsTab = isAdmin && !!item?.id;
+  const showDeliveryTab = isAdmin && !!item?.id && hasFeature("delivery");
 
   const updateAddon = (idx: number, patch: Partial<AddonInput>) => {
     setAddons((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
@@ -291,6 +293,12 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     {addons.length > 0 && (
                       <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{addons.length}</Badge>
                     )}
+                  </TabsTrigger>
+                )}
+                {showDeliveryTab && (
+                  <TabsTrigger value="delivery">
+                    <Bike className="h-3.5 w-3.5 mr-1" />
+                    Delivery
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -638,6 +646,11 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                   <Button type="button" variant="outline" size="sm" onClick={addAddonRow} className="gap-1">
                     <Plus className="h-3.5 w-3.5" /> {language === "es" ? "Agregar extra" : "Add extra"}
                   </Button>
+                </TabsContent>
+              )}
+              {showDeliveryTab && item?.id && (
+                <TabsContent value="delivery" className="mt-4">
+                  <MenuItemPlatformsTab menuItemId={item.id} basePrice={form.watch("price") || item.price || 0} />
                 </TabsContent>
               )}
             </Tabs>

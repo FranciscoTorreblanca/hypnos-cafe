@@ -110,6 +110,7 @@ export const usePayments = () => {
         payment_method: string;
         evidence_reference?: string | null;
         evidence_file?: File | null;
+        delivery_platform_id?: string | null;
       }[];
     }) => {
       if (!parts.length) throw new Error("No payment parts provided");
@@ -166,6 +167,7 @@ export const usePayments = () => {
         payment_method: p.payment_method, created_by: user!.id,
         created_at: new Date().toISOString(),
         evidence_url: evidenceUrls[i], evidence_reference: p.evidence_reference ?? null,
+        delivery_platform_id: p.delivery_platform_id ?? null,
       }));
       queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
 
@@ -176,6 +178,7 @@ export const usePayments = () => {
         payment_method: p.payment_method,
         evidence_url: evidenceUrls[i],
         evidence_reference: p.evidence_reference ?? null,
+        delivery_platform_id: p.delivery_platform_id ?? null,
       }));
 
       // Enqueue (auto-runs if online)

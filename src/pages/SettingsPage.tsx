@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, RefreshCw, Building2, Fingerprint } from "lucide-react";
+import { Bell, RefreshCw, Building2, Fingerprint, Bike } from "lucide-react";
 import { APP_VERSION } from "@/version";
 import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin";
+import { DeliveryPlatformsAdmin } from "@/components/settings/DeliveryPlatformsAdmin";
 import { SyncLog } from "@/components/offline/SyncLog";
 
 interface BusinessInfo {
@@ -230,6 +231,27 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
       )}
+
+      {isAdmin && hasFeature("delivery") && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bike className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-base">Delivery</CardTitle>
+                <CardDescription className="text-sm">
+                  {/* simple label, no i18n entry to add */}
+                  Plataformas, comisión y calendario de pagos / Platforms, commission &amp; payout schedule
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <DeliveryPlatformsAdmin />
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* App Updates */}
       <Card>

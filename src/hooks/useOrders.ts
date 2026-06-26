@@ -36,6 +36,10 @@ export interface Order {
   general_discount_amount: number;
   created_at: string;
   updated_at: string;
+  is_delivery?: boolean;
+  delivery_platform_id?: string | null;
+  delivery_status?: "accepted" | "ready" | "delivered" | null;
+  external_ref?: string | null;
   order_items?: OrderItem[];
   _pending?: boolean; // offline marker
 }
@@ -126,6 +130,72 @@ export const useOrders = () => {
     });
     return optimistic;
   };
+
+
+  /** Create a delivery order (e.g. Rappi). Returns optimistic order id. */
+  const createDeliveryOrder = async (input: {
+    delivery_platform_id: string;
+    external_ref?: string | null;
+  }): Promise<Order> => {
+    const id = crypto.randomUUID();
+    // Use a sentinel table_number 0 for delivery — they're filtered out of the regular Tables tab.
+    const optimistic: Order = {
+      id,
+      table_number: 0,
+      status: "pending",
+      notes: "",
+      created_by: user!.id,
+      total: 0,
+      general_discount: 0,
+      general_discount_amount: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_delivery: true,
+      delivery_platform_id: input.delivery_platform_id,
+      delivery_status: "accepted",
+      external_ref: input.external_ref ?? null,
+      order_items: [],
+      _pending: true,
+    };
+    queryClient.setQueryData<Order[]>(ORDERS_KEY, (old) => [optimistic, ...(old ?? [])]);
+    const { enqueue } = await import("@/offline/enqueue");
+    await enqueue(
+      "order.create",
+      {
+        id,
+        table_number: 0,
+        created_by: user!.id,
+        is_delivery: true,
+        delivery_platform_id: input.delivery_platform_id,
+        delivery_status: "accepted",
+        external_ref: input.external_ref ?? null,
+      },
+      { id, label: `Delivery order ${input.external_ref ?? id.slice(0, 6)}` },
+    );
+    return optimistic;
+  };
+
+  const updateDeliveryStatus = useOfflineMutation<{
+    id: string;
+    delivery_status: "accepted" | "ready" | "delivered";
+  }>({
+    kind: "order.updateDeliveryStatus",
+    label: ({ id, delivery_status }) =>
+      `Delivery ${id.slice(0, 6)} → ${delivery_status}`,
+    buildPayload: ({ id, delivery_status }) => ({ id, delivery_status }),
+    optimistic: async (qc, { id, delivery_status }) =>
+      patchOrder(qc, id, (o) => ({
+        ...o,
+        delivery_status,
+        status:
+          delivery_status === "ready"
+            ? "ready"
+            : delivery_status === "delivered"
+            ? "served"
+            : o.status,
+      })),
+  });
+
 
   const updateOrderStatus = useOfflineMutation<{ id: string; status: Order["status"] }>({
     kind: "order.updateStatus",
@@ -425,5 +495,7 @@ export const useOrders = () => {
     updateGeneralDiscount,
     updateGeneralDiscountAmount,
     getActiveOrderForTable,
+    createDeliveryOrder,
+    updateDeliveryStatus,
   };
 };
