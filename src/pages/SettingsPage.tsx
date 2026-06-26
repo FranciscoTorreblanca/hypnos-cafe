@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, RefreshCw, Building2, Fingerprint } from "lucide-react";
+import { Bell, RefreshCw, Building2, Fingerprint, Bike } from "lucide-react";
 import { APP_VERSION } from "@/version";
 import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin";
+import { DeliveryPlatformsAdmin } from "@/components/settings/DeliveryPlatformsAdmin";
 import { SyncLog } from "@/components/offline/SyncLog";
 
 interface BusinessInfo {
