@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bike, Trash2, CheckCircle2, Loader2, Plus, Minus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Bike, Trash2, CheckCircle2, Loader2, Plus, Minus, XCircle } from "lucide-react";
+
 import { useOrders, type Order } from "@/hooks/useOrders";
 import { useMenuItems, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useDeliveryPlatforms, useMenuItemPlatformPrices } from "@/hooks/useDeliveryPlatforms";
