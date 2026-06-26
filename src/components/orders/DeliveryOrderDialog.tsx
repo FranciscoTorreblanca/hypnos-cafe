@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bike, Trash2, CheckCircle2, Loader2, Plus, Minus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Bike, Trash2, CheckCircle2, Loader2, Plus, Minus, XCircle } from "lucide-react";
+
 import { useOrders, type Order } from "@/hooks/useOrders";
 import { useMenuItems, getEffectivePrice } from "@/hooks/useMenuItems";
 import { useDeliveryPlatforms, useMenuItemPlatformPrices } from "@/hooks/useDeliveryPlatforms";
@@ -29,7 +32,7 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
   const { toast } = useToast();
   const { data: platforms = [] } = useDeliveryPlatforms();
   const { data: menuItems = [] } = useMenuItems();
-  const { createDeliveryOrder, updateDeliveryStatus, addItem, removeItem } = useOrders();
+  const { createDeliveryOrder, updateDeliveryStatus, addItem, removeItem, cancelOrder } = useOrders();
   const { createPayment } = usePayments();
 
   const isNew = !order;
@@ -46,6 +49,10 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
   const [externalRef, setExternalRef] = useState(order?.external_ref ?? "");
   const [paying, setPaying] = useState(false);
   const [search, setSearch] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelSide, setCancelSide] = useState<"platform" | "internal">("platform");
+
 
   useEffect(() => {
     if (open) {
@@ -122,6 +129,28 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
       setPaying(false);
     }
   };
+
+  const handleCancel = async () => {
+    if (!order) return;
+    const txt = cancelReason.trim();
+    if (!txt) {
+      toast({ title: language === "es" ? "Indica un motivo" : "Provide a reason", variant: "destructive" });
+      return;
+    }
+    const prefix = cancelSide === "platform"
+      ? (language === "es" ? "Cancelada por plataforma" : "Cancelled by platform")
+      : (language === "es" ? "Cancelada internamente" : "Cancelled internally");
+    try {
+      await cancelOrder.mutateAsync({ id: order.id, reason: `[${prefix}] ${txt}` });
+      toast({ title: language === "es" ? "Delivery cancelado" : "Delivery cancelled" });
+      setCancelOpen(false);
+      setCancelReason("");
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Error", variant: "destructive" });
+    }
+  };
+
 
   const statusLabel = (s?: string | null) => {
     if (s === "accepted") return language === "es" ? "Aceptada" : "Accepted";
@@ -241,6 +270,12 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
             </div>
 
             <DialogFooter className="gap-2 flex-wrap">
+              {order?.delivery_status !== "delivered" && order?.status !== "cancelled" && (
+                <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+                  <XCircle className="h-4 w-4 mr-1" />
+                  {language === "es" ? "Cancelar delivery" : "Cancel delivery"}
+                </Button>
+              )}
               {order?.delivery_status === "accepted" && items.length > 0 && (
                 <Button onClick={handleMarkReady} disabled={updateDeliveryStatus.isPending}>
                   {language === "es" ? "Marcar como lista" : "Mark as ready"}
@@ -256,7 +291,59 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
             </DialogFooter>
           </div>
         )}
+
+        <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{language === "es" ? "Cancelar delivery" : "Cancel delivery"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {language === "es"
+                  ? "Esta acción no se puede deshacer. El stock será restaurado."
+                  : "This cannot be undone. Stock will be restored."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3 py-1">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={cancelSide === "platform" ? "default" : "outline"}
+                  onClick={() => setCancelSide("platform")}
+                  size="sm"
+                >
+                  {language === "es" ? "Por plataforma" : "By platform"}
+                </Button>
+                <Button
+                  type="button"
+                  variant={cancelSide === "internal" ? "default" : "outline"}
+                  onClick={() => setCancelSide("internal")}
+                  size="sm"
+                >
+                  {language === "es" ? "Por nosotros" : "By us"}
+                </Button>
+              </div>
+              <div className="space-y-1">
+                <Label>{language === "es" ? "Motivo" : "Reason"}</Label>
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder={language === "es" ? "Ej: cliente canceló, producto agotado…" : "e.g. customer cancelled, out of stock…"}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleCancel(); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {language === "es" ? "Cancelar delivery" : "Cancel delivery"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
+
 };
