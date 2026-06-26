@@ -49,6 +49,10 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
   const [externalRef, setExternalRef] = useState(order?.external_ref ?? "");
   const [paying, setPaying] = useState(false);
   const [search, setSearch] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelSide, setCancelSide] = useState<"platform" | "internal">("platform");
+
 
   useEffect(() => {
     if (open) {
