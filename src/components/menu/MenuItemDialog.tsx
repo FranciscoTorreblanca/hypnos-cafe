@@ -295,6 +295,12 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     )}
                   </TabsTrigger>
                 )}
+                {showDeliveryTab && (
+                  <TabsTrigger value="delivery">
+                    <Bike className="h-3.5 w-3.5 mr-1" />
+                    Delivery
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="general" className="space-y-4 mt-4">
