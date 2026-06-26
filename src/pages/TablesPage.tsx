@@ -837,6 +837,17 @@ const TablesPage = () => {
         order={activeOrder}
       />
 
+      {/* Delivery dialog */}
+      {deliveryEnabled && (
+        <DeliveryOrderDialog
+          open={deliveryDialogOpen}
+          onOpenChange={(o) => { setDeliveryDialogOpen(o); if (!o) setSelectedDeliveryOrderId(null); }}
+          order={selectedDeliveryOrderId ? (orders ?? []).find((x) => x.id === selectedDeliveryOrderId) ?? null : null}
+        />
+      )}
+
+
+
       {/* Delete table confirmation */}
       <AlertDialog
         open={deleteTableNum !== null}
