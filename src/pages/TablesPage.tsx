@@ -406,8 +406,8 @@ const SortableTableCard = ({
 const TablesPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [], cancelOrder, updateItemStatus } = useOrders();
-  const { tableNames, tableOrder, getTableLabel, updateNames, updateOrder } =
-    useTableNames();
+  const { hasFeature } = useAuth();
+  const deliveryEnabled = hasFeature("delivery");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 10000);
