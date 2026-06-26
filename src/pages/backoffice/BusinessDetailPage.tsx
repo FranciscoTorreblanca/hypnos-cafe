@@ -34,10 +34,10 @@ interface Business {
 const FEATURE_KEYS = [
   "tickets","calendar","loyalty","kitchen","cost_calculator","stock",
   "budget","analytics","push_notifications","mercado_pago","menu_generator","wifi",
-  "time_attendance","cash_closing",
+  "time_attendance","cash_closing","delivery",
 ] as const;
 
-const OPT_IN_FEATURES = new Set(["time_attendance", "cash_closing"]);
+const OPT_IN_FEATURES = new Set(["time_attendance", "cash_closing", "delivery"]);
 
 const FEATURE_LABELS: Record<string, string> = {
   tickets: "Tickets / Receipts",
@@ -54,6 +54,7 @@ const FEATURE_LABELS: Record<string, string> = {
   wifi: "Wi-Fi info",
   time_attendance: "Time & attendance (fingerprint check-in)",
   cash_closing: "Cash closing (X/Z till sessions)",
+  delivery: "Delivery platforms (Rappi, etc.)",
 };
 
 const BUSINESS_ROLES = ["business_admin", "admin", "waiter", "billing", "kitchen"] as const;
