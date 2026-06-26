@@ -167,6 +167,7 @@ export const usePayments = () => {
         payment_method: p.payment_method, created_by: user!.id,
         created_at: new Date().toISOString(),
         evidence_url: evidenceUrls[i], evidence_reference: p.evidence_reference ?? null,
+        delivery_platform_id: p.delivery_platform_id ?? null,
       }));
       queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
 
