@@ -239,6 +239,8 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
 
   const showCostTab = isAdmin && !!item?.id;
   const showAddonsTab = isAdmin && !!item?.id;
+  const { hasFeature } = useAuth();
+  const showDeliveryTab = isAdmin && !!item?.id && hasFeature("delivery");
 
   const updateAddon = (idx: number, patch: Partial<AddonInput>) => {
     setAddons((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
