@@ -20,9 +20,12 @@ import {
   Package,
   GripVertical,
   Flame,
+  Bike,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { DeliveryOrderDialog } from "@/components/orders/DeliveryOrderDialog";
 import {
   AlertDialog,
   AlertDialogAction,
