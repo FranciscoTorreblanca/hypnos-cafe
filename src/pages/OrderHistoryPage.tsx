@@ -69,7 +69,7 @@ interface HistoryOrder {
   parent_order_id?: string | null;
   waiterName?: string;
   cashierName?: string;
-  payments: { amount: number; tip: number; payment_method: string; created_at: string; created_by: string }[];
+  payments: { id: string; amount: number; tip: number; payment_method: string; created_at: string; created_by: string; business_id?: string }[];
 }
 
 const OrderHistoryPage = () => {
