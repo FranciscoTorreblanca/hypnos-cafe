@@ -449,11 +449,32 @@ const OrderHistoryPage = () => {
                   </AccordionTrigger>
                   <AccordionContent className="pb-3 space-y-3">
                     {/* Meta */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground items-center">
                       <span>👤 {language === "es" ? "Mesero" : "Waiter"}: <strong className="text-foreground">{waiter}</strong></span>
                       {cashier && <span>💰 {language === "es" ? "Cobró" : "Charged by"}: <strong className="text-foreground">{cashier}</strong></span>}
                       {payment && <span>{language === "es" ? "Propina" : "Tip"}: <strong className="text-foreground">${payment.tip.toFixed(2)}</strong></span>}
                       <span>{itemCount} {language === "es" ? "productos" : "items"}</span>
+                      {payment && order.status === "paid" && order.payments.length === 1 && payment.payment_method !== "delivery" && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditPayment({
+                              id: payment.id,
+                              current: payment.payment_method,
+                              amount: payment.amount,
+                              tip: payment.tip,
+                              business_id: payment.business_id,
+                              created_by: payment.created_by,
+                            });
+                            setNewMethod(payment.payment_method);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          {language === "es" ? "Cambiar método" : "Change method"}
+                        </button>
+                      )}
                       {order.general_discount > 0 && (
                         <span className="text-destructive">{language === "es" ? "Desc. general" : "General disc."}: {order.general_discount}%</span>
                       )}
