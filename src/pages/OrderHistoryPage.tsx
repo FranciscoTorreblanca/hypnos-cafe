@@ -1,6 +1,6 @@
 import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useLanguage } from "@/i18n/LanguageContext";
