@@ -603,6 +603,55 @@ const OrderHistoryPage = () => {
         onOpenChange={(v) => { setPrintOpen(v); if (!v) setPrintTicket(null); }}
         ticket={printTicket}
       />
+
+      <Dialog open={!!editPayment} onOpenChange={(v) => { if (!v) setEditPayment(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{language === "es" ? "Cambiar método de pago" : "Change payment method"}</DialogTitle>
+            <DialogDescription>
+              {language === "es"
+                ? "Si el método actual es efectivo, se eliminará el movimiento de caja. Si el nuevo es efectivo, se agregará."
+                : "If the current method is cash, the till transaction will be removed. If the new one is cash, it will be added."}
+            </DialogDescription>
+          </DialogHeader>
+          {editPayment && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                {language === "es" ? "Método actual" : "Current"}: <strong className="text-foreground">{editPayment.current}</strong>
+                {" · "}${(editPayment.amount + editPayment.tip).toFixed(2)}
+              </div>
+              <Select value={newMethod} onValueChange={setNewMethod}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">{language === "es" ? "Efectivo" : "Cash"}</SelectItem>
+                  <SelectItem value="card">{language === "es" ? "Tarjeta" : "Card"}</SelectItem>
+                  <SelectItem value="transfer">{language === "es" ? "Transferencia" : "Transfer"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPayment(null)}>{t("common.cancel")}</Button>
+            <Button
+              disabled={!editPayment || newMethod === editPayment?.current || fixPaymentMethod.isPending}
+              onClick={() => {
+                if (!editPayment) return;
+                fixPaymentMethod.mutate({
+                  payment_id: editPayment.id,
+                  old_method: editPayment.current,
+                  new_method: newMethod,
+                  amount: editPayment.amount,
+                  tip: editPayment.tip,
+                  business_id: editPayment.business_id,
+                  created_by: editPayment.created_by,
+                });
+              }}
+            >
+              {language === "es" ? "Guardar" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
