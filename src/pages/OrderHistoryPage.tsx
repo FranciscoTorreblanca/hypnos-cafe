@@ -31,7 +31,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Download, Calendar, Receipt, Clock, Package, Printer } from "lucide-react";
+import { Search, Download, Calendar, Receipt, Clock, Package, Printer, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useTickets, Ticket } from "@/hooks/useTickets";
 import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
 import { buildTicketSnapshot } from "@/utils/ticketSnapshot";
