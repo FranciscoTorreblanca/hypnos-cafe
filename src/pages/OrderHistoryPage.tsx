@@ -90,12 +90,56 @@ const OrderHistoryPage = () => {
   const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [editPayment, setEditPayment] = useState<{ id: string; current: string; amount: number; tip: number; business_id?: string; created_by: string } | null>(null);
+  const [newMethod, setNewMethod] = useState<string>("cash");
+  const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
     return d.toISOString().split("T")[0];
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+
+  const fixPaymentMethod = useMutation({
+    mutationFn: async ({
+      payment_id, old_method, new_method, amount, tip, business_id, created_by,
+    }: { payment_id: string; old_method: string; new_method: string; amount: number; tip: number; business_id?: string; created_by: string }) => {
+      if (old_method === new_method) return;
+      // 1. If old was cash, remove till transaction(s) linked to this payment
+      if (old_method === "cash") {
+        const { error: delErr } = await (supabase.from("till_transactions" as any) as any)
+          .delete().eq("payment_id", payment_id);
+        if (delErr) throw delErr;
+      }
+      // 2. Update payment method
+      const { error: upErr } = await supabase.from("payments")
+        .update({ payment_method: new_method }).eq("id", payment_id);
+      if (upErr) throw upErr;
+      // 3. If new is cash, insert till transaction (mirroring auto_till_on_cash_payment trigger)
+      if (new_method === "cash") {
+        const { error: insErr } = await (supabase.from("till_transactions" as any) as any).insert({
+          type: "payment",
+          amount: amount + tip,
+          note: "",
+          payment_id,
+          created_by,
+          ...(business_id ? { business_id } : {}),
+        });
+        if (insErr) throw insErr;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: language === "es" ? "Método de pago actualizado" : "Payment method updated" });
+      queryClient.invalidateQueries({ queryKey: ["order-history"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
+      setEditPayment(null);
+    },
+    onError: (e: any) => {
+      toast({ title: t("common.error"), description: e?.message ?? "", variant: "destructive" });
+    },
+  });
+
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["order-history", dateFrom, dateTo],
