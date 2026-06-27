@@ -1,6 +1,6 @@
 import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -31,7 +31,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Download, Calendar, Receipt, Clock, Package, Printer } from "lucide-react";
+import { Search, Download, Calendar, Receipt, Clock, Package, Printer, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useTickets, Ticket } from "@/hooks/useTickets";
 import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
 import { buildTicketSnapshot } from "@/utils/ticketSnapshot";
@@ -69,7 +77,7 @@ interface HistoryOrder {
   parent_order_id?: string | null;
   waiterName?: string;
   cashierName?: string;
-  payments: { amount: number; tip: number; payment_method: string; created_at: string; created_by: string }[];
+  payments: { id: string; amount: number; tip: number; payment_method: string; created_at: string; created_by: string; business_id?: string }[];
 }
 
 const OrderHistoryPage = () => {
@@ -82,12 +90,56 @@ const OrderHistoryPage = () => {
   const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [editPayment, setEditPayment] = useState<{ id: string; current: string; amount: number; tip: number; business_id?: string; created_by: string } | null>(null);
+  const [newMethod, setNewMethod] = useState<string>("cash");
+  const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
     return d.toISOString().split("T")[0];
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+
+  const fixPaymentMethod = useMutation({
+    mutationFn: async ({
+      payment_id, old_method, new_method, amount, tip, business_id, created_by,
+    }: { payment_id: string; old_method: string; new_method: string; amount: number; tip: number; business_id?: string; created_by: string }) => {
+      if (old_method === new_method) return;
+      // 1. If old was cash, remove till transaction(s) linked to this payment
+      if (old_method === "cash") {
+        const { error: delErr } = await (supabase.from("till_transactions" as any) as any)
+          .delete().eq("payment_id", payment_id);
+        if (delErr) throw delErr;
+      }
+      // 2. Update payment method
+      const { error: upErr } = await supabase.from("payments")
+        .update({ payment_method: new_method }).eq("id", payment_id);
+      if (upErr) throw upErr;
+      // 3. If new is cash, insert till transaction (mirroring auto_till_on_cash_payment trigger)
+      if (new_method === "cash") {
+        const { error: insErr } = await (supabase.from("till_transactions" as any) as any).insert({
+          type: "payment",
+          amount: amount + tip,
+          note: "",
+          payment_id,
+          created_by,
+          ...(business_id ? { business_id } : {}),
+        });
+        if (insErr) throw insErr;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: language === "es" ? "Método de pago actualizado" : "Payment method updated" });
+      queryClient.invalidateQueries({ queryKey: ["order-history"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
+      setEditPayment(null);
+    },
+    onError: (e: any) => {
+      toast({ title: t("common.error"), description: e?.message ?? "", variant: "destructive" });
+    },
+  });
+
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["order-history", dateFrom, dateTo],
@@ -103,7 +155,7 @@ const OrderHistoryPage = () => {
         .select(`
           *,
           order_items(*, menu_items(name, name_en), combos(name, name_en)),
-          payments(amount, tip, payment_method, created_at, created_by)
+          payments(id, amount, tip, payment_method, created_at, created_by, business_id)
         `)
         .gte("created_at", from.toISOString())
         .lte("created_at", to.toISOString())
@@ -397,11 +449,32 @@ const OrderHistoryPage = () => {
                   </AccordionTrigger>
                   <AccordionContent className="pb-3 space-y-3">
                     {/* Meta */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground items-center">
                       <span>👤 {language === "es" ? "Mesero" : "Waiter"}: <strong className="text-foreground">{waiter}</strong></span>
                       {cashier && <span>💰 {language === "es" ? "Cobró" : "Charged by"}: <strong className="text-foreground">{cashier}</strong></span>}
                       {payment && <span>{language === "es" ? "Propina" : "Tip"}: <strong className="text-foreground">${payment.tip.toFixed(2)}</strong></span>}
                       <span>{itemCount} {language === "es" ? "productos" : "items"}</span>
+                      {payment && order.status === "paid" && order.payments.length === 1 && payment.payment_method !== "delivery" && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditPayment({
+                              id: payment.id,
+                              current: payment.payment_method,
+                              amount: payment.amount,
+                              tip: payment.tip,
+                              business_id: payment.business_id,
+                              created_by: payment.created_by,
+                            });
+                            setNewMethod(payment.payment_method);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          {language === "es" ? "Cambiar método" : "Change method"}
+                        </button>
+                      )}
                       {order.general_discount > 0 && (
                         <span className="text-destructive">{language === "es" ? "Desc. general" : "General disc."}: {order.general_discount}%</span>
                       )}
@@ -530,6 +603,55 @@ const OrderHistoryPage = () => {
         onOpenChange={(v) => { setPrintOpen(v); if (!v) setPrintTicket(null); }}
         ticket={printTicket}
       />
+
+      <Dialog open={!!editPayment} onOpenChange={(v) => { if (!v) setEditPayment(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{language === "es" ? "Cambiar método de pago" : "Change payment method"}</DialogTitle>
+            <DialogDescription>
+              {language === "es"
+                ? "Si el método actual es efectivo, se eliminará el movimiento de caja. Si el nuevo es efectivo, se agregará."
+                : "If the current method is cash, the till transaction will be removed. If the new one is cash, it will be added."}
+            </DialogDescription>
+          </DialogHeader>
+          {editPayment && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                {language === "es" ? "Método actual" : "Current"}: <strong className="text-foreground">{editPayment.current}</strong>
+                {" · "}${(editPayment.amount + editPayment.tip).toFixed(2)}
+              </div>
+              <Select value={newMethod} onValueChange={setNewMethod}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">{language === "es" ? "Efectivo" : "Cash"}</SelectItem>
+                  <SelectItem value="card">{language === "es" ? "Tarjeta" : "Card"}</SelectItem>
+                  <SelectItem value="transfer">{language === "es" ? "Transferencia" : "Transfer"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPayment(null)}>{t("common.cancel")}</Button>
+            <Button
+              disabled={!editPayment || newMethod === editPayment?.current || fixPaymentMethod.isPending}
+              onClick={() => {
+                if (!editPayment) return;
+                fixPaymentMethod.mutate({
+                  payment_id: editPayment.id,
+                  old_method: editPayment.current,
+                  new_method: newMethod,
+                  amount: editPayment.amount,
+                  tip: editPayment.tip,
+                  business_id: editPayment.business_id,
+                  created_by: editPayment.created_by,
+                });
+              }}
+            >
+              {language === "es" ? "Guardar" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
