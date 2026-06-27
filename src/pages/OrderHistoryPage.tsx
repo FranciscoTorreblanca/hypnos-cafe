@@ -103,7 +103,7 @@ const OrderHistoryPage = () => {
         .select(`
           *,
           order_items(*, menu_items(name, name_en), combos(name, name_en)),
-          payments(amount, tip, payment_method, created_at, created_by)
+          payments(id, amount, tip, payment_method, created_at, created_by, business_id)
         `)
         .gte("created_at", from.toISOString())
         .lte("created_at", to.toISOString())
