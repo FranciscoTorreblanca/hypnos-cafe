@@ -42,6 +42,38 @@ const SettingsPage = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [reloading, setReloading] = useState(false);
+  const { preference: orientation, setPreference: setOrientation } = useOrientationPreference();
+
+  const OrientationCard = (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Smartphone className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle className="text-base">Orientación / Orientation</CardTitle>
+            <CardDescription className="text-sm">
+              Elige cómo se muestra la app en este dispositivo. / Choose how the app displays on this device.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Select value={orientation} onValueChange={(v) => setOrientation(v as OrientationPreference)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">Automático / Auto (device default)</SelectItem>
+            <SelectItem value="portrait">Vertical / Portrait</SelectItem>
+            <SelectItem value="landscape">Horizontal / Landscape</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          El bloqueo nativo solo funciona en la app instalada (PWA) en algunos navegadores. El diseño se adapta a ambas orientaciones.
+          {" / "}
+          Native lock only works in the installed app (PWA) on some browsers. The layout adapts to both orientations.
+        </p>
+      </CardContent>
+    </Card>
+  );
 
   useEffect(() => {
     const load = async () => {
