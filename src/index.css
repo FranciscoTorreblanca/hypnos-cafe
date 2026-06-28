@@ -182,21 +182,4 @@ All colors MUST be HSL.
    NOT rotate the layout with CSS because that breaks scrolling and input. */
 
 
-@media (orientation: landscape) {
-  html[data-force-orientation="portrait"],
-  html[data-force-orientation="portrait"] body {
-    overflow: hidden;
-  }
-  html[data-force-orientation="portrait"] body {
-    position: fixed;
-    top: 100vh;
-    left: 0;
-    width: 100vh;
-    height: 100vw;
-    transform-origin: top left;
-    transform: rotate(-90deg);
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-}
 
