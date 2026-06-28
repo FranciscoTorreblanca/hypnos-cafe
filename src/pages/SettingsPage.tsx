@@ -132,6 +132,7 @@ const SettingsPage = () => {
     return (
       <div className="max-w-2xl space-y-6">
         <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
+        {OrientationCard}
         <SyncLog />
       </div>
     );
