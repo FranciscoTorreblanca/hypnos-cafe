@@ -139,6 +139,7 @@ export default function BudgetPage() {
   const monthEnd = endOfMonth(new Date());
 
   const cardSourceFor = (method: string) => (method === "cash" ? "cash" : "card");
+  const CARD_COMMISSION_RATE = 0.05;
 
   const totalsBySource = useMemo(() => {
     let cash = 0;
@@ -150,8 +151,14 @@ export default function BudgetPage() {
     }
     for (const p of payments) {
       const total = Number(p.amount) + Number(p.tip || 0);
-      if (cardSourceFor(p.payment_method) === "cash") cash += total;
-      else card += total;
+      if (cardSourceFor(p.payment_method) === "cash") {
+        cash += total;
+      } else {
+        // Only literal "card" payments incur the processor commission.
+        // Bank transfers and other non-cash methods land in card balance at full value.
+        const net = p.payment_method === "card" ? total * (1 - CARD_COMMISSION_RATE) : total;
+        card += net;
+      }
     }
     for (const e of expenses) {
       if (e.payment_source === "cash") cash -= Number(e.amount);
@@ -159,6 +166,7 @@ export default function BudgetPage() {
     }
     return { cash, card, total: cash + card };
   }, [adjustments, payments, expenses]);
+
 
   const monthlyFixed = useMemo(() => {
     return recurring
