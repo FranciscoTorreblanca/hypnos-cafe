@@ -22,26 +22,14 @@ async function tryNativeLock(pref: OrientationPreference) {
     }
     await so.lock?.(pref);
   } catch {
-    /* not supported (e.g. iOS Safari, non-fullscreen) — fall back to CSS rotation */
-  }
-}
-
-/**
- * Apply CSS-based rotation fallback by tagging <html> with a data attribute.
- * CSS in index.css reads it and rotates <body> when the physical orientation
- * doesn't match the user's preference.
- */
-function applyCssRotation(pref: OrientationPreference) {
-  const root = document.documentElement;
-  if (pref === "auto") {
-    root.removeAttribute("data-force-orientation");
-  } else {
-    root.setAttribute("data-force-orientation", pref);
+    /* Native lock only works in installed PWA / fullscreen on supported
+       browsers (Android Chrome typically; iOS Safari does not support it).
+       In unsupported contexts we let the device decide — we do NOT rotate
+       via CSS because that breaks scrolling, hit-testing and layout. */
   }
 }
 
 function applyPreference(pref: OrientationPreference) {
-  applyCssRotation(pref);
   void tryNativeLock(pref);
 }
 
@@ -64,5 +52,9 @@ export function useOrientationPreference() {
 
 /** Apply stored preference once at boot (called from main.tsx). */
 export function applyStoredOrientation() {
+  // Clean up any leftover CSS-rotation attribute from previous versions.
+  try {
+    document.documentElement.removeAttribute("data-force-orientation");
+  } catch {}
   applyPreference(readStored());
 }
