@@ -175,46 +175,11 @@ All colors MUST be HSL.
   gap: 6px;
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Forced orientation (CSS fallback when native screen.lock fails,
-   e.g. iOS Safari, non-fullscreen browsers).
-   When the user picks "landscape" but the device is held in portrait
-   (or vice versa), rotate the whole <body> 90° so the UI is shown
-   in the requested orientation.
-   ────────────────────────────────────────────────────────────── */
-@media (orientation: portrait) {
-  html[data-force-orientation="landscape"],
-  html[data-force-orientation="landscape"] body {
-    overflow: hidden;
-  }
-  html[data-force-orientation="landscape"] body {
-    position: fixed;
-    top: 0;
-    left: 100vw;
-    width: 100vh;
-    height: 100vw;
-    transform-origin: top left;
-    transform: rotate(90deg);
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-}
+/* Orientation preference is enforced via the native Screen Orientation API
+   (screen.orientation.lock) when supported — typically only in an installed
+   PWA / fullscreen on Android Chrome. In browsers where it isn't supported
+   (iOS Safari, desktop tabs) the device's own orientation is used. We do
+   NOT rotate the layout with CSS because that breaks scrolling and input. */
 
-@media (orientation: landscape) {
-  html[data-force-orientation="portrait"],
-  html[data-force-orientation="portrait"] body {
-    overflow: hidden;
-  }
-  html[data-force-orientation="portrait"] body {
-    position: fixed;
-    top: 100vh;
-    left: 0;
-    width: 100vh;
-    height: 100vw;
-    transform-origin: top left;
-    transform: rotate(-90deg);
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-}
+
 
