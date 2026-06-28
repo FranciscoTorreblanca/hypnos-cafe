@@ -12,7 +12,7 @@ function readStored(): OrientationPreference {
   return "auto";
 }
 
-async function applyLock(pref: OrientationPreference) {
+async function tryNativeLock(pref: OrientationPreference) {
   const so: any = (screen as any).orientation;
   if (!so) return;
   try {
@@ -20,27 +20,36 @@ async function applyLock(pref: OrientationPreference) {
       so.unlock?.();
       return;
     }
-    // Lock requires fullscreen on most browsers; ignore failures silently
-    // (the user already chose; CSS still adapts via media queries).
     await so.lock?.(pref);
   } catch {
-    /* not supported (e.g. iOS Safari, non-fullscreen) — no-op */
+    /* not supported (e.g. iOS Safari, non-fullscreen) — fall back to CSS rotation */
   }
 }
 
 /**
- * Reads, persists and applies the user's per-device orientation preference.
- * Returns the current preference and a setter.
- *
- * Note: native orientation locking only works in installed PWAs / fullscreen
- * on most browsers (notably iOS Safari ignores it). The app layout itself
- * adapts to both orientations regardless.
+ * Apply CSS-based rotation fallback by tagging <html> with a data attribute.
+ * CSS in index.css reads it and rotates <body> when the physical orientation
+ * doesn't match the user's preference.
  */
+function applyCssRotation(pref: OrientationPreference) {
+  const root = document.documentElement;
+  if (pref === "auto") {
+    root.removeAttribute("data-force-orientation");
+  } else {
+    root.setAttribute("data-force-orientation", pref);
+  }
+}
+
+function applyPreference(pref: OrientationPreference) {
+  applyCssRotation(pref);
+  void tryNativeLock(pref);
+}
+
 export function useOrientationPreference() {
   const [preference, setPreferenceState] = React.useState<OrientationPreference>(readStored);
 
   React.useEffect(() => {
-    applyLock(preference);
+    applyPreference(preference);
   }, [preference]);
 
   const setPreference = React.useCallback((p: OrientationPreference) => {
@@ -55,5 +64,5 @@ export function useOrientationPreference() {
 
 /** Apply stored preference once at boot (called from main.tsx). */
 export function applyStoredOrientation() {
-  void applyLock(readStored());
+  applyPreference(readStored());
 }
