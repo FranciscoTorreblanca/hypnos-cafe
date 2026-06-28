@@ -144,6 +144,8 @@ const SettingsPage = () => {
 
       <SyncLog />
 
+      {OrientationCard}
+
 
 
       {/* Business info (read-only) */}
