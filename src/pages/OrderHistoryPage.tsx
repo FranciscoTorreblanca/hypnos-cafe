@@ -549,7 +549,9 @@ const OrderHistoryPage = () => {
                         {statusLabel(order.status)}
                       </Badge>
                       <span className="font-semibold text-sm">
-                        {language === "es" ? "Mesa" : "Table"} {order.table_number}
+                        {order.is_delivery
+                          ? `🛵 ${delivery?.platform?.name ?? (language === "es" ? "Delivery" : "Delivery")}`
+                          : `${language === "es" ? "Mesa" : "Table"} ${order.table_number}`}
                       </span>
                       {order.parent_order_id && (
                         <Badge variant="secondary" className="text-[10px]">
