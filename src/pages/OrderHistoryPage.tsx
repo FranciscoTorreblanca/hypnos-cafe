@@ -103,7 +103,38 @@ function computeDeliveryBreakdown(
 
 const OrderHistoryPage = () => {
   const { t, language } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId } = useAuth();
+
+  // Business VAT rate + delivery platform commissions — needed to compute real
+  // restaurant earnings on delivery orders (Rappi etc. take commission + VAT is included in menu prices).
+  const { data: businessMeta } = useQuery({
+    queryKey: ["business-meta", currentBusinessId],
+    enabled: !!currentBusinessId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("businesses")
+        .select("vat_rate")
+        .eq("id", currentBusinessId!)
+        .maybeSingle();
+      return data as { vat_rate: number } | null;
+    },
+  });
+  const vatRate = Number(businessMeta?.vat_rate ?? 0);
+
+  const { data: platforms = [] } = useQuery({
+    queryKey: ["delivery_platforms_history"],
+    enabled: !!currentBusinessId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("delivery_platforms")
+        .select("id, name, commission_pct");
+      return (data ?? []) as { id: string; name: string; commission_pct: number }[];
+    },
+  });
+  const platformById = useMemo(
+    () => Object.fromEntries(platforms.map((p) => [p.id, p])),
+    [platforms],
+  );
   const { toast } = useToast();
   const { createTicket, getLatestTicketForOrder } = useTickets();
   const [printOpen, setPrintOpen] = useState(false);
