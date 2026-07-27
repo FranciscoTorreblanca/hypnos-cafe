@@ -140,7 +140,10 @@ const Dashboard = () => {
 
   // Computed stats
   const tableCount = Object.keys(tableNames).length;
-  const occupiedTables = orders.filter(
+  // Delivery orders (e.g. Rappi) run on their own status flow and their own tab,
+  // so exclude them from dine-in table/status metrics.
+  const dineInOrders = orders.filter((o: any) => !o.is_delivery);
+  const occupiedTables = dineInOrders.filter(
     (o) => !["paid", "cancelled"].includes(o.status)
   ).length;
   const availableItems = menuItems.filter((i) => i.is_available).length;
@@ -151,10 +154,10 @@ const Dashboard = () => {
   const todayOrderCount = todayPayments.length;
   const todayAvgTicket = todayOrderCount > 0 ? todayRevenue / todayOrderCount : 0;
 
-  const pendingOrders = orders.filter((o) => o.status === "pending").length;
-  const inProgressOrders = orders.filter((o) => o.status === "in_progress").length;
-  const readyOrders = orders.filter((o) => o.status === "ready").length;
-  const servedOrders = orders.filter((o) => o.status === "served").length;
+  const pendingOrders = dineInOrders.filter((o) => o.status === "pending").length;
+  const inProgressOrders = dineInOrders.filter((o) => o.status === "in_progress").length;
+  const readyOrders = dineInOrders.filter((o) => o.status === "ready").length;
+  const servedOrders = dineInOrders.filter((o) => o.status === "served").length;
 
   // Top sellers (last 7 days)
   const itemSalesMap = new Map<string, { name: string; qty: number; revenue: number }>();
