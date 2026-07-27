@@ -267,21 +267,64 @@ const OrderHistoryPage = () => {
     return result;
   }, [orders, statusFilter, search, language]);
 
+  /** Gross amount actually charged for an order (paid amount if payments exist, otherwise discounted total). */
+  const grossFor = (o: HistoryOrder) => {
+    const paymentsSum = (o.payments ?? []).reduce((ps, p) => ps + (p.amount ?? 0), 0);
+    if (paymentsSum > 0) return paymentsSum;
+    return applyGeneralDiscount(o.total, o.general_discount ?? 0, o.general_discount_amount ?? 0);
+  };
+
+  /** Delivery breakdown for an order (or null if not a delivery order). */
+  const deliveryBreakdownFor = (o: HistoryOrder) => {
+    if (!o.is_delivery) return null;
+    const platform = o.delivery_platform_id ? platformById[o.delivery_platform_id] : null;
+    const commissionPct = Number(platform?.commission_pct ?? 0);
+    const gross = grossFor(o);
+    return {
+      platform,
+      commissionPct,
+      gross,
+      ...computeDeliveryBreakdown(gross, commissionPct, vatRate),
+    };
+  };
+
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.status === "paid");
-    const totalRevenue = paid.reduce((s, o) => {
-      const paymentsSum = (o.payments ?? []).reduce((ps, p) => ps + (p.amount ?? 0), 0);
-      // Fallback to discounted order total if payments are missing.
-      const fallback = applyGeneralDiscount(o.total, o.general_discount ?? 0, o.general_discount_amount ?? 0);
-      return s + (paymentsSum > 0 ? paymentsSum : fallback);
-    }, 0);
+    let totalRevenue = 0;
+    let deliveryGross = 0;
+    let deliveryNet = 0;
+    let deliveryDeductions = 0;
+    for (const o of paid) {
+      const gross = grossFor(o);
+      totalRevenue += gross;
+      if (o.is_delivery) {
+        const platform = o.delivery_platform_id ? platformById[o.delivery_platform_id] : null;
+        const { net } = computeDeliveryBreakdown(gross, Number(platform?.commission_pct ?? 0), vatRate);
+        deliveryGross += gross;
+        deliveryNet += net;
+        deliveryDeductions += gross - net;
+      }
+    }
     const totalTips = paid.reduce(
       (s, o) => s + (o.payments ?? []).reduce((ts, p) => ts + (p.tip ?? 0), 0),
       0,
     );
     const totalItems = paid.reduce((s, o) => s + o.order_items.reduce((si, oi) => si + oi.quantity, 0), 0);
-    return { totalRevenue, totalTips, paidCount: paid.length, totalItems, totalOrders: orders.length };
-  }, [orders]);
+    // Net revenue: delivery orders adjusted for platform commission + VAT, others kept as-is.
+    const netRevenue = totalRevenue - deliveryDeductions;
+    return {
+      totalRevenue,
+      netRevenue,
+      totalTips,
+      paidCount: paid.length,
+      totalItems,
+      totalOrders: orders.length,
+      deliveryGross,
+      deliveryNet,
+      deliveryDeductions,
+      deliveryCount: paid.filter((o) => o.is_delivery).length,
+    };
+  }, [orders, platformById, vatRate]);
 
   const exportCsv = () => {
     const rows = [["Fecha", "Mesa", "Mesero", "Producto", "Cant", "P.Unit", "Desc%", "Subtotal", "Notas", "Estado Orden", "Método Pago", "Total Orden", "Propina"]];
