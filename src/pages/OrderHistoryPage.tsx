@@ -539,6 +539,8 @@ const OrderHistoryPage = () => {
               const itemCount = order.order_items.reduce((s, oi) => s + oi.quantity, 0);
               const discountedTotal = applyGeneralDiscount(order.total, order.general_discount ?? 0, order.general_discount_amount ?? 0);
 
+              const delivery = deliveryBreakdownFor(order);
+
               return (
                 <AccordionItem key={order.id} value={order.id} className="border rounded-lg px-3">
                   <AccordionTrigger className="py-2 hover:no-underline">
