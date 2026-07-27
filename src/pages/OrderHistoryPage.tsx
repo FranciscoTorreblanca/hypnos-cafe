@@ -75,9 +75,30 @@ interface HistoryOrder {
   order_items: HistoryOrderItem[];
   cancel_reason?: string | null;
   parent_order_id?: string | null;
+  is_delivery?: boolean;
+  delivery_platform_id?: string | null;
+  delivery_status?: string | null;
   waiterName?: string;
   cashierName?: string;
-  payments: { id: string; amount: number; tip: number; payment_method: string; created_at: string; created_by: string; business_id?: string }[];
+  payments: { id: string; amount: number; tip: number; payment_method: string; created_at: string; created_by: string; business_id?: string; delivery_platform_id?: string | null }[];
+}
+
+/**
+ * Compute the real earnings for a delivery order:
+ * platforms take a commission on gross, and menu prices already include VAT (Mexico IVA),
+ * so extract VAT from the post-commission amount.
+ */
+function computeDeliveryBreakdown(
+  gross: number,
+  commissionPct: number,
+  vatRatePct: number,
+) {
+  const commission = gross * (commissionPct / 100);
+  const afterCommission = gross - commission;
+  const vatDivisor = 1 + vatRatePct / 100;
+  const vat = vatDivisor > 0 ? afterCommission - afterCommission / vatDivisor : 0;
+  const net = afterCommission - vat;
+  return { commission, vat, net };
 }
 
 const OrderHistoryPage = () => {
