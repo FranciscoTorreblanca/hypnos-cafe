@@ -452,6 +452,11 @@ const OrderHistoryPage = () => {
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">{language === "es" ? "Ventas" : "Revenue"}</p>
             <p className="text-xl font-bold">${stats.totalRevenue.toFixed(0)}</p>
+            {stats.deliveryDeductions > 0 && (
+              <p className="text-[10px] text-muted-foreground">
+                {language === "es" ? "Neto" : "Net"}: <span className="font-semibold text-foreground">${stats.netRevenue.toFixed(0)}</span>
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -467,6 +472,25 @@ const OrderHistoryPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {stats.deliveryCount > 0 && (
+        <Card>
+          <CardContent className="p-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
+            <span className="font-semibold text-sm">
+              🛵 {language === "es" ? "Delivery" : "Delivery"} · {stats.deliveryCount} {language === "es" ? "órdenes" : "orders"}
+            </span>
+            <span className="text-muted-foreground">
+              {language === "es" ? "Bruto" : "Gross"}: <strong className="text-foreground">${stats.deliveryGross.toFixed(0)}</strong>
+            </span>
+            <span className="text-muted-foreground">
+              {language === "es" ? "Comisión + IVA" : "Commission + VAT"}: <strong className="text-destructive">-${stats.deliveryDeductions.toFixed(0)}</strong>
+            </span>
+            <span className="text-muted-foreground">
+              {language === "es" ? "Neto real" : "Real net"}: <strong className="text-emerald-600 dark:text-emerald-400">${stats.deliveryNet.toFixed(0)}</strong>
+            </span>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
