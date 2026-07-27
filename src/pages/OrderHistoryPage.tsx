@@ -75,14 +75,66 @@ interface HistoryOrder {
   order_items: HistoryOrderItem[];
   cancel_reason?: string | null;
   parent_order_id?: string | null;
+  is_delivery?: boolean;
+  delivery_platform_id?: string | null;
+  delivery_status?: string | null;
   waiterName?: string;
   cashierName?: string;
-  payments: { id: string; amount: number; tip: number; payment_method: string; created_at: string; created_by: string; business_id?: string }[];
+  payments: { id: string; amount: number; tip: number; payment_method: string; created_at: string; created_by: string; business_id?: string; delivery_platform_id?: string | null }[];
+}
+
+/**
+ * Compute the real earnings for a delivery order:
+ * platforms take a commission on gross, and menu prices already include VAT (Mexico IVA),
+ * so extract VAT from the post-commission amount.
+ */
+function computeDeliveryBreakdown(
+  gross: number,
+  commissionPct: number,
+  vatRatePct: number,
+) {
+  const commission = gross * (commissionPct / 100);
+  const afterCommission = gross - commission;
+  const vatDivisor = 1 + vatRatePct / 100;
+  const vat = vatDivisor > 0 ? afterCommission - afterCommission / vatDivisor : 0;
+  const net = afterCommission - vat;
+  return { commission, vat, net };
 }
 
 const OrderHistoryPage = () => {
   const { t, language } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId } = useAuth();
+
+  // Business VAT rate + delivery platform commissions — needed to compute real
+  // restaurant earnings on delivery orders (Rappi etc. take commission + VAT is included in menu prices).
+  const { data: businessMeta } = useQuery({
+    queryKey: ["business-meta", currentBusinessId],
+    enabled: !!currentBusinessId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("businesses")
+        .select("vat_rate")
+        .eq("id", currentBusinessId!)
+        .maybeSingle();
+      return data as { vat_rate: number } | null;
+    },
+  });
+  const vatRate = Number(businessMeta?.vat_rate ?? 0);
+
+  const { data: platforms = [] } = useQuery({
+    queryKey: ["delivery_platforms_history"],
+    enabled: !!currentBusinessId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("delivery_platforms")
+        .select("id, name, commission_pct");
+      return (data ?? []) as { id: string; name: string; commission_pct: number }[];
+    },
+  });
+  const platformById = useMemo(
+    () => Object.fromEntries(platforms.map((p) => [p.id, p])),
+    [platforms],
+  );
   const { toast } = useToast();
   const { createTicket, getLatestTicketForOrder } = useTickets();
   const [printOpen, setPrintOpen] = useState(false);
@@ -215,21 +267,64 @@ const OrderHistoryPage = () => {
     return result;
   }, [orders, statusFilter, search, language]);
 
+  /** Gross amount actually charged for an order (paid amount if payments exist, otherwise discounted total). */
+  const grossFor = (o: HistoryOrder) => {
+    const paymentsSum = (o.payments ?? []).reduce((ps, p) => ps + (p.amount ?? 0), 0);
+    if (paymentsSum > 0) return paymentsSum;
+    return applyGeneralDiscount(o.total, o.general_discount ?? 0, o.general_discount_amount ?? 0);
+  };
+
+  /** Delivery breakdown for an order (or null if not a delivery order). */
+  const deliveryBreakdownFor = (o: HistoryOrder) => {
+    if (!o.is_delivery) return null;
+    const platform = o.delivery_platform_id ? platformById[o.delivery_platform_id] : null;
+    const commissionPct = Number(platform?.commission_pct ?? 0);
+    const gross = grossFor(o);
+    return {
+      platform,
+      commissionPct,
+      gross,
+      ...computeDeliveryBreakdown(gross, commissionPct, vatRate),
+    };
+  };
+
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.status === "paid");
-    const totalRevenue = paid.reduce((s, o) => {
-      const paymentsSum = (o.payments ?? []).reduce((ps, p) => ps + (p.amount ?? 0), 0);
-      // Fallback to discounted order total if payments are missing.
-      const fallback = applyGeneralDiscount(o.total, o.general_discount ?? 0, o.general_discount_amount ?? 0);
-      return s + (paymentsSum > 0 ? paymentsSum : fallback);
-    }, 0);
+    let totalRevenue = 0;
+    let deliveryGross = 0;
+    let deliveryNet = 0;
+    let deliveryDeductions = 0;
+    for (const o of paid) {
+      const gross = grossFor(o);
+      totalRevenue += gross;
+      if (o.is_delivery) {
+        const platform = o.delivery_platform_id ? platformById[o.delivery_platform_id] : null;
+        const { net } = computeDeliveryBreakdown(gross, Number(platform?.commission_pct ?? 0), vatRate);
+        deliveryGross += gross;
+        deliveryNet += net;
+        deliveryDeductions += gross - net;
+      }
+    }
     const totalTips = paid.reduce(
       (s, o) => s + (o.payments ?? []).reduce((ts, p) => ts + (p.tip ?? 0), 0),
       0,
     );
     const totalItems = paid.reduce((s, o) => s + o.order_items.reduce((si, oi) => si + oi.quantity, 0), 0);
-    return { totalRevenue, totalTips, paidCount: paid.length, totalItems, totalOrders: orders.length };
-  }, [orders]);
+    // Net revenue: delivery orders adjusted for platform commission + VAT, others kept as-is.
+    const netRevenue = totalRevenue - deliveryDeductions;
+    return {
+      totalRevenue,
+      netRevenue,
+      totalTips,
+      paidCount: paid.length,
+      totalItems,
+      totalOrders: orders.length,
+      deliveryGross,
+      deliveryNet,
+      deliveryDeductions,
+      deliveryCount: paid.filter((o) => o.is_delivery).length,
+    };
+  }, [orders, platformById, vatRate]);
 
   const exportCsv = () => {
     const rows = [["Fecha", "Mesa", "Mesero", "Producto", "Cant", "P.Unit", "Desc%", "Subtotal", "Notas", "Estado Orden", "Método Pago", "Total Orden", "Propina"]];
@@ -357,6 +452,11 @@ const OrderHistoryPage = () => {
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">{language === "es" ? "Ventas" : "Revenue"}</p>
             <p className="text-xl font-bold">${stats.totalRevenue.toFixed(0)}</p>
+            {stats.deliveryDeductions > 0 && (
+              <p className="text-[10px] text-muted-foreground">
+                {language === "es" ? "Neto" : "Net"}: <span className="font-semibold text-foreground">${stats.netRevenue.toFixed(0)}</span>
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -372,6 +472,25 @@ const OrderHistoryPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {stats.deliveryCount > 0 && (
+        <Card>
+          <CardContent className="p-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
+            <span className="font-semibold text-sm">
+              🛵 {language === "es" ? "Delivery" : "Delivery"} · {stats.deliveryCount} {language === "es" ? "órdenes" : "orders"}
+            </span>
+            <span className="text-muted-foreground">
+              {language === "es" ? "Bruto" : "Gross"}: <strong className="text-foreground">${stats.deliveryGross.toFixed(0)}</strong>
+            </span>
+            <span className="text-muted-foreground">
+              {language === "es" ? "Comisión + IVA" : "Commission + VAT"}: <strong className="text-destructive">-${stats.deliveryDeductions.toFixed(0)}</strong>
+            </span>
+            <span className="text-muted-foreground">
+              {language === "es" ? "Neto real" : "Real net"}: <strong className="text-emerald-600 dark:text-emerald-400">${stats.deliveryNet.toFixed(0)}</strong>
+            </span>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
@@ -420,6 +539,8 @@ const OrderHistoryPage = () => {
               const itemCount = order.order_items.reduce((s, oi) => s + oi.quantity, 0);
               const discountedTotal = applyGeneralDiscount(order.total, order.general_discount ?? 0, order.general_discount_amount ?? 0);
 
+              const delivery = deliveryBreakdownFor(order);
+
               return (
                 <AccordionItem key={order.id} value={order.id} className="border rounded-lg px-3">
                   <AccordionTrigger className="py-2 hover:no-underline">
@@ -428,7 +549,9 @@ const OrderHistoryPage = () => {
                         {statusLabel(order.status)}
                       </Badge>
                       <span className="font-semibold text-sm">
-                        {language === "es" ? "Mesa" : "Table"} {order.table_number}
+                        {order.is_delivery
+                          ? `🛵 ${delivery?.platform?.name ?? (language === "es" ? "Delivery" : "Delivery")}`
+                          : `${language === "es" ? "Mesa" : "Table"} ${order.table_number}`}
                       </span>
                       {order.parent_order_id && (
                         <Badge variant="secondary" className="text-[10px]">
@@ -482,6 +605,31 @@ const OrderHistoryPage = () => {
                         <span className="text-destructive">{language === "es" ? "Desc. fijo" : "Fixed disc."}: ${order.general_discount_amount?.toFixed(0)}</span>
                       )}
                     </div>
+
+                    {delivery && (
+                      <div className="rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-xs space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                          <span className="font-semibold">
+                            🛵 {delivery.platform?.name ?? (language === "es" ? "Plataforma" : "Platform")}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {language === "es" ? "Bruto" : "Gross"}: <strong className="text-foreground">${delivery.gross.toFixed(2)}</strong>
+                          </span>
+                          <span className="text-muted-foreground">
+                            {language === "es" ? "Comisión" : "Commission"} ({delivery.commissionPct}%): <strong className="text-destructive">-${delivery.commission.toFixed(2)}</strong>
+                          </span>
+                          {vatRate > 0 && (
+                            <span className="text-muted-foreground">
+                              IVA ({vatRate}%): <strong className="text-destructive">-${delivery.vat.toFixed(2)}</strong>
+                            </span>
+                          )}
+                          <span className="ml-auto">
+                            {language === "es" ? "Neto real" : "Real net"}:{" "}
+                            <strong className="text-emerald-600 dark:text-emerald-400">${delivery.net.toFixed(2)}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     {order.status === "cancelled" && (
                       <div className="rounded border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-xs">
