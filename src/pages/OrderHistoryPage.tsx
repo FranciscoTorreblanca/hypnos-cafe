@@ -606,6 +606,31 @@ const OrderHistoryPage = () => {
                       )}
                     </div>
 
+                    {delivery && (
+                      <div className="rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-xs space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                          <span className="font-semibold">
+                            🛵 {delivery.platform?.name ?? (language === "es" ? "Plataforma" : "Platform")}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {language === "es" ? "Bruto" : "Gross"}: <strong className="text-foreground">${delivery.gross.toFixed(2)}</strong>
+                          </span>
+                          <span className="text-muted-foreground">
+                            {language === "es" ? "Comisión" : "Commission"} ({delivery.commissionPct}%): <strong className="text-destructive">-${delivery.commission.toFixed(2)}</strong>
+                          </span>
+                          {vatRate > 0 && (
+                            <span className="text-muted-foreground">
+                              IVA ({vatRate}%): <strong className="text-destructive">-${delivery.vat.toFixed(2)}</strong>
+                            </span>
+                          )}
+                          <span className="ml-auto">
+                            {language === "es" ? "Neto real" : "Real net"}:{" "}
+                            <strong className="text-emerald-600 dark:text-emerald-400">${delivery.net.toFixed(2)}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {order.status === "cancelled" && (
                       <div className="rounded border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-xs">
                         <strong className="text-destructive">
