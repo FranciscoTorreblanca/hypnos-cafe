@@ -140,6 +140,7 @@ export type Database = {
           kind: string
           note: string
           source: string
+          till_transaction_id: string | null
         }
         Insert: {
           amount?: number
@@ -150,6 +151,7 @@ export type Database = {
           kind?: string
           note?: string
           source?: string
+          till_transaction_id?: string | null
         }
         Update: {
           amount?: number
@@ -160,6 +162,7 @@ export type Database = {
           kind?: string
           note?: string
           source?: string
+          till_transaction_id?: string | null
         }
         Relationships: [
           {
@@ -167,6 +170,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_till_transaction_id_fkey"
+            columns: ["till_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "till_transactions"
             referencedColumns: ["id"]
           },
         ]
