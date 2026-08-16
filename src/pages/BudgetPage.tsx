@@ -830,17 +830,20 @@ export default function BudgetPage() {
                     <TableRow key={a.id}>
                       <TableCell className="whitespace-nowrap">{format(new Date(a.created_at), "dd MMM yyyy", { locale })}</TableCell>
                       <TableCell><Badge variant="outline">{sourceLabel(a.source)}</Badge></TableCell>
-                      <TableCell>{a.kind === "starting_balance" ? t("budget.startingBalance") : a.kind === "transfer" ? t("budget.transfer") : t("budget.adjustment")}</TableCell>
+                      <TableCell>{a.kind === "starting_balance" ? t("budget.startingBalance") : a.kind === "transfer" ? t("budget.transfer") : a.kind === "till" ? (language === "es" ? "Caja" : "Till") : t("budget.adjustment")}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">{a.note}</TableCell>
                       <TableCell className={`text-right font-semibold ${Number(a.amount) < 0 ? "text-destructive" : ""}`}>
                         {fmtMXN(Number(a.amount))}
                       </TableCell>
                       <TableCell className="text-right">
-                        {isAdmin && (
+                        {/* Till movements are mirrored automatically — the till is the source of truth. */}
+                        {isAdmin && a.kind !== "till" && (
                           <Button size="icon" variant="ghost" onClick={() => deleteAdjustment.mutate(a.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
+                      </TableCell>
+
                       </TableCell>
                     </TableRow>
                   ))}
