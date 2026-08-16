@@ -52,7 +52,11 @@ export const useTill = () => {
       });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["till_transactions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
+      // Till movements are mirrored into budget cash adjustments by a DB trigger.
+      queryClient.invalidateQueries({ queryKey: ["balance-adjustments"] });
+    },
   });
 
   const deleteTransaction = useMutation({
@@ -60,7 +64,11 @@ export const useTill = () => {
       const { error } = await (supabase.from("till_transactions" as any) as any).delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["till_transactions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
+      // Till movements are mirrored into budget cash adjustments by a DB trigger.
+      queryClient.invalidateQueries({ queryKey: ["balance-adjustments"] });
+    },
   });
 
   // Calculate current till balance
