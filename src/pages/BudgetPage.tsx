@@ -843,8 +843,6 @@ export default function BudgetPage() {
                           </Button>
                         )}
                       </TableCell>
-
-                      </TableCell>
                     </TableRow>
                   ))}
                   {adjustments.length === 0 && (
