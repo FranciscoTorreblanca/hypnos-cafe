@@ -182,14 +182,37 @@ export default function BudgetPage() {
       .reduce((s, p) => s + Number(p.amount) + Number(p.tip || 0), 0);
   }, [payments, monthStart, monthEnd]);
 
-  const spentThisMonth = useMemo(() => {
-    return expenses
-      .filter((e) => new Date(e.paid_at) >= monthStart && new Date(e.paid_at) <= monthEnd)
-      .reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses, monthStart, monthEnd]);
+  const monthExpenses = useMemo(
+    () => expenses.filter((e) => new Date(e.paid_at) >= monthStart && new Date(e.paid_at) <= monthEnd),
+    [expenses, monthStart, monthEnd]
+  );
 
-  const projectedDelta = earningsThisMonth - monthlyFixed;
-  const coverageRatio = monthlyFixed > 0 ? earningsThisMonth / monthlyFixed : 0;
+  const spentThisMonth = useMemo(
+    () => monthExpenses.reduce((s, e) => s + Number(e.amount), 0),
+    [monthExpenses]
+  );
+
+  /** Split this month's real spend between fixed-cost categories and everything else (variable). */
+  const { fixedSpentThisMonth, variableSpentThisMonth } = useMemo(() => {
+    const kindById = new Map(categories.map((c: any) => [c.id, c.kind]));
+    let fixed = 0;
+    let variable = 0;
+    for (const e of monthExpenses) {
+      const amount = Number(e.amount);
+      if (kindById.get(e.category_id) === "fixed") fixed += amount;
+      else variable += amount;
+    }
+    return { fixedSpentThisMonth: fixed, variableSpentThisMonth: variable };
+  }, [monthExpenses, categories]);
+
+  /**
+   * Fixed obligations are taken from the recurring plan (already includes what was paid),
+   * so we only add the variable spend on top to avoid double counting.
+   */
+  const totalCommitmentsThisMonth = monthlyFixed + variableSpentThisMonth;
+  const projectedDelta = earningsThisMonth - totalCommitmentsThisMonth;
+  const coverageRatio = totalCommitmentsThisMonth > 0 ? earningsThisMonth / totalCommitmentsThisMonth : 0;
+
 
   const byCategoryThisMonth = useMemo(() => {
     const map = new Map<string, { id: string; label: string; color: string; amount: number }>();
@@ -581,18 +604,52 @@ export default function BudgetPage() {
                 ) : (
                   <AlertCircle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
                 )}
-                <div className="text-sm">
+                <div className="text-sm flex-1">
                   <div className="font-medium">
                     {coverageRatio >= 1
                       ? t("budget.coverageOk")
                       : t("budget.coverageWarn")}
                   </div>
                   <div className="text-muted-foreground mt-1">
-                    {t("budget.earningsThisMonth")}: <strong>{fmtMXN(earningsThisMonth)}</strong> ·{" "}
-                    {t("budget.fixedMonthly")}: <strong>{fmtMXN(monthlyFixed)}</strong> ·{" "}
-                    {t("budget.spentThisMonth")}: <strong>{fmtMXN(spentThisMonth)}</strong>
+                    {language === "es"
+                      ? "Ingresos del mes vs. costos fijos + costos variables (insumos, mantenimiento, etc.)."
+                      : "This month's income vs. fixed costs + variable costs (supplies, maintenance, etc.)."}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">{t("budget.earningsThisMonth")}</div>
+                      <div className="font-semibold">{fmtMXN(earningsThisMonth)}</div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">{t("budget.fixedMonthly")}</div>
+                      <div className="font-semibold">{fmtMXN(monthlyFixed)}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {language === "es" ? "Pagado" : "Paid"}: {fmtMXN(fixedSpentThisMonth)}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {language === "es" ? "Costos variables" : "Variable costs"}
+                      </div>
+                      <div className="font-semibold">{fmtMXN(variableSpentThisMonth)}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {language === "es" ? "Gasto total" : "Total spend"}: {fmtMXN(spentThisMonth)}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {language === "es" ? "Resultado" : "Result"}
+                      </div>
+                      <div className={`font-semibold ${projectedDelta >= 0 ? "text-primary" : "text-destructive"}`}>
+                        {fmtMXN(projectedDelta)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {t("budget.coverage")}: {(coverageRatio * 100).toFixed(0)}%
+                      </div>
+                    </div>
                   </div>
                 </div>
+
               </div>
             </CardContent>
           </Card>
