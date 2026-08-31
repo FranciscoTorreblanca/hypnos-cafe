@@ -19,6 +19,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/hooks/use-toast";
 import { Wallet, CreditCard, Coins, TrendingDown, TrendingUp, Plus, Trash2, Pencil, AlertCircle, CheckCircle2, Receipt, CalendarClock, ArrowLeftRight, ArrowRight } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from "recharts";
+import DebtsTab from "@/components/budget/DebtsTab";
+
 
 type Frequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | "one_time";
 type Source = "cash" | "card" | "other";
@@ -555,12 +557,18 @@ export default function BudgetPage() {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">{t("budget.overview")}</TabsTrigger>
           <TabsTrigger value="recurring">{t("budget.recurring")}</TabsTrigger>
           <TabsTrigger value="ledger">{t("budget.ledger")}</TabsTrigger>
           <TabsTrigger value="balance">{t("budget.balance")}</TabsTrigger>
+          <TabsTrigger value="debts">{language === "es" ? "Deudas" : "Debts"}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="debts" className="space-y-3">
+          <DebtsTab />
+        </TabsContent>
+
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="space-y-4">
