@@ -555,12 +555,18 @@ export default function BudgetPage() {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">{t("budget.overview")}</TabsTrigger>
           <TabsTrigger value="recurring">{t("budget.recurring")}</TabsTrigger>
           <TabsTrigger value="ledger">{t("budget.ledger")}</TabsTrigger>
           <TabsTrigger value="balance">{t("budget.balance")}</TabsTrigger>
+          <TabsTrigger value="debts">{language === "es" ? "Deudas" : "Debts"}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="debts" className="space-y-3">
+          <DebtsTab />
+        </TabsContent>
+
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="space-y-4">
