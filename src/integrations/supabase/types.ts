@@ -2102,6 +2102,65 @@ export type Database = {
           },
         ]
       }
+      supplier_debts: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string
+          description: string
+          due_date: string | null
+          id: string
+          is_settled: boolean
+          issued_at: string
+          notes: string
+          paid_amount: number
+          payment_source: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          business_id: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          is_settled?: boolean
+          issued_at?: string
+          notes?: string
+          paid_amount?: number
+          payment_source?: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          is_settled?: boolean
+          issued_at?: string
+          notes?: string
+          paid_amount?: number
+          payment_source?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_debts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_prints: {
         Row: {
           business_id: string
