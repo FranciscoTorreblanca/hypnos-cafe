@@ -182,14 +182,37 @@ export default function BudgetPage() {
       .reduce((s, p) => s + Number(p.amount) + Number(p.tip || 0), 0);
   }, [payments, monthStart, monthEnd]);
 
-  const spentThisMonth = useMemo(() => {
-    return expenses
-      .filter((e) => new Date(e.paid_at) >= monthStart && new Date(e.paid_at) <= monthEnd)
-      .reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses, monthStart, monthEnd]);
+  const monthExpenses = useMemo(
+    () => expenses.filter((e) => new Date(e.paid_at) >= monthStart && new Date(e.paid_at) <= monthEnd),
+    [expenses, monthStart, monthEnd]
+  );
 
-  const projectedDelta = earningsThisMonth - monthlyFixed;
-  const coverageRatio = monthlyFixed > 0 ? earningsThisMonth / monthlyFixed : 0;
+  const spentThisMonth = useMemo(
+    () => monthExpenses.reduce((s, e) => s + Number(e.amount), 0),
+    [monthExpenses]
+  );
+
+  /** Split this month's real spend between fixed-cost categories and everything else (variable). */
+  const { fixedSpentThisMonth, variableSpentThisMonth } = useMemo(() => {
+    const kindById = new Map(categories.map((c: any) => [c.id, c.kind]));
+    let fixed = 0;
+    let variable = 0;
+    for (const e of monthExpenses) {
+      const amount = Number(e.amount);
+      if (kindById.get(e.category_id) === "fixed") fixed += amount;
+      else variable += amount;
+    }
+    return { fixedSpentThisMonth: fixed, variableSpentThisMonth: variable };
+  }, [monthExpenses, categories]);
+
+  /**
+   * Fixed obligations are taken from the recurring plan (already includes what was paid),
+   * so we only add the variable spend on top to avoid double counting.
+   */
+  const totalCommitmentsThisMonth = monthlyFixed + variableSpentThisMonth;
+  const projectedDelta = earningsThisMonth - totalCommitmentsThisMonth;
+  const coverageRatio = totalCommitmentsThisMonth > 0 ? earningsThisMonth / totalCommitmentsThisMonth : 0;
+
 
   const byCategoryThisMonth = useMemo(() => {
     const map = new Map<string, { id: string; label: string; color: string; amount: number }>();
