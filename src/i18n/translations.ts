@@ -500,7 +500,7 @@ export const translations = {
   // Budget
   "nav.budget": { es: "Presupuesto", en: "Budget" },
   "budget.title": { es: "Presupuesto", en: "Budget" },
-  "budget.subtitle": { es: "Controla ingresos, gastos fijos y dinero disponible", en: "Track income, fixed expenses and available money" },
+  "budget.subtitle": { es: "Controla ingresos, costos fijos y variables, y dinero disponible", en: "Track income, fixed and variable costs, and available money" },
   "budget.cash": { es: "Efectivo disponible", en: "Cash available" },
   "budget.card": { es: "Tarjeta disponible", en: "Card available" },
   "budget.totalAvailable": { es: "Total disponible", en: "Total available" },
