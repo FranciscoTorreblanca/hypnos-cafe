@@ -604,18 +604,52 @@ export default function BudgetPage() {
                 ) : (
                   <AlertCircle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
                 )}
-                <div className="text-sm">
+                <div className="text-sm flex-1">
                   <div className="font-medium">
                     {coverageRatio >= 1
                       ? t("budget.coverageOk")
                       : t("budget.coverageWarn")}
                   </div>
                   <div className="text-muted-foreground mt-1">
-                    {t("budget.earningsThisMonth")}: <strong>{fmtMXN(earningsThisMonth)}</strong> ·{" "}
-                    {t("budget.fixedMonthly")}: <strong>{fmtMXN(monthlyFixed)}</strong> ·{" "}
-                    {t("budget.spentThisMonth")}: <strong>{fmtMXN(spentThisMonth)}</strong>
+                    {language === "es"
+                      ? "Ingresos del mes vs. costos fijos + costos variables (insumos, mantenimiento, etc.)."
+                      : "This month's income vs. fixed costs + variable costs (supplies, maintenance, etc.)."}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">{t("budget.earningsThisMonth")}</div>
+                      <div className="font-semibold">{fmtMXN(earningsThisMonth)}</div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">{t("budget.fixedMonthly")}</div>
+                      <div className="font-semibold">{fmtMXN(monthlyFixed)}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {language === "es" ? "Pagado" : "Paid"}: {fmtMXN(fixedSpentThisMonth)}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {language === "es" ? "Costos variables" : "Variable costs"}
+                      </div>
+                      <div className="font-semibold">{fmtMXN(variableSpentThisMonth)}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {language === "es" ? "Gasto total" : "Total spend"}: {fmtMXN(spentThisMonth)}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {language === "es" ? "Resultado" : "Result"}
+                      </div>
+                      <div className={`font-semibold ${projectedDelta >= 0 ? "text-primary" : "text-destructive"}`}>
+                        {fmtMXN(projectedDelta)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {t("budget.coverage")}: {(coverageRatio * 100).toFixed(0)}%
+                      </div>
+                    </div>
                   </div>
                 </div>
+
               </div>
             </CardContent>
           </Card>
