@@ -115,6 +115,37 @@ export const usePayments = () => {
     }) => {
       if (!parts.length) throw new Error("No payment parts provided");
 
+      // Guard against double-charging: if this order was already paid (e.g. a
+      // duplicated submit or a retried offline entry), refuse a second payment.
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        const { data: existing } = await supabase
+          .from("payments")
+          .select("id, amount, tip")
+          .eq("order_id", order_id);
+        if (existing && existing.length > 0) {
+          const alreadyPaid = existing.reduce(
+            (s: number, p: any) => s + Number(p.amount || 0) + Number(p.tip || 0),
+            0,
+          );
+          const incoming = parts.reduce((s, p) => s + p.amount + p.tip, 0);
+          const { data: itemRows } = await supabase
+            .from("order_items")
+            .select("quantity, unit_price, discount_amount")
+            .eq("order_id", order_id);
+          const orderTotal = (itemRows ?? []).reduce(
+            (s: number, i: any) =>
+              s + Number(i.quantity) * Number(i.unit_price) - Number(i.discount_amount || 0),
+            0,
+          );
+          if (alreadyPaid + incoming > orderTotal + 0.5) {
+            throw new Error(
+              `Esta orden ya tiene pagos registrados por $${alreadyPaid.toFixed(2)}. No se puede cobrar de nuevo.`,
+            );
+          }
+        }
+      }
+
+
       // If offline OR Mercado Pago not needed: enqueue everything and update cache.
       const cardParts = parts.filter((p) => p.payment_method === "card");
       const cardTotal = cardParts.reduce((s, p) => s + p.amount + p.tip, 0);
