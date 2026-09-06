@@ -327,14 +327,26 @@ export default function BudgetPage() {
       const baseNote = p.note?.trim() || (t("budget.transferNote") as string);
       const fromNote = `${baseNote} → ${sourceLabel(p.to)} [${transferId.slice(0, 8)}]`;
       const toNote = `${baseNote} ← ${sourceLabel(p.from)} [${transferId.slice(0, 8)}]`;
+      // The till is the source of truth for cash: the cash leg is registered as a
+      // till movement, which a DB trigger mirrors into the budget's cash balance.
+      const { error: tillErr } = await (supabase.from("till_transactions") as any).insert({
+        type: p.from === "cash" ? "adjustment_out" : "adjustment_in",
+        amount: Math.abs(p.amount),
+        note: p.from === "cash" ? fromNote : toNote,
+        created_by: user!.id,
+      });
+      if (tillErr) throw tillErr;
+      // Only the card leg is written directly to the budget.
       const { error } = await (supabase.from("balance_adjustments") as any).insert([
-        { source: p.from, amount: -Math.abs(p.amount), kind: "transfer", note: fromNote, created_by: user!.id },
-        { source: p.to, amount: Math.abs(p.amount), kind: "transfer", note: toNote, created_by: user!.id },
+        p.from === "card"
+          ? { source: "card", amount: -Math.abs(p.amount), kind: "transfer", note: fromNote, created_by: user!.id }
+          : { source: "card", amount: Math.abs(p.amount), kind: "transfer", note: toNote, created_by: user!.id },
       ]);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      qc.invalidateQueries({ queryKey: ["till_transactions"] });
       toast({ title: t("budget.transferDone") });
       setTransferOpen(false);
       setTransferForm({ from: "cash", to: "card", amount: "", note: "" });
