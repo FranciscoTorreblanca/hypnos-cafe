@@ -346,6 +346,7 @@ export default function BudgetPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      qc.invalidateQueries({ queryKey: ["till_transactions"] });
       toast({ title: t("budget.transferDone") });
       setTransferOpen(false);
       setTransferForm({ from: "cash", to: "card", amount: "", note: "" });
