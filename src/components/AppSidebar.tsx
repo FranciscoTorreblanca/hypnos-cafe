@@ -22,7 +22,8 @@ import {
   Building2,
   Fingerprint,
   Clock,
-, LineChart} from "lucide-react";
+  LineChart,
+} from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
