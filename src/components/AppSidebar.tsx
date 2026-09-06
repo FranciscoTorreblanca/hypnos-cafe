@@ -22,6 +22,7 @@ import {
   Building2,
   Fingerprint,
   Clock,
+  LineChart,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,6 +59,7 @@ export const AppSidebar = () => {
     { key: "nav.billing" as const, icon: Receipt, path: "/billing", roles: ["admin", "billing"], feature: null },
     { key: "nav.tickets" as const, icon: Ticket, path: "/tickets", roles: ["admin", "billing", "waiter"], feature: "tickets" as const },
     { key: "nav.performance" as const, icon: BarChart3, path: "/performance", roles: ["admin"], feature: null },
+    { key: "nav.itemHistory" as const, icon: LineChart, path: "/item-history", roles: ["admin"], feature: null },
     { key: "nav.analytics" as const, icon: Activity, path: "/analytics", roles: ["admin"], feature: "analytics" as const },
     { key: "nav.budget" as const, icon: Wallet, path: "/budget", roles: ["admin"], feature: "budget" as const },
     { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"], feature: null },
