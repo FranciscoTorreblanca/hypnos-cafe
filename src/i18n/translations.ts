@@ -301,6 +301,7 @@ export const translations = {
 
   // Performance
   "nav.performance": { es: "Rendimiento", en: "Performance" },
+  "nav.itemHistory": { es: "Historial de artículos", en: "Item history" },
   "performance.title": { es: "Rendimiento", en: "Performance" },
   "performance.subtitle": { es: "Historial de órdenes y análisis de ventas", en: "Order history & sales analytics" },
   "performance.totalOrders": { es: "Órdenes", en: "Orders" },
