@@ -144,19 +144,22 @@ function buildPayload(type: string, data: any): PushPayload {
       };
     }
     case "low_stock": {
-      const { item_name, item_id, inventory_count, threshold } = data;
+      const { item_name, item_id, inventory_count, threshold, kind, unit } = data;
+      const u = kind === "ingredient" ? (unit ?? "") : "unidades";
       return {
-        title: `📉 Inventario bajo`,
-        body: `"${item_name}" tiene ${inventory_count} unidades (umbral ${threshold}). Reabastece pronto.`,
+        title: kind === "ingredient" ? `📉 Insumo bajo` : `📉 Inventario bajo`,
+        body: `"${item_name}" tiene ${inventory_count} ${u} (umbral ${threshold} ${u}). Reabastece pronto.`,
         tag: `low-stock-${item_id}`,
         data: { type, item_id, url: "/stock" },
       };
     }
     case "out_of_stock": {
-      const { item_name, item_id } = data;
+      const { item_name, item_id, kind } = data;
       return {
-        title: `⚠️ Producto agotado`,
-        body: `Se vendió la última unidad de "${item_name}". Reabastece o márcalo como no disponible.`,
+        title: kind === "ingredient" ? `⚠️ Insumo agotado` : `⚠️ Producto agotado`,
+        body: kind === "ingredient"
+          ? `Se terminó el insumo "${item_name}". Reabastece pronto.`
+          : `Se vendió la última unidad de "${item_name}". Reabastece o márcalo como no disponible.`,
         tag: `out-of-stock-${item_id}`,
         data: { type, item_id, url: "/stock" },
       };
