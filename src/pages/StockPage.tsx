@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
 import { PotentialEarnings } from "@/components/PotentialEarnings";
+import { IngredientStockPanel } from "@/components/stock/IngredientStockPanel";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -61,6 +62,7 @@ const StockPage = () => {
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [section, setSection] = useState<"products" | "ingredients">("products");
 
   const trackedItems = useMemo(
     () => items.filter((i) => i.inventory_count !== null),
@@ -239,6 +241,17 @@ const StockPage = () => {
         </div>
       </div>
 
+      <Tabs value={section} onValueChange={(v) => setSection(v as any)}>
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="products">{language === "en" ? "Products" : "Productos"}</TabsTrigger>
+          <TabsTrigger value="ingredients">{language === "en" ? "Ingredients" : "Insumos"}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {section === "ingredients" ? (
+        <IngredientStockPanel />
+      ) : (
+      <>
       {/* Potential earnings */}
       <PotentialEarnings />
 
@@ -467,6 +480,8 @@ const StockPage = () => {
           </Table>
         </CardContent>
       </Card>
+      </>
+      )}
       <BarcodeScannerDialog
         open={scanOpen}
         onOpenChange={setScanOpen}
