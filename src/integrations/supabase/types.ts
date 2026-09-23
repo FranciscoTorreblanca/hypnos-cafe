@@ -858,16 +858,72 @@ export type Database = {
           },
         ]
       }
+      ingredient_stock_movements: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          ingredient_id: string
+          kind: string
+          note: string
+          order_item_id: string | null
+          packs: number | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          ingredient_id: string
+          kind: string
+          note?: string
+          order_item_id?: string | null
+          packs?: number | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          ingredient_id?: string
+          kind?: string
+          note?: string
+          order_item_id?: string | null
+          packs?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_stock_movements_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_movements_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
           business_id: string
           created_at: string
           id: string
+          low_stock_threshold: number | null
           name: string
           notes: string
           presentation_cost: number
           presentation_qty: number
           provider_link: string
+          stock_qty: number | null
           unit: string
           unit_cost: number
           updated_at: string
@@ -876,11 +932,13 @@ export type Database = {
           business_id?: string
           created_at?: string
           id?: string
+          low_stock_threshold?: number | null
           name: string
           notes?: string
           presentation_cost?: number
           presentation_qty?: number
           provider_link?: string
+          stock_qty?: number | null
           unit?: string
           unit_cost?: number
           updated_at?: string
@@ -889,11 +947,13 @@ export type Database = {
           business_id?: string
           created_at?: string
           id?: string
+          low_stock_threshold?: number | null
           name?: string
           notes?: string
           presentation_cost?: number
           presentation_qty?: number
           provider_link?: string
+          stock_qty?: number | null
           unit?: string
           unit_cost?: number
           updated_at?: string
@@ -2564,6 +2624,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_ingredient_usage: {
+        Args: {
+          _kind: string
+          _menu_item_id: string
+          _order_item_id: string
+          _qty: number
+        }
+        Returns: undefined
+      }
       attempt_check_in:
         | {
             Args: {
@@ -2817,6 +2886,15 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      restock_ingredient: {
+        Args: {
+          _ingredient_id: string
+          _note?: string
+          _packs: number
+          _qty: number
+        }
+        Returns: number
+      }
       set_active_business: {
         Args: { _business_id: string }
         Returns: undefined
