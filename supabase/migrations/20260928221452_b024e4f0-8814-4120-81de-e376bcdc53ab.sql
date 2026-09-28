@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.can_manage_schedule(uuid) FROM PUBLIC, anon;
