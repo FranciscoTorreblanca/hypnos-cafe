@@ -28,6 +28,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicMenuPage from "@/pages/PublicMenuPage";
 import PerformancePage from "@/pages/PerformancePage";
 import ItemHistoryPage from "@/pages/ItemHistoryPage";
+import SchedulePage from "@/pages/SchedulePage";
 import LoyaltyPublicPage from "@/pages/LoyaltyPublicPage";
 import LoyaltyLoginPage from "@/pages/LoyaltyLoginPage";
 import LoyaltyMemberPage from "@/pages/LoyaltyMemberPage";
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/performance" element={<PerformancePage />} />
                 <Route path="/item-history" element={<ItemHistoryPage />} />
+                <Route path="/schedule" element={<SchedulePage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/loyalty-admin" element={<FeatureGate feature="loyalty"><LoyaltyAdminPage /></FeatureGate>} />

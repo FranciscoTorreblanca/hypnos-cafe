@@ -29,6 +29,7 @@ import {
   Wallet,
   Fingerprint,
   Clock,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -61,6 +62,7 @@ export const BottomNav = () => {
     { key: "nav.orderHistory" as const, icon: History, path: "/order-history", roles: ["admin"], feature: null },
     { key: "nav.stock" as const, icon: Package, path: "/stock", roles: ["admin"], feature: "stock" as const },
     { key: "nav.calendar" as const, icon: CalendarDays, path: "/calendar", roles: ["admin", "waiter", "billing"], feature: "calendar" as const },
+    { key: "nav.schedule" as const, icon: CalendarClock, path: "/schedule", roles: ["admin", "waiter", "billing", "kitchen"], feature: null },
     { key: "loyalty.admin" as const, icon: Heart, path: "/loyalty-admin", roles: ["admin"], feature: "loyalty" as const },
     { key: "loyalty.scan" as const, icon: ScanLine, path: "/loyalty-scan", roles: ["admin", "waiter"], feature: "loyalty" as const },
     { key: "nav.checkIn" as const, icon: Fingerprint, path: "/check-in", roles: ["admin", "waiter", "billing", "kitchen"], feature: "time_attendance" as const },
