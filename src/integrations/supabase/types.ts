@@ -2162,6 +2162,155 @@ export type Database = {
           },
         ]
       }
+      schedule_employees: {
+        Row: {
+          business_id: string
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          business_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_employees_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_exceptions: {
+        Row: {
+          business_id: string
+          created_at: string
+          date: string
+          employee_id: string
+          end_time: string | null
+          id: string
+          kind: string
+          notes: string
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          date: string
+          employee_id: string
+          end_time?: string | null
+          id?: string
+          kind: string
+          notes?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          end_time?: string | null
+          id?: string
+          kind?: string
+          notes?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_exceptions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_shifts: {
+        Row: {
+          business_id: string
+          created_at: string
+          employee_id: string
+          end_time: string
+          id: string
+          notes: string
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          employee_id: string
+          end_time: string
+          id?: string
+          notes?: string
+          start_time: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          employee_id?: string
+          end_time?: string
+          id?: string
+          notes?: string
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shifts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_shifts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_debts: {
         Row: {
           amount: number
@@ -2728,6 +2877,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_manage_schedule: { Args: { _business_id: string }; Returns: boolean }
       close_expired_sessions: { Args: never; Returns: number }
       close_till_session: {
         Args: {

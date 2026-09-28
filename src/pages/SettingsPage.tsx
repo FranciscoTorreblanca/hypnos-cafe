@@ -16,6 +16,7 @@ import { APP_VERSION } from "@/version";
 import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin";
 import { DeliveryPlatformsAdmin } from "@/components/settings/DeliveryPlatformsAdmin";
 import { SyncLog } from "@/components/offline/SyncLog";
+import { OpeningHoursAdmin } from "@/components/settings/OpeningHoursAdmin";
 
 interface BusinessInfo {
   name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -268,6 +269,15 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Horario del restaurante / Opening hours</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <OpeningHoursAdmin />
+        </CardContent>
+      </Card>
 
       {isAdmin && hasFeature("delivery") && (
         <Card>
