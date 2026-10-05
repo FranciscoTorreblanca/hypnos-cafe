@@ -42,12 +42,13 @@ export const useTill = () => {
   });
 
   const addTransaction = useMutation({
-    mutationFn: async ({ type, amount, note, payment_id }: { type: string; amount: number; note: string; payment_id?: string }) => {
+    mutationFn: async ({ type, amount, note, payment_id, category_id }: { type: string; amount: number; note: string; payment_id?: string; category_id?: string }) => {
       const { error } = await (supabase.from("till_transactions" as any) as any).insert({
         type,
         amount,
         note,
         payment_id: payment_id || null,
+        category_id: category_id || null,
         created_by: user!.id,
       });
       if (error) throw error;
@@ -56,6 +57,7 @@ export const useTill = () => {
       queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
       // Till movements are mirrored into budget cash adjustments by a DB trigger.
       queryClient.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-entries"] });
     },
   });
 
@@ -68,6 +70,7 @@ export const useTill = () => {
       queryClient.invalidateQueries({ queryKey: ["till_transactions"] });
       // Till movements are mirrored into budget cash adjustments by a DB trigger.
       queryClient.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-entries"] });
     },
   });
 
