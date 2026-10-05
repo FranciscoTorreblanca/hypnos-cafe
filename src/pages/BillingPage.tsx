@@ -4,6 +4,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { usePayments, Payment } from "@/hooks/usePayments";
 import { useTill } from "@/hooks/useTill";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useTickets, Ticket } from "@/hooks/useTickets";
 import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
@@ -51,7 +52,7 @@ const BillingPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [] } = useOrders();
   const { data: payments = [], createPayment, updatePayment, deletePayment } = usePayments();
-  const { isAdmin, hasFeature } = useAuth();
+  const { isAdmin, hasFeature, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
