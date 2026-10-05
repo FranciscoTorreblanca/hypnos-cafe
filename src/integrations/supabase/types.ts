@@ -809,6 +809,7 @@ export type Database = {
           paid_at: string
           payment_source: string
           recurring_id: string | null
+          till_transaction_id: string | null
         }
         Insert: {
           amount?: number
@@ -821,6 +822,7 @@ export type Database = {
           paid_at?: string
           payment_source?: string
           recurring_id?: string | null
+          till_transaction_id?: string | null
         }
         Update: {
           amount?: number
@@ -833,6 +835,7 @@ export type Database = {
           paid_at?: string
           payment_source?: string
           recurring_id?: string | null
+          till_transaction_id?: string | null
         }
         Relationships: [
           {
@@ -854,6 +857,13 @@ export type Database = {
             columns: ["recurring_id"]
             isOneToOne: false
             referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_entries_till_transaction_id_fkey"
+            columns: ["till_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "till_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -2547,10 +2557,12 @@ export type Database = {
         Row: {
           amount: number
           business_id: string
+          category_id: string | null
           created_at: string
           created_by: string
           id: string
           note: string
+          origin: string
           payment_id: string | null
           till_session_id: string | null
           type: string
@@ -2558,10 +2570,12 @@ export type Database = {
         Insert: {
           amount?: number
           business_id?: string
+          category_id?: string | null
           created_at?: string
           created_by: string
           id?: string
           note?: string
+          origin?: string
           payment_id?: string | null
           till_session_id?: string | null
           type?: string
@@ -2569,10 +2583,12 @@ export type Database = {
         Update: {
           amount?: number
           business_id?: string
+          category_id?: string | null
           created_at?: string
           created_by?: string
           id?: string
           note?: string
+          origin?: string
           payment_id?: string | null
           till_session_id?: string | null
           type?: string
@@ -2583,6 +2599,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "till_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
             referencedColumns: ["id"]
           },
           {

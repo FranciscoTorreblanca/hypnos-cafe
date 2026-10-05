@@ -4,6 +4,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { usePayments, Payment } from "@/hooks/usePayments";
 import { useTill } from "@/hooks/useTill";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useTickets, Ticket } from "@/hooks/useTickets";
 import { PrintTicketDialog } from "@/components/tickets/PrintTicketDialog";
@@ -51,7 +52,7 @@ const BillingPage = () => {
   const { t, language } = useLanguage();
   const { data: orders = [] } = useOrders();
   const { data: payments = [], createPayment, updatePayment, deletePayment } = usePayments();
-  const { isAdmin, hasFeature } = useAuth();
+  const { isAdmin, hasFeature, currentBusinessId } = useAuth();
   const { toast } = useToast();
   const { data: tillTransactions = [], balance: tillBalance, addTransaction: addTillTransaction, deleteTransaction: deleteTillTransaction } = useTill();
 
@@ -87,6 +88,15 @@ const BillingPage = () => {
   const [tillAdjustType, setTillAdjustType] = useState<"in" | "out">("in");
   const [tillAdjustAmount, setTillAdjustAmount] = useState("");
   const [tillAdjustNote, setTillAdjustNote] = useState("");
+  const [tillAdjustCategory, setTillAdjustCategory] = useState<string>("none");
+  const { data: budgetCategories = [] } = useQuery({
+    queryKey: ["budget-categories-till", currentBusinessId],
+    enabled: !!currentBusinessId,
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("budget_categories").select("id,label,label_en,is_active,display_order").eq("business_id", currentBusinessId).eq("is_active", true).order("display_order");
+      return (data ?? []) as { id: string; label: string; label_en: string }[];
+    },
+  });
 
   // Tips cut date range state
   const [tipsCutFrom, setTipsCutFrom] = useState(() => format(startOfDay(new Date()), "yyyy-MM-dd"));
@@ -243,7 +253,9 @@ const BillingPage = () => {
         type: tillAdjustType === "in" ? "adjustment_in" : "adjustment_out",
         amount: amt,
         note: tillAdjustNote,
+        category_id: tillAdjustType === "out" && tillAdjustCategory !== "none" ? tillAdjustCategory : undefined,
       });
+      setTillAdjustCategory("none");
       toast({ title: t("common.success"), description: t("billing.tillSuccess") });
       setTillAdjustAmount("");
       setTillAdjustNote("");
@@ -659,6 +671,18 @@ const BillingPage = () => {
                     <Minus className="h-3.5 w-3.5" /> {t("billing.removeCash")}
                   </Button>
                 </div>
+                {tillAdjustType === "out" && (
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    value={tillAdjustCategory}
+                    onChange={(e) => setTillAdjustCategory(e.target.value)}
+                  >
+                    <option value="none">{language === "es" ? "Sin categoría (solo ajuste)" : "No category (adjustment only)"}</option>
+                    {budgetCategories.map((c) => (
+                      <option key={c.id} value={c.id}>{language === "es" ? c.label : c.label_en || c.label}</option>
+                    ))}
+                  </select>
+                )}
                 <div className="flex gap-2">
                   <Input
                     type="number"

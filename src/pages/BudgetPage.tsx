@@ -242,7 +242,7 @@ export default function BudgetPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["expense-entries"] });
+      (qc.invalidateQueries({ queryKey: ["expense-entries"] }), qc.invalidateQueries({ queryKey: ["till_transactions"] }));
       toast({ title: t("budget.expenseAdded") });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -253,7 +253,7 @@ export default function BudgetPage() {
       const { error } = await (supabase.from("expense_entries") as any).delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["expense-entries"] }),
+    onSuccess: () => (qc.invalidateQueries({ queryKey: ["expense-entries"] }), qc.invalidateQueries({ queryKey: ["till_transactions"] })),
   });
 
   const upsertRecurring = useMutation({
@@ -288,7 +288,7 @@ export default function BudgetPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      (qc.invalidateQueries({ queryKey: ["balance-adjustments"] }), qc.invalidateQueries({ queryKey: ["till_transactions"] }));
       toast({ title: t("budget.balanceAdjusted") });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -299,7 +299,7 @@ export default function BudgetPage() {
       const { error } = await (supabase.from("balance_adjustments") as any).delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["balance-adjustments"] }),
+    onSuccess: () => (qc.invalidateQueries({ queryKey: ["balance-adjustments"] }), qc.invalidateQueries({ queryKey: ["till_transactions"] })),
   });
 
   // ---------- Dialogs state ----------
@@ -345,7 +345,7 @@ export default function BudgetPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["balance-adjustments"] });
+      (qc.invalidateQueries({ queryKey: ["balance-adjustments"] }), qc.invalidateQueries({ queryKey: ["till_transactions"] }));
       qc.invalidateQueries({ queryKey: ["till_transactions"] });
       toast({ title: t("budget.transferDone") });
       setTransferOpen(false);
