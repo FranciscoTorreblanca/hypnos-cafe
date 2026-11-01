@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { startOfMonth, endOfMonth, format, differenceInCalendarDays, addDays, addMonths, addYears, parseISO } from "date-fns";
+import { format, differenceInCalendarDays, addDays, addMonths, addYears, parseISO } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,8 @@ import { toast } from "@/hooks/use-toast";
 import { Wallet, CreditCard, Coins, TrendingDown, TrendingUp, Plus, Trash2, Pencil, AlertCircle, CheckCircle2, Receipt, CalendarClock, ArrowLeftRight, ArrowRight } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from "recharts";
 import DebtsTab from "@/components/budget/DebtsTab";
+import { useBudgetSummary } from "@/hooks/useBudgetSummary";
+import { useOffline } from "@/offline/OfflineProvider";
 
 
 type Frequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | "one_time";
@@ -52,7 +54,12 @@ const fmtMXN = (n: number) =>
 
 export default function BudgetPage() {
   const { t, language } = useLanguage();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, currentBusinessId } = useAuth();
+  const summary = useBudgetSummary();
+  const { online, pending } = useOffline();
+  const [expensePage, setExpensePage] = useState(0);
+  const [adjustmentPage, setAdjustmentPage] = useState(0);
+  const PAGE_SIZE = 50;
   const qc = useQueryClient();
   const locale = language === "es" ? esLocale : enUS;
 
@@ -69,21 +76,23 @@ export default function BudgetPage() {
     return map[f][language];
   };
 
-  const sourceLabel = (s: Source) => {
+  const sourceLabel = (s: string) => {
     const map: Record<Source, { es: string; en: string }> = {
       cash: { es: "Efectivo", en: "Cash" },
       card: { es: "Tarjeta", en: "Card" },
       other: { es: "Otro", en: "Other" },
     };
-    return map[s][language];
+    return map[s as Source]?.[language] ?? s;
   };
 
   // ---------- Queries ----------
   const { data: categories = [] } = useQuery({
-    queryKey: ["budget-categories"],
+    queryKey: ["budget-categories", currentBusinessId, user?.id],
+    enabled: Boolean(currentBusinessId && user),
     queryFn: async () => {
       const { data, error } = await (supabase.from("budget_categories") as any)
         .select("*")
+        .eq("business_id", currentBusinessId)
         .order("display_order");
       if (error) throw error;
       return data as any[];
@@ -91,153 +100,68 @@ export default function BudgetPage() {
   });
 
   const { data: recurring = [] } = useQuery({
-    queryKey: ["recurring-expenses"],
+    queryKey: ["recurring-expenses", currentBusinessId, user?.id],
+    enabled: Boolean(currentBusinessId && user),
     queryFn: async () => {
       const { data, error } = await (supabase.from("recurring_expenses") as any)
         .select("*")
+        .eq("business_id", currentBusinessId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
   });
 
-  const { data: expenses = [] } = useQuery({
-    queryKey: ["expense-entries"],
+  // Ledger pages never participate in balance or monthly-summary calculations.
+  const { data: expenseRows = [] , isFetching: expensesFetching } = useQuery({
+    queryKey: ["expense-entries", currentBusinessId, user?.id, expensePage],
+    enabled: Boolean(currentBusinessId && user),
     queryFn: async () => {
-      const { data, error } = await (supabase.from("expense_entries") as any)
-        .select("*")
-        .order("paid_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return data as any[];
-    },
-  });
-
-  const { data: adjustments = [] } = useQuery({
-    queryKey: ["balance-adjustments"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("balance_adjustments") as any)
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as any[];
-    },
-  });
-
-  const { data: payments = [] } = useQuery({
-    queryKey: ["budget-payments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("id, amount, tip, payment_method, created_at")
-        .limit(5000);
+      const { data, error } = await supabase.from("expense_entries")
+        .select("*").eq("business_id", currentBusinessId ?? "")
+        .order("paid_at", { ascending: false }).order("id")
+        .range(expensePage * PAGE_SIZE, (expensePage + 1) * PAGE_SIZE);
       if (error) throw error;
       return data ?? [];
     },
   });
-
-  // ---------- Derived numbers ----------
-  const monthStart = startOfMonth(new Date());
-  const monthEnd = endOfMonth(new Date());
-
-  const cardSourceFor = (method: string) => (method === "cash" ? "cash" : "card");
-  const CARD_COMMISSION_RATE = 0.05;
-
-  const totalsBySource = useMemo(() => {
-    let cash = 0;
-    let card = 0;
-
-    for (const a of adjustments) {
-      if (a.source === "cash") cash += Number(a.amount);
-      else if (a.source === "card") card += Number(a.amount);
-    }
-    for (const p of payments) {
-      const total = Number(p.amount) + Number(p.tip || 0);
-      if (cardSourceFor(p.payment_method) === "cash") {
-        cash += total;
-      } else {
-        // Only literal "card" payments incur the processor commission.
-        // Bank transfers and other non-cash methods land in card balance at full value.
-        const net = p.payment_method === "card" ? total * (1 - CARD_COMMISSION_RATE) : total;
-        card += net;
-      }
-    }
-    for (const e of expenses) {
-      if (e.payment_source === "cash") cash -= Number(e.amount);
-      else if (e.payment_source === "card") card -= Number(e.amount);
-    }
-    return { cash, card, total: cash + card };
-  }, [adjustments, payments, expenses]);
-
-
-  const monthlyFixed = useMemo(() => {
-    return recurring
-      .filter((r) => r.is_active)
-      .reduce((s, r) => s + Number(r.amount) * (FREQ_MONTHLY_FACTOR[r.frequency as Frequency] ?? 0), 0);
-  }, [recurring]);
-
-  const earningsThisMonth = useMemo(() => {
-    return payments
-      .filter((p) => new Date(p.created_at) >= monthStart && new Date(p.created_at) <= monthEnd)
-      .reduce((s, p) => s + Number(p.amount) + Number(p.tip || 0), 0);
-  }, [payments, monthStart, monthEnd]);
-
-  const monthExpenses = useMemo(
-    () => expenses.filter((e) => new Date(e.paid_at) >= monthStart && new Date(e.paid_at) <= monthEnd),
-    [expenses, monthStart, monthEnd]
-  );
-
-  const spentThisMonth = useMemo(
-    () => monthExpenses.reduce((s, e) => s + Number(e.amount), 0),
-    [monthExpenses]
-  );
-
-  /** Split this month's real spend between fixed-cost categories and everything else (variable). */
-  const { fixedSpentThisMonth, variableSpentThisMonth } = useMemo(() => {
-    const kindById = new Map(categories.map((c: any) => [c.id, c.kind]));
-    let fixed = 0;
-    let variable = 0;
-    for (const e of monthExpenses) {
-      const amount = Number(e.amount);
-      if (kindById.get(e.category_id) === "fixed") fixed += amount;
-      else variable += amount;
-    }
-    return { fixedSpentThisMonth: fixed, variableSpentThisMonth: variable };
-  }, [monthExpenses, categories]);
-
-  /**
-   * Fixed obligations are taken from the recurring plan (already includes what was paid),
-   * so we only add the variable spend on top to avoid double counting.
-   */
+  const expenses = expenseRows.slice(0, PAGE_SIZE);
+  const { data: adjustmentRows = [], isFetching: adjustmentsFetching } = useQuery({
+    queryKey: ["balance-adjustments", currentBusinessId, user?.id, adjustmentPage],
+    enabled: Boolean(currentBusinessId && user),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("balance_adjustments")
+        .select("*").eq("business_id", currentBusinessId ?? "")
+        .order("created_at", { ascending: false }).order("id")
+        .range(adjustmentPage * PAGE_SIZE, (adjustmentPage + 1) * PAGE_SIZE);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const adjustments = adjustmentRows.slice(0, PAGE_SIZE);
+  const totalsBySource = {
+    cash: summary.data?.cash ?? 0,
+    card: summary.data?.card ?? 0,
+    total: summary.data?.total ?? 0,
+  };
+  const monthlyFixed = summary.data?.monthly_fixed ?? 0;
+  const earningsThisMonth = summary.data?.month_income ?? 0;
+  const spentThisMonth = summary.data?.month_spent ?? 0;
+  const fixedSpentThisMonth = summary.data?.month_fixed_spent ?? 0;
+  const variableSpentThisMonth = summary.data?.month_variable_spent ?? 0;
   const totalCommitmentsThisMonth = monthlyFixed + variableSpentThisMonth;
   const projectedDelta = earningsThisMonth - totalCommitmentsThisMonth;
   const coverageRatio = totalCommitmentsThisMonth > 0 ? earningsThisMonth / totalCommitmentsThisMonth : 0;
-
-
-  const byCategoryThisMonth = useMemo(() => {
-    const map = new Map<string, { id: string; label: string; color: string; amount: number }>();
-    for (const c of categories) {
-      map.set(c.id, {
-        id: c.id,
-        label: language === "es" ? c.label : c.label_en || c.label,
-        color: c.color,
-        amount: 0,
-      });
-    }
-    for (const e of expenses) {
-      if (new Date(e.paid_at) < monthStart || new Date(e.paid_at) > monthEnd) continue;
-      const entry = map.get(e.category_id);
-      if (entry) entry.amount += Number(e.amount);
-    }
-    return Array.from(map.values()).filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
-  }, [expenses, categories, language, monthStart, monthEnd]);
+  const byCategoryThisMonth = (summary.data?.by_category ?? []).map((c) => ({
+    ...c, label: language === "es" ? c.label : c.label_en || c.label,
+  }));
 
   // ---------- Mutations (admin only) ----------
   const addExpense = useMutation({
     mutationFn: async (payload: { category_id: string; amount: number; payment_source: Source; note: string; paid_at: string; recurring_id?: string | null }) => {
       const { error } = await (supabase.from("expense_entries") as any).insert({
         ...payload,
-        created_by: user!.id,
+        created_by: user?.id,
       });
       if (error) throw error;
     },
@@ -263,7 +187,7 @@ export default function BudgetPage() {
         const { error } = await (supabase.from("recurring_expenses") as any).update(rest).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase.from("recurring_expenses") as any).insert({ ...r, created_by: user!.id });
+        const { error } = await (supabase.from("recurring_expenses") as any).insert({ ...r, created_by: user?.id });
         if (error) throw error;
       }
     },
@@ -284,7 +208,7 @@ export default function BudgetPage() {
 
   const addAdjustment = useMutation({
     mutationFn: async (a: { source: Source; amount: number; kind: string; note: string }) => {
-      const { error } = await (supabase.from("balance_adjustments") as any).insert({ ...a, created_by: user!.id });
+      const { error } = await (supabase.from("balance_adjustments") as any).insert({ ...a, created_by: user?.id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -333,14 +257,14 @@ export default function BudgetPage() {
         type: p.from === "cash" ? "adjustment_out" : "adjustment_in",
         amount: Math.abs(p.amount),
         note: p.from === "cash" ? fromNote : toNote,
-        created_by: user!.id,
+        created_by: user?.id,
       });
       if (tillErr) throw tillErr;
       // Only the card leg is written directly to the budget.
       const { error } = await (supabase.from("balance_adjustments") as any).insert([
         p.from === "card"
-          ? { source: "card", amount: -Math.abs(p.amount), kind: "transfer", note: fromNote, created_by: user!.id }
-          : { source: "card", amount: Math.abs(p.amount), kind: "transfer", note: toNote, created_by: user!.id },
+          ? { source: "card", amount: -Math.abs(p.amount), kind: "transfer", note: fromNote, created_by: user?.id }
+          : { source: "card", amount: Math.abs(p.amount), kind: "transfer", note: toNote, created_by: user?.id },
       ]);
       if (error) throw error;
     },
@@ -438,6 +362,7 @@ export default function BudgetPage() {
   };
 
   const openQuickAdjust = (source: "cash" | "card") => {
+    if (!summary.data || !online || summary.isFetching) return;
     const current = source === "cash" ? totalsBySource.cash : totalsBySource.card;
     setQuickAdjSource(source);
     setQuickAdjTarget(String(Math.round(current)));
@@ -481,15 +406,7 @@ export default function BudgetPage() {
     return language === "es" ? c.label : c.label_en || c.label;
   };
 
-  const lastPaidByRecurring = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const e of expenses) {
-      if (!e.recurring_id) continue;
-      const prev = map.get(e.recurring_id);
-      if (!prev || new Date(e.paid_at) > new Date(prev)) map.set(e.recurring_id, e.paid_at);
-    }
-    return map;
-  }, [expenses]);
+  const lastPaidByRecurring = new Map((summary.data?.last_paid ?? []).map((entry) => [entry.recurring_id, entry.paid_at]));
 
   const dueStatus = (r: any): { days: number | null; tone: "ok" | "upcoming" | "soon" | "overdue" | "none"; label: string } => {
     if (!r.next_due_date) return { days: null, tone: "none", label: "—" };
@@ -541,6 +458,16 @@ export default function BudgetPage() {
         <p className="text-sm text-muted-foreground">{t("budget.subtitle")}</p>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" role="status">
+        {summary.data && <span>{language === "es" ? "Última confirmación" : "Last confirmed"}: {format(new Date(summary.data.fetched_at), "dd MMM HH:mm", { locale })}</span>}
+        {!online && <Badge variant="outline">{language === "es" ? "Sin conexión · saldo guardado" : "Offline · saved balance"}</Badge>}
+        {pending.some((entry) => entry.kind === "payment.create") && <Badge variant="outline">{language === "es" ? "Pagos pendientes de sincronizar" : "Payments pending synchronization"}</Badge>}
+        {summary.isFetching && <span>{language === "es" ? "Actualizando…" : "Updating…"}</span>}
+        {summary.isError && <span className="text-destructive">{language === "es" ? "No se pudo confirmar el saldo" : "Could not confirm the balance"}</span>}
+        <Button variant="ghost" size="sm" disabled={!online || summary.isFetching} onClick={() => void summary.refetch()}>{language === "es" ? "Actualizar" : "Refresh"}</Button>
+      </div>
+      {summary.data && summary.data.delivery_pending > 0 && <div className="text-sm text-muted-foreground">{language === "es" ? "Delivery por cobrar (neto)" : "Delivery receivable (net)"}: {fmtMXN(summary.data.delivery_pending)}</div>}
+
       {/* Balance cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card
@@ -553,7 +480,7 @@ export default function BudgetPage() {
               <div className="flex items-center gap-2"><Coins className="h-4 w-4" />{t("budget.cash")}</div>
               <Pencil className="h-3 w-3 opacity-50" />
             </div>
-            <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.cash)}</div>
+            <div className="text-2xl font-bold mt-1">{summary.data ? fmtMXN(totalsBySource.cash) : "—"}</div>
           </CardContent>
         </Card>
         <Card
@@ -566,13 +493,13 @@ export default function BudgetPage() {
               <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{t("budget.card")}</div>
               <Pencil className="h-3 w-3 opacity-50" />
             </div>
-            <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.card)}</div>
+            <div className="text-2xl font-bold mt-1">{summary.data ? fmtMXN(totalsBySource.card) : "—"}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Wallet className="h-4 w-4" />{t("budget.totalAvailable")}</div>
-            <div className="text-2xl font-bold mt-1">{fmtMXN(totalsBySource.total)}</div>
+            <div className="text-2xl font-bold mt-1">{summary.data ? fmtMXN(totalsBySource.total) : "—"}</div>
           </CardContent>
         </Card>
         <Card className={projectedDelta >= 0 ? "border-primary/30" : "border-destructive/30"}>
@@ -868,6 +795,11 @@ export default function BudgetPage() {
               </Table>
             </CardContent>
           </Card>
+          <div className="flex justify-end items-center gap-2">
+            <Button variant="outline" size="sm" disabled={expensePage === 0 || expensesFetching} onClick={() => setExpensePage((p) => p - 1)}>{language === "es" ? "Anterior" : "Previous"}</Button>
+            <span className="text-sm">{expensePage + 1}</span>
+            <Button variant="outline" size="sm" disabled={expenseRows.length <= PAGE_SIZE || expensesFetching} onClick={() => setExpensePage((p) => p + 1)}>{language === "es" ? "Siguiente" : "Next"}</Button>
+          </div>
         </TabsContent>
 
         {/* BALANCE */}
@@ -929,6 +861,11 @@ export default function BudgetPage() {
               </Table>
             </CardContent>
           </Card>
+          <div className="flex justify-end items-center gap-2">
+            <Button variant="outline" size="sm" disabled={adjustmentPage === 0 || adjustmentsFetching} onClick={() => setAdjustmentPage((p) => p - 1)}>{language === "es" ? "Anterior" : "Previous"}</Button>
+            <span className="text-sm">{adjustmentPage + 1}</span>
+            <Button variant="outline" size="sm" disabled={adjustmentRows.length <= PAGE_SIZE || adjustmentsFetching} onClick={() => setAdjustmentPage((p) => p + 1)}>{language === "es" ? "Siguiente" : "Next"}</Button>
+          </div>
         </TabsContent>
       </Tabs>
 

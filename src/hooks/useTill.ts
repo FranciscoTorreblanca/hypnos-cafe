@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTillBalance } from "@/hooks/useBudgetSummary";
 
 export interface TillTransaction {
   id: string;
@@ -15,14 +16,17 @@ export interface TillTransaction {
 
 export const useTill = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, currentBusinessId } = useAuth();
+  const confirmedBalance = useTillBalance();
 
   const query = useQuery({
-    queryKey: ["till_transactions"],
+    queryKey: ["till_transactions", currentBusinessId, user?.id],
+    enabled: Boolean(user && currentBusinessId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("till_transactions" as any)
         .select("*")
+        .eq("business_id", currentBusinessId ?? "")
         .order("created_at", { ascending: false });
       if (error) throw error;
 
@@ -43,13 +47,14 @@ export const useTill = () => {
 
   const addTransaction = useMutation({
     mutationFn: async ({ type, amount, note, payment_id, category_id }: { type: string; amount: number; note: string; payment_id?: string; category_id?: string }) => {
+      if (!user) throw new Error("Authentication required");
       const { error } = await (supabase.from("till_transactions" as any) as any).insert({
         type,
         amount,
         note,
         payment_id: payment_id || null,
         category_id: category_id || null,
-        created_by: user!.id,
+        created_by: user.id,
       });
       if (error) throw error;
     },
@@ -75,10 +80,7 @@ export const useTill = () => {
   });
 
   // Calculate current till balance
-  const balance = (query.data ?? []).reduce((sum, t) => {
-    if (t.type === "adjustment_out") return sum - t.amount;
-    return sum + t.amount; // payment or adjustment_in
-  }, 0);
+  const balance = confirmedBalance.data ?? 0;
 
-  return { ...query, balance, addTransaction, deleteTransaction };
+  return { ...query, balance, balanceQuery: confirmedBalance, addTransaction, deleteTransaction };
 };

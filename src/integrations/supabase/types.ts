@@ -2900,6 +2900,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      budget_payment_net: {
+        Args: {
+          _commission?: number
+          _gross: number
+          _method: string
+          _vat?: number
+        }
+        Returns: number
+      }
+      budget_summary: { Args: { _business_id: string }; Returns: Json }
       can_manage_schedule: { Args: { _business_id: string }; Returns: boolean }
       close_expired_sessions: { Args: never; Returns: number }
       close_till_session: {
@@ -3072,6 +3082,7 @@ export type Database = {
         Args: { _business_id: string }
         Returns: undefined
       }
+      till_balance: { Args: { _business_id: string }; Returns: number }
       till_tx_signed: {
         Args: { _amount: number; _type: string }
         Returns: number

@@ -30,6 +30,8 @@ const OFFLINE_QUERY_KEYS = new Set([
   "tables",
   "orders",
   "payments",
+  "budget-summary",
+  "till-balance",
   "till_session",
   "till_sessions",
   "till_x_report",
