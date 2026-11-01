@@ -76,13 +76,13 @@ export default function BudgetPage() {
     return map[f][language];
   };
 
-  const sourceLabel = (s: Source) => {
+  const sourceLabel = (s: string) => {
     const map: Record<Source, { es: string; en: string }> = {
       cash: { es: "Efectivo", en: "Cash" },
       card: { es: "Tarjeta", en: "Card" },
       other: { es: "Otro", en: "Other" },
     };
-    return map[s][language];
+    return map[s as Source]?.[language] ?? s;
   };
 
   // ---------- Queries ----------
