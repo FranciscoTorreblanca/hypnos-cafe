@@ -13,6 +13,7 @@ import { OfflineProvider } from "@/offline/OfflineProvider";
 import { installPersistence } from "@/offline/persister";
 import { bindQueryClient } from "@/offline/enqueue";
 import { APP_VERSION } from "@/version";
+import { installBudgetRefresh } from "@/lib/budgetRefresh";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import TablesPage from "@/pages/TablesPage";
@@ -67,6 +68,7 @@ const queryClient = new QueryClient({
 });
 
 installPersistence(queryClient, APP_VERSION);
+installBudgetRefresh(queryClient);
 bindQueryClient(queryClient);
 
 const App = () => (

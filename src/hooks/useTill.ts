@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTillBalance } from "@/hooks/useBudgetSummary";
 
 export interface TillTransaction {
   id: string;
@@ -16,6 +17,7 @@ export interface TillTransaction {
 export const useTill = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const confirmedBalance = useTillBalance();
 
   const query = useQuery({
     queryKey: ["till_transactions"],
@@ -75,10 +77,7 @@ export const useTill = () => {
   });
 
   // Calculate current till balance
-  const balance = (query.data ?? []).reduce((sum, t) => {
-    if (t.type === "adjustment_out") return sum - t.amount;
-    return sum + t.amount; // payment or adjustment_in
-  }, 0);
+  const balance = confirmedBalance.data ?? 0;
 
-  return { ...query, balance, addTransaction, deleteTransaction };
+  return { ...query, balance, balanceQuery: confirmedBalance, addTransaction, deleteTransaction };
 };

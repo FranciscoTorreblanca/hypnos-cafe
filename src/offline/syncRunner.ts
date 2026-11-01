@@ -227,9 +227,9 @@ const INVALIDATIONS: Partial<Record<QueueEntry["kind"], string[]>> = {
   "order_item.remove": ["orders"],
   "order_item.updateDiscount": ["orders"],
   "order_item.updateDiscountAmount": ["orders"],
-  "payment.create": ["orders", "payments", "till_transactions", "till_x_report"],
+  "payment.create": ["orders", "payments", "till_transactions", "till_x_report", "budget-summary", "till-balance"],
   "till.open": ["till_session", "till_sessions", "till_x_report"],
-  "till.close": ["till_session", "till_sessions", "till_x_report", "till_transactions"],
+  "till.close": ["till_session", "till_sessions", "till_x_report", "till_transactions", "budget-summary", "till-balance"],
   "attendance.check_in": ["attendance"],
   "attendance.check_out": ["attendance"],
 };
