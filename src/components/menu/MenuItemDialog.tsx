@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tv } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMenuItemSkus } from "@/hooks/useMenuItemSkus";
 import { useToast } from "@/hooks/use-toast";
@@ -270,16 +271,17 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[85dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[85dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 grid-cols-[minmax(0,1fr)] [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>{item ? t("menu.editItem") : t("menu.addItem")}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs defaultValue="general">
-              <div className="-mx-1 overflow-x-auto px-1 pb-1" data-vaul-no-drag>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 min-w-0">
+            <Tabs defaultValue="general" className="min-w-0">
+              <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x px-1 pb-1" data-vaul-no-drag>
               <TabsList className="w-max">
                 <TabsTrigger value="general">{language === "es" ? "General" : "General"}</TabsTrigger>
+                {showTapTab && <TabsTrigger value="tap"><Tv className="h-3.5 w-3.5 mr-1" />TV</TabsTrigger>}
                 {showCostTab && (
                   <TabsTrigger value="costs">
                     <Calculator className="h-3.5 w-3.5 mr-1" />
@@ -306,7 +308,6 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     Delivery
                   </TabsTrigger>
                 )}
-                {showTapTab && <TabsTrigger value="tap">TV</TabsTrigger>}
               </TabsList>
               </div>
 
@@ -661,7 +662,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 </TabsContent>
               )}
               {showTapTab && item?.id && (
-                <TabsContent value="tap" className="mt-4"><MenuItemTapTab menuItemId={item.id} /></TabsContent>
+                <TabsContent value="tap" className="mt-4"><MenuItemTapTab menuItemId={item.id} name={form.watch("name")} description={form.watch("description")} /></TabsContent>
               )}
             </Tabs>
 

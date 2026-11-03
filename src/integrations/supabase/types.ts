@@ -1600,6 +1600,7 @@ export type Database = {
           promo_price: number | null
           requires_kitchen: boolean
           tap_position: number | null
+          tv_brand_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1625,6 +1626,7 @@ export type Database = {
           promo_price?: number | null
           requires_kitchen?: boolean
           tap_position?: number | null
+          tv_brand_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1650,6 +1652,7 @@ export type Database = {
           promo_price?: number | null
           requires_kitchen?: boolean
           tap_position?: number | null
+          tv_brand_id?: string | null
           updated_at?: string
         }
         Relationships: [
