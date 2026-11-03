@@ -1,142 +1,124 @@
-import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Loader2, Save, Pencil } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Pencil, Tv } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTvBrands } from "@/hooks/useTvBrands";
 import { TvBrandDialog } from "@/components/tv/TvBrandDialog";
 
-interface Pres { label: string; price: string; promo_price: string; promo_label: string }
+export interface PriceRow { label: string; price: string; promo_price: string; promo_label: string }
 
-export const MenuItemTapTab = ({ menuItemId, name, description }: { menuItemId: string; name?: string; description?: string }) => {
-  const { language } = useLanguage();
-  const es = language === "es";
-  const { currentBusinessId } = useAuth();
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const db = supabase as any;
-
-  const { data, isLoading } = useQuery({
+export const useItemPresentations = (menuItemId?: string) =>
+  useQuery({
     queryKey: ["menu-item-presentations", menuItemId],
+    enabled: !!menuItemId,
     queryFn: async () => {
-      const [{ data: item }, { data: pres }] = await Promise.all([
-        db.from("menu_items").select("beer_style,beer_abv,beer_brewery,tv_brand_id").eq("id", menuItemId).single(),
-        db.from("menu_item_presentations").select("*").eq("menu_item_id", menuItemId).order("display_order"),
-      ]);
-      return { item, pres: pres ?? [] };
+      const { data, error } = await (supabase as any).from("menu_item_presentations").select("*").eq("menu_item_id", menuItemId).order("display_order");
+      if (error) throw error;
+      return (data ?? []).map((p: any) => ({
+        label: p.label, price: String(p.price), promo_price: p.promo_price?.toString() ?? "", promo_label: p.promo_label ?? "",
+      })) as PriceRow[];
     },
   });
 
-  const [style, setStyle] = useState("");
-  const [abv, setAbv] = useState("");
-  const [brandId, setBrandId] = useState<string>("");
-  const [brandDlg, setBrandDlg] = useState<"new" | "edit" | null>(null);
-  const { data: brands = [], isLoading: brandsLoading } = useTvBrands();
-  const brand = brands.find((b) => b.id === brandId) ?? null;
-  const [rows, setRows] = useState<Pres[]>([]);
-  const [saving, setSaving] = useState(false);
+export async function saveItemPresentations(businessId: string, menuItemId: string, rows: PriceRow[]) {
+  const db = supabase as any;
+  const num = (v: string) => (v.trim() === "" ? null : Number(v));
+  const { error: delErr } = await db.from("menu_item_presentations").delete().eq("menu_item_id", menuItemId);
+  if (delErr) throw delErr;
+  const valid = rows.filter((r) => r.label.trim());
+  if (!valid.length) return;
+  const { error } = await db.from("menu_item_presentations").insert(valid.map((r, i) => ({
+    business_id: businessId, menu_item_id: menuItemId, label: r.label.trim(),
+    price: Number(r.price) || 0, promo_price: num(r.promo_price), promo_label: r.promo_label.trim() || null, display_order: i,
+  })));
+  if (error) throw error;
+}
 
-  useEffect(() => {
-    if (!data) return;
-    setStyle(data.item?.beer_style ?? "");
-    setAbv(data.item?.beer_abv?.toString() ?? "");
-    setBrandId(data.item?.tv_brand_id ?? "");
-    setRows(data.pres.map((p: any) => ({
-      label: p.label, price: String(p.price), promo_price: p.promo_price?.toString() ?? "", promo_label: p.promo_label ?? "",
-    })));
-  }, [data]);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const num = (v: string) => (v.trim() === "" ? null : Number(v));
-      const { error } = await db.from("menu_items").update({
-        beer_style: style.trim() || null, beer_abv: num(abv), tv_brand_id: brandId || null, beer_brewery: brand?.name ?? null,
-      }).eq("id", menuItemId);
-      if (error) throw error;
-      const { error: delErr } = await db.from("menu_item_presentations").delete().eq("menu_item_id", menuItemId);
-      if (delErr) throw delErr;
-      const valid = rows.filter((r) => r.label.trim());
-      if (valid.length) {
-        const { error: insErr } = await db.from("menu_item_presentations").insert(valid.map((r, i) => ({
-          business_id: currentBusinessId, menu_item_id: menuItemId, label: r.label.trim(),
-          price: Number(r.price) || 0, promo_price: num(r.promo_price), promo_label: r.promo_label.trim() || null, display_order: i,
-        })));
-        if (insErr) throw insErr;
-      }
-      await qc.invalidateQueries({ queryKey: ["menu-item-presentations"] });
-      await qc.invalidateQueries({ queryKey: ["menu_items"] });
-      toast({ title: es ? "Datos de barril guardados" : "Tap details saved" });
-    } catch (e: any) {
-      toast({ title: e.message, variant: "destructive" });
-    } finally { setSaving(false); }
-  };
-
-  if (isLoading) return <div className="py-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>;
-
-  const set = (i: number, k: keyof Pres, v: string) => setRows((r) => r.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-
+/** Optional extra labelled prices (e.g. Media / Jarra). The main price stays the item's price + promo. */
+export const ExtraPricesEditor = ({ rows, onChange, disabled }: { rows: PriceRow[]; onChange: (r: PriceRow[]) => void; disabled?: boolean }) => {
+  const { language } = useLanguage();
+  const es = language === "es";
+  const set = (i: number, k: keyof PriceRow, v: string) => onChange(rows.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   return (
-    <div className="space-y-4 min-w-0">
-      <p className="text-xs text-muted-foreground">
-        {es ? "Se muestra en la pantalla de Hypnos TV." : "Shown on the Hypnos TV screen."}
+    <div className="space-y-2 min-w-0">
+      <Label className="text-sm">{es ? "Precios adicionales (opcional)" : "Extra prices (optional)"}</Label>
+      <p className="text-[11px] text-muted-foreground">
+        {disabled
+          ? (es ? "Guarda el artículo primero para agregar más tamaños." : "Save the item first to add more sizes.")
+          : (es ? "Otros tamaños con su propio precio. El precio principal y su promo de arriba siempre se usan como el primero." : "Other sizes with their own price. The main price and promo above always come first.")}
       </p>
-      <div className="rounded-md border bg-muted/40 p-2 text-xs space-y-0.5 min-w-0">
-        <p className="text-muted-foreground">{es ? "Desde General (se envía a la TV):" : "From General (sent to the TV):"}</p>
-        <p className="font-medium truncate">{name || "—"}</p>
-        {description && <p className="text-muted-foreground line-clamp-2">{description}</p>}
+      {rows.map((r, i) => (
+        <div key={i} className="grid grid-cols-[1fr_1fr_auto] sm:grid-cols-[1.2fr_1fr_1fr_auto] gap-2 items-center rounded-md border p-2 min-w-0">
+          <Input placeholder={es ? "Jarra" : "Pitcher"} value={r.label} onChange={(e) => set(i, "label", e.target.value)} />
+          <Input type="number" inputMode="decimal" placeholder={es ? "Precio" : "Price"} value={r.price} onChange={(e) => set(i, "price", e.target.value)} />
+          <Input type="number" inputMode="decimal" placeholder="Promo $" value={r.promo_price} onChange={(e) => set(i, "promo_price", e.target.value)} />
+          <Button type="button" size="icon" variant="ghost" aria-label={es ? "Quitar" : "Remove"} onClick={() => onChange(rows.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
+          <Input className="col-span-3 sm:col-span-4" placeholder={es ? "Texto promo (ej. 2x1)" : "Promo label (e.g. 2x1)"} value={r.promo_label} onChange={(e) => set(i, "promo_label", e.target.value)} />
+        </div>
+      ))}
+      {!disabled && (
+        <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => onChange([...rows, { label: "", price: "", promo_price: "", promo_label: "" }])}>
+          <Plus className="h-3.5 w-3.5" /> {es ? "Agregar precio" : "Add price"}
+        </Button>
+      )}
+    </div>
+  );
+};
+
+export const TvBadge = () => (
+  <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]"><Tv className="h-3 w-3" />TV</Badge>
+);
+
+/** Brand / style / ABV for tap list items. Brand must be picked from the Hypnos TV brand list. */
+export const TapFields = ({
+  brandId, onBrand, style, onStyle, abv, onAbv, previousBrewery,
+}: {
+  brandId: string | null; onBrand: (id: string | null, name: string | null) => void;
+  style: string; onStyle: (v: string) => void; abv: string; onAbv: (v: string) => void; previousBrewery?: string | null;
+}) => {
+  const { language } = useLanguage();
+  const es = language === "es";
+  const { data: brands = [], isLoading } = useTvBrands();
+  const brand = brands.find((b) => b.id === brandId) ?? null;
+  const [dlg, setDlg] = useState<"new" | "edit" | null>(null);
+  return (
+    <div className="space-y-3 rounded-md border border-dashed p-3 min-w-0">
+      <div className="flex items-center gap-2 text-sm font-medium"><TvBadge />{es ? "Datos de barril" : "Tap details"}</div>
+      <p className="text-[11px] text-muted-foreground">
+        {es ? "La marca se muestra en todo el menú como \"Marca - Nombre\". Estilo y ABV solo se ven en Hypnos TV." : "The brand shows across the menu as \"Brand - Name\". Style and ABV only appear on Hypnos TV."}
+      </p>
+      <div className="min-w-0">
+        <Label>{es ? "Marca" : "Brand"}</Label>
+        <div className="flex gap-2 min-w-0">
+          <Select value={brandId || "none"} onValueChange={(v) => {
+            if (v === "none") return onBrand(null, null);
+            onBrand(v, brands.find((b) => b.id === v)?.name ?? null);
+          }} disabled={isLoading}>
+            <SelectTrigger className="flex-1 min-w-0"><SelectValue placeholder={es ? "Elegir marca" : "Choose brand"} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{es ? "Sin marca" : "No brand"}</SelectItem>
+              {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {brand && <Button type="button" size="icon" variant="outline" aria-label={es ? "Editar marca" : "Edit brand"} onClick={() => setDlg("edit")}><Pencil className="h-4 w-4" /></Button>}
+          <Button type="button" size="icon" variant="outline" aria-label={es ? "Nueva marca" : "New brand"} onClick={() => setDlg("new")}><Plus className="h-4 w-4" /></Button>
+        </div>
+        {!brandId && previousBrewery && (
+          <p className="text-[11px] text-muted-foreground mt-1">{es ? `Antes: "${previousBrewery}". Elige o crea la marca.` : `Previously: "${previousBrewery}". Pick or create the brand.`}</p>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 min-w-0">
-          <Label>{es ? "Marca" : "Brand"}</Label>
-          <div className="flex gap-2 min-w-0">
-            <Select value={brandId || "none"} onValueChange={(v) => setBrandId(v === "none" ? "" : v)} disabled={brandsLoading}>
-              <SelectTrigger className="flex-1 min-w-0"><SelectValue placeholder={es ? "Elegir marca" : "Choose brand"} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{es ? "Sin marca" : "No brand"}</SelectItem>
-                {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {brand && <Button type="button" size="icon" variant="outline" aria-label={es ? "Editar marca" : "Edit brand"} onClick={() => setBrandDlg("edit")}><Pencil className="h-4 w-4" /></Button>}
-            <Button type="button" size="icon" variant="outline" aria-label={es ? "Nueva marca" : "New brand"} onClick={() => setBrandDlg("new")}><Plus className="h-4 w-4" /></Button>
-          </div>
-          {!brandId && data?.item?.beer_brewery && (
-            <p className="text-[11px] text-muted-foreground mt-1">{es ? `Antes: "${data.item.beer_brewery}". Elige o crea la marca.` : `Previously: "${data.item.beer_brewery}". Pick or create the brand.`}</p>
-          )}
-        </div>
-        <div><Label>{es ? "Estilo" : "Style"}</Label><Input value={style} onChange={(e) => setStyle(e.target.value)} placeholder="IPA" /></div>
-        <div><Label>ABV %</Label><Input type="number" step="0.1" inputMode="decimal" value={abv} onChange={(e) => setAbv(e.target.value)} /></div>
+        <div className="min-w-0"><Label>{es ? "Estilo" : "Style"}</Label><Input value={style} onChange={(e) => onStyle(e.target.value)} placeholder="IPA" /></div>
+        <div className="min-w-0"><Label>ABV %</Label><Input type="number" step="0.1" inputMode="decimal" value={abv} onChange={(e) => onAbv(e.target.value)} /></div>
       </div>
-      <div className="space-y-2">
-        <Label>{es ? "Tamaños y precios" : "Sizes & prices"}</Label>
-        {rows.length === 0 && (
-          <p className="text-xs text-muted-foreground">{es ? "Sin tamaños: se usa el precio del artículo." : "No sizes: the item price is used."}</p>
-        )}
-        {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-[1fr_1fr_auto] sm:grid-cols-[1.2fr_1fr_1fr_auto] gap-2 items-center rounded-md border p-2 min-w-0">
-            <Input placeholder={es ? "Pinta" : "Pint"} value={r.label} onChange={(e) => set(i, "label", e.target.value)} />
-            <Input type="number" inputMode="decimal" placeholder={es ? "Precio" : "Price"} value={r.price} onChange={(e) => set(i, "price", e.target.value)} />
-            <Input type="number" inputMode="decimal" placeholder="Promo $" value={r.promo_price} onChange={(e) => set(i, "promo_price", e.target.value)} />
-            <Button type="button" size="icon" variant="ghost" onClick={() => setRows((x) => x.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
-            <Input className="col-span-3" placeholder={es ? "Texto promo (ej. 2x1)" : "Promo label (e.g. 2x1)"} value={r.promo_label} onChange={(e) => set(i, "promo_label", e.target.value)} />
-          </div>
-        ))}
-        <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => setRows((x) => [...x, { label: "", price: "", promo_price: "", promo_label: "" }])}>
-          <Plus className="h-3.5 w-3.5" /> {es ? "Agregar tamaño" : "Add size"}
-        </Button>
-      </div>
-      <Button type="button" onClick={save} disabled={saving} className="gap-1.5 w-full">
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        {es ? "Guardar datos de barril" : "Save tap details"}
-      </Button>
-      <TvBrandDialog open={!!brandDlg} onOpenChange={(o) => !o && setBrandDlg(null)} brand={brandDlg === "edit" ? brand : null}
-        onSaved={(b) => { if (b?.id) setBrandId(b.id); }} />
+      <TvBrandDialog open={!!dlg} onOpenChange={(o) => !o && setDlg(null)} brand={dlg === "edit" ? brand : null}
+        onSaved={(b) => { if (b?.id) onBrand(b.id, b.name); }} />
     </div>
   );
 };
