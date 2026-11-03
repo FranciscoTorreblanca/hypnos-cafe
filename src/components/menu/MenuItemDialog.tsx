@@ -709,9 +709,6 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                   <MenuItemPlatformsTab menuItemId={item.id} basePrice={form.watch("price") || item.price || 0} />
                 </TabsContent>
               )}
-              {showTapTab && item?.id && (
-
-              )}
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-2 border-t">
