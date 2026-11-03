@@ -14,6 +14,7 @@ import { installPersistence } from "@/offline/persister";
 import { bindQueryClient } from "@/offline/enqueue";
 import { APP_VERSION } from "@/version";
 import { installBudgetRefresh } from "@/lib/budgetRefresh";
+import { installTvAutoSync } from "@/hooks/useHypnosTv";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import TablesPage from "@/pages/TablesPage";
@@ -69,6 +70,7 @@ const queryClient = new QueryClient({
 
 installPersistence(queryClient, APP_VERSION);
 installBudgetRefresh(queryClient);
+installTvAutoSync(queryClient);
 bindQueryClient(queryClient);
 
 const App = () => (

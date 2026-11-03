@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { useMenuCategories } from "@/hooks/useMenuItems";
+import { useMenuCategories } from "@/hooks/useMenuCategories";
 import { callHypnosTv, useTvIntegration, useTvSync } from "@/hooks/useHypnosTv";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

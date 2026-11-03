@@ -17,6 +17,7 @@ import { TimeAttendanceAdmin } from "@/components/attendance/TimeAttendanceAdmin
 import { DeliveryPlatformsAdmin } from "@/components/settings/DeliveryPlatformsAdmin";
 import { SyncLog } from "@/components/offline/SyncLog";
 import { OpeningHoursAdmin } from "@/components/settings/OpeningHoursAdmin";
+import { HypnosTvAdmin } from "@/components/settings/HypnosTvAdmin";
 
 interface BusinessInfo {
   name: string; slug: string; legal_name: string | null; tax_id: string | null;
@@ -278,6 +279,16 @@ const SettingsPage = () => {
           <OpeningHoursAdmin />
         </CardContent>
       </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Hypnos TV · Tap list</CardTitle>
+            <CardDescription className="text-sm">Lista de barriles en pantalla / Tap list on screen</CardDescription>
+          </CardHeader>
+          <CardContent><HypnosTvAdmin /></CardContent>
+        </Card>
+      )}
 
       {isAdmin && hasFeature("delivery") && (
         <Card>
