@@ -212,7 +212,7 @@ export const applyMenuItemFilters = <T extends Record<string, any>>(
   const maxC = filters.maxCost ? Number(filters.maxCost) : null;
 
   return items.filter((i) => {
-    if (q && !normalizeSearch(getName(i)).includes(q)) return false;
+    if (q && !normalizeSearch(`${getName(i)} ${i.name ?? ""} ${i.beer_brewery ?? ""}`).includes(q)) return false;
     if (filters.categoryId === "uncategorized" && i.category_id) return false;
     if (
       filters.categoryId !== "all" &&
