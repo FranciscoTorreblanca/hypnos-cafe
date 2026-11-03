@@ -92,7 +92,7 @@ export const MenuItemTapTab = ({ menuItemId }: { menuItemId: string }) => {
           <p className="text-xs text-muted-foreground">{es ? "Sin tamaños: se usa el precio del artículo." : "No sizes: the item price is used."}</p>
         )}
         {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_auto] gap-2 items-center rounded-md border p-2">
+          <div key={i} className="grid grid-cols-2 sm:grid-cols-[1.2fr_1fr_1fr_auto] gap-2 items-center rounded-md border p-2">
             <Input placeholder={es ? "Pinta" : "Pint"} value={r.label} onChange={(e) => set(i, "label", e.target.value)} />
             <Input type="number" inputMode="decimal" placeholder={es ? "Precio" : "Price"} value={r.price} onChange={(e) => set(i, "price", e.target.value)} />
             <Input type="number" inputMode="decimal" placeholder="Promo $" value={r.promo_price} onChange={(e) => set(i, "promo_price", e.target.value)} />
