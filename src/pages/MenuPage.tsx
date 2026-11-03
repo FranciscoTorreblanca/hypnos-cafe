@@ -20,6 +20,8 @@ import { useNavigate } from "react-router-dom";
 import { useCombos } from "@/hooks/useCombos";
 import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
 import { itemDisplayName, itemSearchText } from "@/hooks/useMenuItems";
+import { useTvIntegration } from "@/hooks/useHypnosTv";
+import { TapListOrder } from "@/components/menu/TapListOrder";
 
 const MenuPage = () => {
   const { t, language } = useLanguage();
@@ -27,6 +29,7 @@ const MenuPage = () => {
   const { data: items = [], upsert, remove, toggleAvailability } = useMenuItems();
   const { data: categories = [] } = useMenuCategories();
   const { data: combos = [] } = useCombos();
+  const { data: tvIntegration } = useTvIntegration();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -102,6 +105,8 @@ const MenuPage = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [itemView, setItemView] = useState("items");
+  const showTvOrder = isAdmin && activeCategory === tvIntegration?.taplist_category_id;
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
@@ -247,7 +252,18 @@ const MenuPage = () => {
             </TabsList>
           </Tabs>
 
-          {filtered.length === 0 ? (
+          {showTvOrder && (
+            <Tabs value={itemView} onValueChange={setItemView}>
+              <TabsList>
+                <TabsTrigger value="items">{language === "es" ? "Artículos" : "Items"}</TabsTrigger>
+                <TabsTrigger value="tv">{language === "es" ? "Orden en la TV" : "TV order"}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {showTvOrder && itemView === "tv" ? (
+            <TapListOrder key={`${tvIntegration.business_id}-${activeCategory}`} categoryId={activeCategory} es={language === "es"} />
+          ) : filtered.length === 0 ? (
             <p className="text-muted-foreground text-center py-12">{t("common.noResults")}</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
