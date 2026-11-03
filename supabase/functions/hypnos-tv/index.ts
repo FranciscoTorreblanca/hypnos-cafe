@@ -136,6 +136,12 @@ Deno.serve(async (req) => {
       }
 
       // Items
+      const signed: Record<string, string> = {};
+      const paths = list.map((i) => i.image_url).filter((u): u is string => !!u && !/^https?:/.test(u));
+      if (paths.length) {
+        const { data: su } = await admin.storage.from("menu-images").createSignedUrls(paths, 60 * 60 * 24 * 365 * 5);
+        for (const r of su ?? []) if (r.path && r.signedUrl) signed[r.path] = r.signedUrl;
+      }
       const remoteItems = pickList(await tv(key, "GET", "/items"), "items");
       const remoteItemIds = new Set(remoteItems.map((x) => x.id));
       const order: string[] = [];
@@ -148,7 +154,7 @@ Deno.serve(async (req) => {
         const brand = i.tv_brand_id ? (remoteBrandIds.has(i.tv_brand_id) ? i.tv_brand_id : null) : i.beer_brewery?.trim() ? refMap.get(`brand:${i.beer_brewery.trim().toLowerCase()}`) ?? null : null;
         const payload = {
           name: i.name, style: i.beer_style ?? "", abv: i.beer_abv, description: i.description ?? "",
-          brand_id: brand, image_url: i.image_url, active: i.is_available, sold_out: i.inventory_count === 0,
+          brand_id: brand, image_url: i.image_url ? (signed[i.image_url] ?? (/^https?:/.test(i.image_url) ? i.image_url : null)) : null, active: i.is_available, sold_out: i.inventory_count === 0,
         };
         let rid = refMap.get(`item:${i.id}`);
         if (rid && !remoteItemIds.has(rid)) rid = undefined;
