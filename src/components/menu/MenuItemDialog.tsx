@@ -28,7 +28,8 @@ import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
 import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { signMenuImageUrl } from "@/lib/menuImage";
 import { MenuItemPlatformsTab } from "@/components/menu/MenuItemPlatformsTab";
-import { MenuItemTapTab } from "@/components/menu/MenuItemTapTab";
+import { ExtraPricesEditor, TapFields, TvBadge, useItemPresentations, saveItemPresentations, type PriceRow } from "@/components/menu/MenuItemTapTab";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTvIntegration } from "@/hooks/useHypnosTv";
 
 const schema = z.object({
@@ -46,6 +47,11 @@ const schema = z.object({
   cooking_time_seconds: z.coerce.number().int().min(0).nullable().default(null),
   cooking_warning_seconds: z.coerce.number().int().min(0).default(60),
   requires_kitchen: z.boolean().default(true),
+  price_label: z.string().nullable().default(null),
+  beer_style: z.string().nullable().default(null),
+  beer_abv: z.number().nullable().default(null),
+  tv_brand_id: z.string().nullable().default(null),
+  beer_brewery: z.string().nullable().default(null),
 });
 
 
@@ -76,6 +82,11 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const [addonsDirty, setAddonsDirty] = useState(false);
   const [imgUploading, setImgUploading] = useState(false);
   const [imgPreviewUrl, setImgPreviewUrl] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const { data: savedPrices } = useItemPresentations(open ? item?.id : undefined);
+  const [extraPrices, setExtraPrices] = useState<PriceRow[]>([]);
+  const [pricesDirty, setPricesDirty] = useState(false);
+  useEffect(() => { setExtraPrices(savedPrices ?? []); setPricesDirty(false); }, [savedPrices, open]);
 
 
   const form = useForm<FormValues>({
@@ -86,6 +97,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
       image_url: null,
       cooking_time_seconds: null, cooking_warning_seconds: 60,
       requires_kitchen: true,
+      price_label: null, beer_style: null, beer_abv: null, tv_brand_id: null, beer_brewery: null,
     },
   });
 
@@ -108,6 +120,11 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         cooking_time_seconds: item.cooking_time_seconds ?? null,
         cooking_warning_seconds: item.cooking_warning_seconds ?? 60,
         requires_kitchen: (item as any).requires_kitchen ?? true,
+        price_label: item.price_label ?? null,
+        beer_style: item.beer_style ?? null,
+        beer_abv: item.beer_abv ?? null,
+        tv_brand_id: item.tv_brand_id ?? null,
+        beer_brewery: item.beer_brewery ?? null,
       });
     } else {
       form.reset();
@@ -224,8 +241,15 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
         await saveAddons.mutateAsync({ menuItemId: item.id, addons: valid });
       }
 
+      if (item?.id && pricesDirty && currentBusinessId) {
+        await saveItemPresentations(currentBusinessId, item.id, extraPrices);
+        await qc.invalidateQueries({ queryKey: ["menu-item-presentations"] });
+      }
+
       onSave({
         ...values,
+        price_label: values.price_label?.trim() || null,
+        beer_style: values.beer_style?.trim() || null,
         cost: effectiveCost,
         name: values.name,
         ...(item ? { id: item.id } : {}),
@@ -244,7 +268,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const showAddonsTab = isAdmin && !!item?.id;
   const showDeliveryTab = isAdmin && !!item?.id && hasFeature("delivery");
   const { data: tvCfg } = useTvIntegration();
-  const showTapTab = isAdmin && !!item?.id && !!tvCfg?.taplist_category_id && form.watch("category_id") === tvCfg.taplist_category_id;
+  const isTapItem = !!tvCfg?.taplist_category_id && form.watch("category_id") === tvCfg.taplist_category_id;
 
   const updateAddon = (idx: number, patch: Partial<AddonInput>) => {
     setAddons((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
@@ -281,7 +305,6 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
               <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x px-1 pb-1" data-vaul-no-drag>
               <TabsList className="w-max">
                 <TabsTrigger value="general">{language === "es" ? "General" : "General"}</TabsTrigger>
-                {showTapTab && <TabsTrigger value="tap"><Tv className="h-3.5 w-3.5 mr-1" />TV</TabsTrigger>}
                 {showCostTab && (
                   <TabsTrigger value="costs">
                     <Calculator className="h-3.5 w-3.5 mr-1" />
@@ -378,6 +401,31 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     </FormItem>
                   )} />
                 </div>
+                <FormField control={form.control} name="price_label" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "es" ? "Etiqueta del precio (opcional)" : "Price label (optional)"}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={language === "es" ? "Ej. Pinta" : "e.g. Pint"} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
+                    </FormControl>
+                  </FormItem>
+                )} />
+                <ExtraPricesEditor rows={extraPrices} disabled={!item?.id} onChange={(r) => { setExtraPrices(r); setPricesDirty(true); }} />
+                {isTapItem && (
+                  <TapFields
+                    brandId={form.watch("tv_brand_id")}
+                    onBrand={(id, name) => { form.setValue("tv_brand_id", id, { shouldDirty: true }); form.setValue("beer_brewery", name, { shouldDirty: true }); }}
+                    style={form.watch("beer_style") ?? ""}
+                    onStyle={(v) => form.setValue("beer_style", v, { shouldDirty: true })}
+                    abv={form.watch("beer_abv")?.toString() ?? ""}
+                    onAbv={(v) => form.setValue("beer_abv", v === "" ? null : Number(v), { shouldDirty: true })}
+                    previousBrewery={item?.tv_brand_id ? null : item?.beer_brewery}
+                  />
+                )}
+                {isTapItem && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <TvBadge />{language === "es" ? "Nombre, descripción, imagen, precios, promos y disponibilidad se envían a Hypnos TV al guardar." : "Name, description, image, prices, promos and availability are sent to Hypnos TV when you save."}
+                  </p>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField control={form.control} name="cost" render={({ field }) => (
                     <FormItem>
@@ -662,7 +710,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 </TabsContent>
               )}
               {showTapTab && item?.id && (
-                <TabsContent value="tap" className="mt-4"><MenuItemTapTab menuItemId={item.id} name={form.watch("name")} description={form.watch("description")} /></TabsContent>
+
               )}
             </Tabs>
 
