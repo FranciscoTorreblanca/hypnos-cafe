@@ -9,6 +9,12 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("clear_key"), business_id: z.string().uuid() }),
   z.object({ action: z.literal("test"), business_id: z.string().uuid() }),
   z.object({ action: z.literal("sync"), business_id: z.string().uuid() }),
+  z.object({ action: z.literal("list_brands"), business_id: z.string().uuid() }),
+  z.object({
+    action: z.literal("save_brand"), business_id: z.string().uuid(), id: z.string().min(1).max(100).optional(),
+    name: z.string().trim().min(1).max(120), logo_url: z.string().url().max(1000).nullable(),
+  }),
+  z.object({ action: z.literal("delete_brand"), business_id: z.string().uuid(), id: z.string().min(1).max(100) }),
 ]);
 
 const json = (b: unknown, status = 200) =>
@@ -49,8 +55,9 @@ Deno.serve(async (req) => {
 
     const { data: isAdmin } = await userClient.rpc("can_manage_schedule", { _business_id: b.business_id });
     const { data: isMember } = await userClient.rpc("is_member_of", { _business_id: b.business_id });
-    if (b.action !== "sync" && !isAdmin) return json({ error: "Forbidden" }, 403);
-    if (b.action === "sync" && !isAdmin && !isMember) return json({ error: "Forbidden" }, 403);
+    const readOnly = b.action === "sync" || b.action === "list_brands";
+    if (!readOnly && !isAdmin) return json({ error: "Forbidden" }, 403);
+    if (readOnly && !isAdmin && !isMember) return json({ error: "Forbidden" }, 403);
 
     if (b.action === "save_key") {
       await tv(b.api_key, "GET", "/settings"); // validate before saving
@@ -76,13 +83,27 @@ Deno.serve(async (req) => {
       return json({ ok: true, settings: s });
     }
 
+    if (b.action === "list_brands") {
+      return json({ brands: pickList(await tv(key, "GET", "/brands"), "brands") });
+    }
+    if (b.action === "save_brand") {
+      const body = { name: b.name, logo_url: b.logo_url };
+      const r = b.id ? await tv(key, "PATCH", `/brands/${encodeURIComponent(b.id)}`, body) : await tv(key, "POST", "/brands", body);
+      return json({ ok: true, brand: r });
+    }
+    if (b.action === "delete_brand") {
+      await tv(key, "DELETE", `/brands/${encodeURIComponent(b.id)}`);
+      await admin.from("menu_items").update({ tv_brand_id: null }).eq("business_id", b.business_id).eq("tv_brand_id", b.id);
+      return json({ ok: true });
+    }
+
     // ── SYNC ──
     const { data: cfg } = await admin.from("tv_integrations").select("*").eq("business_id", b.business_id).maybeSingle();
     if (!cfg?.enabled || !cfg.taplist_category_id) return json({ ok: true, skipped: "disabled or no category" });
 
     try {
       const [{ data: items }, { data: biz }, { data: refs }] = await Promise.all([
-        admin.from("menu_items").select("id,name,description,price,promo_price,image_url,is_available,beer_style,beer_abv,beer_brewery,created_at,tap_position")
+        admin.from("menu_items").select("id,name,description,price,promo_price,image_url,is_available,beer_style,beer_abv,beer_brewery,created_at,tap_position,tv_brand_id,inventory_count")
           .eq("business_id", b.business_id).eq("category_id", cfg.taplist_category_id).order("tap_position", { ascending: true, nullsFirst: false }).order("name"),
         admin.from("businesses").select("currency").eq("id", b.business_id).single(),
         admin.from("tv_remote_refs").select("*").eq("business_id", b.business_id),
@@ -102,7 +123,7 @@ Deno.serve(async (req) => {
       // Brands (by brewery name)
       const remoteBrands = pickList(await tv(key, "GET", "/brands"), "brands");
       const remoteBrandIds = new Set(remoteBrands.map((x) => x.id));
-      const brewery = [...new Set(list.map((i) => i.beer_brewery?.trim()).filter(Boolean) as string[])];
+      const brewery = [...new Set(list.filter((i) => !i.tv_brand_id).map((i) => i.beer_brewery?.trim()).filter(Boolean) as string[])];
       for (const name of brewery) {
         const k = name.toLowerCase();
         let rid = refMap.get(`brand:${k}`);
@@ -124,10 +145,10 @@ Deno.serve(async (req) => {
         const presentations = itemPres.length
           ? itemPres.map((p) => ({ label: p.label, price: Number(p.price), promo_price: p.promo_price, promo_label: p.promo_label }))
           : [{ label: "", price: Number(i.price), promo_price: i.promo_price, promo_label: null }];
-        const brand = i.beer_brewery?.trim() ? refMap.get(`brand:${i.beer_brewery.trim().toLowerCase()}`) ?? null : null;
+        const brand = i.tv_brand_id ? (remoteBrandIds.has(i.tv_brand_id) ? i.tv_brand_id : null) : i.beer_brewery?.trim() ? refMap.get(`brand:${i.beer_brewery.trim().toLowerCase()}`) ?? null : null;
         const payload = {
           name: i.name, style: i.beer_style ?? "", abv: i.beer_abv, description: i.description ?? "",
-          brand_id: brand, image_url: i.image_url, active: i.is_available, sold_out: false,
+          brand_id: brand, image_url: i.image_url, active: i.is_available, sold_out: i.inventory_count === 0,
         };
         let rid = refMap.get(`item:${i.id}`);
         if (rid && !remoteItemIds.has(rid)) rid = undefined;
