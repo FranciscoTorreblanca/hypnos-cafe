@@ -29,6 +29,13 @@
       "when": 1793715200514,
       "tag": "0003_menu_items_tv_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793716662920,
+      "tag": "0004_menu_item_price_label",
+      "breakpoints": true
     }
   ]
 }
