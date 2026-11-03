@@ -27,8 +27,29 @@ export interface MenuItem {
   cooking_time_seconds: number | null;
   cooking_warning_seconds: number | null;
   requires_kitchen: boolean;
+  /** Brand name (cached from Hypnos TV brand selection). */
+  beer_brewery?: string | null;
+  beer_style?: string | null;
+  beer_abv?: number | null;
+  tv_brand_id?: string | null;
+  price_label?: string | null;
   menu_item_addons?: MenuItemAddon[];
 }
+
+/** "<brand> - <name>" when the item has a brand (avoids repeating it if the name already starts with it). */
+export const itemDisplayName = (
+  item: { name?: string | null; beer_brewery?: string | null } | null | undefined,
+  name?: string | null,
+): string => {
+  const n = (name ?? item?.name ?? "").trim();
+  const b = (item?.beer_brewery ?? "").trim();
+  if (!b || n.toLowerCase().startsWith(b.toLowerCase())) return n;
+  return `${b} - ${n}`;
+};
+
+/** Text used by search bars: names plus brand. */
+export const itemSearchText = (item: { name?: string | null; name_en?: string | null; beer_brewery?: string | null }) =>
+  `${item.name ?? ""} ${item.name_en ?? ""} ${item.beer_brewery ?? ""}`;
 
 export const getEffectivePrice = (item: Pick<MenuItem, "price" | "promo_price">): number =>
   item.promo_price != null ? item.promo_price : item.price;
