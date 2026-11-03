@@ -1597,6 +1597,7 @@ export type Database = {
           name: string
           name_en: string
           price: number
+          price_label: string | null
           promo_price: number | null
           requires_kitchen: boolean
           tap_position: number | null
@@ -1623,6 +1624,7 @@ export type Database = {
           name: string
           name_en?: string
           price?: number
+          price_label?: string | null
           promo_price?: number | null
           requires_kitchen?: boolean
           tap_position?: number | null
@@ -1649,6 +1651,7 @@ export type Database = {
           name?: string
           name_en?: string
           price?: number
+          price_label?: string | null
           promo_price?: number | null
           requires_kitchen?: boolean
           tap_position?: number | null

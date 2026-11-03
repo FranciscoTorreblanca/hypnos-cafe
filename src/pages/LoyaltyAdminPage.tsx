@@ -20,6 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Users, Gift, Plus, Search, MoreHorizontal, KeyRound, Ban, CheckCircle } from "lucide-react";
+import { itemSearchText } from "@/hooks/useMenuItems";
 
 const LoyaltyAdminPage = () => {
   const { t, language } = useLanguage();
@@ -62,7 +63,7 @@ const LoyaltyAdminPage = () => {
   const filteredMenuItems = menuItems.filter((item) => {
     if (!itemSearch.trim()) return true;
     const q = normalizeSearch(itemSearch);
-    return normalizeSearch(item.name).includes(q) || normalizeSearch(item.name_en).includes(q);
+    return normalizeSearch(itemSearchText(item as any)).includes(q);
   });
 
   const toggleFreeItem = (itemId: string) => {

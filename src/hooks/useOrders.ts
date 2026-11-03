@@ -71,7 +71,7 @@ export const useOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*, menu_items(name, name_en, cooking_time_seconds, cooking_warning_seconds, requires_kitchen), combos(name, name_en))")
+        .select("*, order_items(*, menu_items(name, name_en, beer_brewery, cooking_time_seconds, cooking_warning_seconds, requires_kitchen), combos(name, name_en))")
         .in("status", ["pending", "in_progress", "completed", "ready", "served"])
         .order("created_at", { ascending: false });
       if (error) throw error;

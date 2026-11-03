@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
     try {
       const [{ data: items }, { data: biz }, { data: refs }] = await Promise.all([
-        admin.from("menu_items").select("id,name,description,price,promo_price,image_url,is_available,beer_style,beer_abv,beer_brewery,created_at,tap_position,tv_brand_id,inventory_count")
+        admin.from("menu_items").select("id,name,description,price,promo_price,image_url,is_available,beer_style,beer_abv,beer_brewery,created_at,tap_position,tv_brand_id,inventory_count,price_label")
           .eq("business_id", b.business_id).eq("category_id", cfg.taplist_category_id).order("tap_position", { ascending: true, nullsFirst: false }).order("name"),
         admin.from("businesses").select("currency").eq("id", b.business_id).single(),
         admin.from("tv_remote_refs").select("*").eq("business_id", b.business_id),
@@ -148,9 +148,11 @@ Deno.serve(async (req) => {
       const visible = list.filter((i) => i.is_available);
       for (const i of list) {
         const itemPres = (pres ?? []).filter((p) => p.menu_item_id === i.id);
-        const presentations = itemPres.length
-          ? itemPres.map((p) => ({ label: p.label, price: Number(p.price), promo_price: p.promo_price, promo_label: p.promo_label }))
-          : [{ label: "", price: Number(i.price), promo_price: i.promo_price, promo_label: null }];
+        // Main price/promo always comes from the menu item itself; extra labelled prices follow.
+        const presentations = [
+          { label: i.price_label ?? "", price: Number(i.price), promo_price: i.promo_price, promo_label: null },
+          ...itemPres.map((p) => ({ label: p.label, price: Number(p.price), promo_price: p.promo_price, promo_label: p.promo_label })),
+        ];
         const brand = i.tv_brand_id ? (remoteBrandIds.has(i.tv_brand_id) ? i.tv_brand_id : null) : i.beer_brewery?.trim() ? refMap.get(`brand:${i.beer_brewery.trim().toLowerCase()}`) ?? null : null;
         const payload = {
           name: i.name, style: i.beer_style ?? "", abv: i.beer_abv, description: i.description ?? "",
