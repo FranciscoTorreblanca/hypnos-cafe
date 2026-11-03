@@ -82,8 +82,8 @@ Deno.serve(async (req) => {
 
     try {
       const [{ data: items }, { data: biz }, { data: refs }] = await Promise.all([
-        admin.from("menu_items").select("id,name,description,price,promo_price,image_url,is_available,beer_style,beer_abv,beer_brewery,created_at")
-          .eq("business_id", b.business_id).eq("category_id", cfg.taplist_category_id).order("name"),
+        admin.from("menu_items").select("id,name,description,price,promo_price,image_url,is_available,beer_style,beer_abv,beer_brewery,created_at,tap_position")
+          .eq("business_id", b.business_id).eq("category_id", cfg.taplist_category_id).order("tap_position", { ascending: true, nullsFirst: false }).order("name"),
         admin.from("businesses").select("currency").eq("id", b.business_id).single(),
         admin.from("tv_remote_refs").select("*").eq("business_id", b.business_id),
       ]);

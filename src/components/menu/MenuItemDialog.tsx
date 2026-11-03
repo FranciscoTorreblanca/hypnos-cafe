@@ -270,14 +270,15 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[85dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{item ? t("menu.editItem") : t("menu.addItem")}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs defaultValue="general">
-              <TabsList>
+              <div className="-mx-1 overflow-x-auto px-1 pb-1" data-vaul-no-drag>
+              <TabsList className="w-max">
                 <TabsTrigger value="general">{language === "es" ? "General" : "General"}</TabsTrigger>
                 {showCostTab && (
                   <TabsTrigger value="costs">
@@ -307,9 +308,10 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 )}
                 {showTapTab && <TabsTrigger value="tap">TV</TabsTrigger>}
               </TabsList>
+              </div>
 
               <TabsContent value="general" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("menu.name")} (ES)</FormLabel>
@@ -324,7 +326,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     </FormItem>
                   )} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("menu.description")} (ES)</FormLabel>
@@ -353,7 +355,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     </Select>
                   </FormItem>
                 )} />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField control={form.control} name="price" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("menu.price")} (MXN)</FormLabel>
@@ -375,7 +377,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     </FormItem>
                   )} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField control={form.control} name="cost" render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -441,7 +443,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     </FormItem>
                   )} />
                   {form.watch("requires_kitchen") && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField control={form.control} name="cooking_time_seconds" render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-xs">
@@ -546,7 +548,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                         </Badge>
                       ))}
                     </div>
-                    <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
                       <Input placeholder={t("stock.code")} value={newCode} onChange={(e) => setNewCode(e.target.value)} />
                       <Input placeholder={t("stock.skuLabel")} value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
                       <Button
@@ -604,7 +606,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                       </p>
                     )}
                     {addons.map((a, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_1fr_100px_auto] gap-2 items-end border rounded-md p-2">
+                      <div key={idx} className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_100px_auto] gap-2 items-end border rounded-md p-2">
                         <div>
                           <label className="text-[10px] text-muted-foreground">{language === "es" ? "Nombre (ES)" : "Name (ES)"}</label>
                           <Input
