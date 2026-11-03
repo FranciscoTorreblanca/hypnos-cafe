@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TapListOrder } from "./TapListOrder";
 import { TvBrandsManager } from "@/components/tv/TvBrandsManager";
 import { Loader2, RefreshCw, KeyRound } from "lucide-react";
 
@@ -104,7 +103,6 @@ export const HypnosTvAdmin = () => {
         </Button>
       </div>
       {cfg?.last_sync_error && <p className="text-xs text-destructive break-words">{cfg.last_sync_error}</p>}
-      {cfg?.taplist_category_id && <TapListOrder categoryId={cfg.taplist_category_id} es={es} />}
       {cfg?.has_api_key && <TvBrandsManager />}
     </div>
   );
