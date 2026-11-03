@@ -18,6 +18,7 @@ import { usePayments } from "@/hooks/usePayments";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { itemSearchText } from "@/hooks/useMenuItems";
 
 interface Props {
   open: boolean;
@@ -100,7 +101,7 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
         if (platformInfo && !platformInfo.is_available) return false;
         return true;
       })
-      .filter((m) => !q || m.name.toLowerCase().includes(q) || (m.name_en ?? "").toLowerCase().includes(q));
+      .filter((m) => !q || itemSearchText(m as any).toLowerCase().includes(q));
   }, [menuItems, priceMap, search]);
 
   const handleMarkReady = () => {

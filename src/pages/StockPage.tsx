@@ -44,6 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
 import { PotentialEarnings } from "@/components/PotentialEarnings";
 import { IngredientStockPanel } from "@/components/stock/IngredientStockPanel";
+import { itemSearchText } from "@/hooks/useMenuItems";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -109,7 +110,7 @@ const StockPage = () => {
       const q = normalizeSearch(search);
       list = list.filter(
         (i) =>
-          normalizeSearch(i.name).includes(q) ||
+          normalizeSearch(itemSearchText(i as any)).includes(q) ||
           normalizeSearch(i.name_en).includes(q)
       );
     }

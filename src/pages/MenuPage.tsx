@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useCombos } from "@/hooks/useCombos";
 import { BarcodeScannerDialog } from "@/components/stock/BarcodeScannerDialog";
+import { itemDisplayName, itemSearchText } from "@/hooks/useMenuItems";
 
 const MenuPage = () => {
   const { t, language } = useLanguage();
@@ -106,7 +107,7 @@ const MenuPage = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
 
   const filtered = items.filter((i) => {
-    const matchSearch = normalizeSearch(i.name).includes(normalizeSearch(search)) ||
+    const matchSearch = normalizeSearch(itemSearchText(i)).includes(normalizeSearch(search)) ||
       normalizeSearch(i.name_en).includes(normalizeSearch(search));
     const matchCat = activeCategory === "all" ||
       (activeCategory === "uncategorized" ? !i.category_id : i.category_id === activeCategory);
@@ -263,7 +264,7 @@ const MenuPage = () => {
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="font-medium">{language === "es" ? item.name : item.name_en || item.name}</p>
+                          <p className="font-medium">{itemDisplayName(item, language === "es" ? item.name : item.name_en || item.name)}</p>
                           <p className="text-xs text-muted-foreground">
                             {language === "es" ? item.description : item.description_en || item.description}
                           </p>

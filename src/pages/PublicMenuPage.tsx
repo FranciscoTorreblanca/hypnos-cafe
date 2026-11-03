@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Printer, ArrowLeft, Search, X } from "lucide-react";
 import { signMenuImageUrls } from "@/lib/menuImage";
+import { itemDisplayName } from "@/hooks/useMenuItems";
 
 
 /* ── types ── */
@@ -135,8 +136,8 @@ const PublicMenuPage = () => {
 
   const handlePrint = () => window.print();
 
-  const getName = (item: { name: string; name_en: string }) =>
-    lang === "es" ? item.name : item.name_en || item.name;
+  const getName = (item: { name: string; name_en: string; beer_brewery?: string | null }) =>
+    itemDisplayName(item, lang === "es" ? item.name : item.name_en || item.name);
 
   const getDesc = (item: { description: string; description_en: string }) =>
     lang === "es" ? item.description : item.description_en || item.description;

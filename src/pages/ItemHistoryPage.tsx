@@ -15,6 +15,7 @@ import { format, parseISO, startOfMonth, subDays, subMonths, startOfYear, differ
 import { es, enUS } from "date-fns/locale";
 import { Search, History, Download } from "lucide-react";
 import { normalizeSearch } from "@/lib/utils";
+import { itemSearchText } from "@/hooks/useMenuItems";
 
 interface SoldLine {
   menu_item_id: string;
@@ -104,7 +105,7 @@ const ItemHistoryPage = () => {
     return items
       .filter((i) =>
         !search ||
-        normalizeSearch(i.name).includes(normalizeSearch(search)) ||
+        normalizeSearch(itemSearchText(i as any)).includes(normalizeSearch(search)) ||
         normalizeSearch(i.name_en).includes(normalizeSearch(search)))
       .map((i) => {
         const s = stats.get(i.id);

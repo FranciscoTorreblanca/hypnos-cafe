@@ -19,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, BookOpen, Search, AlertTriangle, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { itemDisplayName, itemSearchText } from "@/hooks/useMenuItems";
 
 type KitchenItem = OrderItem & {
   order: Order;
@@ -215,7 +216,7 @@ const KitchenPage = () => {
   const filteredMenuItems = menuItems.filter((mi) => {
     if (!recipeSearch) return true;
     const q = normalizeSearch(recipeSearch);
-    return normalizeSearch(mi.name).includes(q) || normalizeSearch(mi.name_en).includes(q);
+    return normalizeSearch(itemSearchText(mi as any)).includes(q);
   });
 
   const groupedByCategory = categories
@@ -355,7 +356,7 @@ const KitchenPage = () => {
                   <div className="space-y-3">
                     {group.items.map((mi) => (
                       <div key={mi.id} className="border-b last:border-0 pb-2 last:pb-0">
-                        <p className="text-sm font-medium">{language === "es" ? mi.name : mi.name_en || mi.name}</p>
+                        <p className="text-sm font-medium">{itemDisplayName(mi as any, language === "es" ? mi.name : mi.name_en || mi.name)}</p>
                         {renderRecipe(mi.id)}
                       </div>
                     ))}
@@ -373,7 +374,7 @@ const KitchenPage = () => {
                   <div className="space-y-3">
                     {uncategorized.map((mi) => (
                       <div key={mi.id} className="border-b last:border-0 pb-2 last:pb-0">
-                        <p className="text-sm font-medium">{language === "es" ? mi.name : mi.name_en || mi.name}</p>
+                        <p className="text-sm font-medium">{itemDisplayName(mi as any, language === "es" ? mi.name : mi.name_en || mi.name)}</p>
                         {renderRecipe(mi.id)}
                       </div>
                     ))}

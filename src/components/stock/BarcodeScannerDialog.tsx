@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Camera, X, Search as SearchIcon, Plus, Package, Check } from "lucide-react";
+import { itemSearchText } from "@/hooks/useMenuItems";
 
 interface Props {
   open: boolean;
@@ -89,7 +90,7 @@ export const BarcodeScannerDialog = ({ open, onOpenChange, onResolved }: Props) 
     const q = normalizeSearch(linkSearch).trim();
     if (!q) return true;
     return (
-      normalizeSearch(i.name).includes(q) ||
+      normalizeSearch(itemSearchText(i as any)).includes(q) ||
       normalizeSearch(i.name_en || "").includes(q)
     );
   });

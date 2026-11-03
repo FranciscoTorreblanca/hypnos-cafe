@@ -49,6 +49,7 @@ import {
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { itemDisplayName, itemSearchText } from "@/hooks/useMenuItems";
 
 interface Props {
   open: boolean;
@@ -154,7 +155,7 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     if (activeCategory === "combos") return [];
     const q = normalizeSearch(search);
     return availableItems.filter((i) => {
-      const matchesSearch = !q || normalizeSearch(i.name).includes(q) || normalizeSearch(i.name_en).includes(q);
+      const matchesSearch = !q || normalizeSearch(itemSearchText(i as any)).includes(q);
       const matchesCat = activeCategory === "all" || i.category_id === activeCategory;
       return matchesSearch && matchesCat;
     });
@@ -414,8 +415,8 @@ export const OrderDialog = ({ open, onOpenChange, tableNumber, tableName, order 
     }
   };
 
-  const getName = (item?: { name?: string; name_en?: string } | null) =>
-    item ? (language === "es" ? item.name : (item.name_en ?? item.name)) : "—";
+  const getName = (item?: { name?: string; name_en?: string; beer_brewery?: string | null } | null) =>
+    item ? itemDisplayName(item, language === "es" ? item.name : (item.name_en || item.name)) : "—";
 
   const orderItems = order?.order_items ?? [];
   const canAddItems = !order || ["pending", "in_progress", "ready", "served"].includes(order.status);
