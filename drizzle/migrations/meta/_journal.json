@@ -15,6 +15,13 @@
       "when": 1793713418586,
       "tag": "0001_hypnos_tv_taplist",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793714404515,
+      "tag": "0002_menu_items_tap_position",
+      "breakpoints": true
     }
   ]
 }
