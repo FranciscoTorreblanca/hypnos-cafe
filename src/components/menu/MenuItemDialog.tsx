@@ -27,6 +27,8 @@ import { useMenuItemAddons, AddonInput } from "@/hooks/useMenuItemAddons";
 import { Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { signMenuImageUrl } from "@/lib/menuImage";
 import { MenuItemPlatformsTab } from "@/components/menu/MenuItemPlatformsTab";
+import { MenuItemTapTab } from "@/components/menu/MenuItemTapTab";
+import { useTvIntegration } from "@/hooks/useHypnosTv";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -240,6 +242,8 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
   const showCostTab = isAdmin && !!item?.id;
   const showAddonsTab = isAdmin && !!item?.id;
   const showDeliveryTab = isAdmin && !!item?.id && hasFeature("delivery");
+  const { data: tvCfg } = useTvIntegration();
+  const showTapTab = isAdmin && !!item?.id && !!tvCfg?.taplist_category_id && form.watch("category_id") === tvCfg.taplist_category_id;
 
   const updateAddon = (idx: number, patch: Partial<AddonInput>) => {
     setAddons((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
@@ -301,6 +305,7 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                     Delivery
                   </TabsTrigger>
                 )}
+                {showTapTab && <TabsTrigger value="tap">TV</TabsTrigger>}
               </TabsList>
 
               <TabsContent value="general" className="space-y-4 mt-4">
@@ -652,6 +657,9 @@ export const MenuItemDialog = ({ open, onOpenChange, item, onSave }: Props) => {
                 <TabsContent value="delivery" className="mt-4">
                   <MenuItemPlatformsTab menuItemId={item.id} basePrice={form.watch("price") || item.price || 0} />
                 </TabsContent>
+              )}
+              {showTapTab && item?.id && (
+                <TabsContent value="tap" className="mt-4"><MenuItemTapTab menuItemId={item.id} /></TabsContent>
               )}
             </Tabs>
 

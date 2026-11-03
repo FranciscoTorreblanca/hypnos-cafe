@@ -1480,6 +1480,57 @@ export type Database = {
           },
         ]
       }
+      menu_item_presentations: {
+        Row: {
+          business_id: string
+          created_at: string
+          display_order: number
+          id: string
+          label: string
+          menu_item_id: string
+          price: number
+          promo_label: string | null
+          promo_price: number | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label: string
+          menu_item_id: string
+          price?: number
+          promo_label?: string | null
+          promo_price?: number | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label?: string
+          menu_item_id?: string
+          price?: number
+          promo_label?: string | null
+          promo_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_presentations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_presentations_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_item_skus: {
         Row: {
           business_id: string
@@ -1527,6 +1578,9 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          beer_abv: number | null
+          beer_brewery: string | null
+          beer_style: string | null
           business_id: string
           category_id: string | null
           cooking_time_seconds: number | null
@@ -1548,6 +1602,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          beer_abv?: number | null
+          beer_brewery?: string | null
+          beer_style?: string | null
           business_id?: string
           category_id?: string | null
           cooking_time_seconds?: number | null
@@ -1569,6 +1626,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          beer_abv?: number | null
+          beer_brewery?: string | null
+          beer_style?: string | null
           business_id?: string
           category_id?: string | null
           cooking_time_seconds?: number | null
@@ -2620,6 +2680,109 @@ export type Database = {
             columns: ["till_session_id"]
             isOneToOne: false
             referencedRelation: "till_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_integration_secrets: {
+        Row: {
+          api_key: string
+          business_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          business_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          business_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_integration_secrets_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_integrations: {
+        Row: {
+          auto_sync: boolean
+          business_id: string
+          enabled: boolean
+          has_api_key: boolean
+          last_sync_error: string | null
+          last_synced_at: string | null
+          taplist_category_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_sync?: boolean
+          business_id: string
+          enabled?: boolean
+          has_api_key?: boolean
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          taplist_category_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_sync?: boolean
+          business_id?: string
+          enabled?: boolean
+          has_api_key?: boolean
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          taplist_category_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_integrations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tv_integrations_taplist_category_id_fkey"
+            columns: ["taplist_category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_remote_refs: {
+        Row: {
+          business_id: string
+          kind: string
+          local_key: string
+          remote_id: string
+        }
+        Insert: {
+          business_id: string
+          kind: string
+          local_key: string
+          remote_id: string
+        }
+        Update: {
+          business_id?: string
+          kind?: string
+          local_key?: string
+          remote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_remote_refs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
