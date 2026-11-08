@@ -50,7 +50,7 @@ interface Payment {
   created_at: string;
 }
 
-const PerformancePage = () => {
+const PerformanceDataView = () => {
   const { isAdmin } = useAuth();
   const { t, language } = useLanguage();
   const loc = language === "es" ? es : enUS;
@@ -1416,4 +1416,4 @@ const PerformancePage = () => {
   );
 };
 
-export default PerformancePage;
+export default PerformanceDataView;
