@@ -485,10 +485,7 @@ const PerformanceDataView = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{t("performance.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("performance.subtitle")}</p>
-        </div>
+        <div />
         <div className="flex flex-wrap items-center gap-2">
           <Select value={preset} onValueChange={(v) => setPreset(v as PresetKey)}>
             <SelectTrigger className="w-[180px]">
