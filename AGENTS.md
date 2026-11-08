@@ -5,3 +5,4 @@
 - Keep delivery receivables separate from available card funds until an explicit payout is recorded; elapsed payout dates do not prove a deposit.
 - Hypnos TV integration: per-business API keys live in a server-only table and are used only by the `hypnos-tv` function; the client sees just `has_api_key`, so keys never reach browsers.
 - Render the existing tenant-scoped tap ordering editor within Menu's configured-category view; reuse menu invalidation for automatic TV synchronization rather than introducing a second ordering store.
+- Performance analysis totals come from the business-scoped `performance_report` database function; KPI math lives in pure helpers with unit tests, never in paginated client fetches.
