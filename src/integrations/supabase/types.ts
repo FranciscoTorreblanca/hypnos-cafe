@@ -3241,6 +3241,10 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      performance_report: {
+        Args: { _business_id: string; _end: string; _start: string }
+        Returns: Json
+      }
       restock_ingredient: {
         Args: {
           _ingredient_id: string
