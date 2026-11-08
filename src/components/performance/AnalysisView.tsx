@@ -84,6 +84,7 @@ export default function AnalysisView() {
   const insights = useMemo(() => {
     if (!k || !r) return [] as string[];
     const out: string[] = [];
+    if (r.payment_count === 0) return [L("No hay ventas registradas en este periodo.", "No sales recorded in this period.")];
     if (k.operatingProfit >= 0) out.push(L(`El periodo fue rentable: utilidad operativa de ${money(k.operatingProfit)} (${pctFmt(k.netMarginPct)} de margen).`, `The period was profitable: operating profit ${money(k.operatingProfit)} (${pctFmt(k.netMarginPct)} margin).`));
     else out.push(L(`El periodo tuvo pérdida de ${money(-k.operatingProfit)}. Faltan ${money((k.breakEvenRevenue ?? 0) - k.netRevenue)} de ventas netas para el punto de equilibrio.`, `The period lost ${money(-k.operatingProfit)}. ${money((k.breakEvenRevenue ?? 0) - k.netRevenue)} more net sales were needed to break even.`));
     if (pk && pk.netRevenue > 0) {
@@ -250,7 +251,7 @@ export default function AnalysisView() {
                       <Legend />
                       <ReferenceLine y={0} className="stroke-muted-foreground" />
                       <Bar dataKey="revenue" name={L("Ventas netas", "Net revenue")} fill="hsl(var(--primary))" />
-                      <Bar dataKey="profit" name={L("Utilidad", "Profit")} fill="hsl(var(--accent))" />
+                      <Bar dataKey="profit" name={L("Utilidad", "Profit")} fill="hsl(var(--muted-foreground))" />
                       <Line dataKey="cumulative" name={L("Acumulado", "Cumulative")} stroke="hsl(var(--foreground))" dot={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
