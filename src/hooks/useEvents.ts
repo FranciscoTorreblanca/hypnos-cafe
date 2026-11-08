@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -52,11 +53,10 @@ export const useEvents = () => {
   const events = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("events")
         .select("*")
-        .order("starts_at", { ascending: true });
-      if (error) throw error;
+        .order("starts_at", { ascending: true }).order("id").range(from, to));
       return (data ?? []) as CalendarEvent[];
     },
   });
@@ -108,11 +108,10 @@ export const useEventCostCategories = () =>
   useQuery({
     queryKey: ["event_cost_categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("event_cost_categories")
         .select("*")
-        .order("display_order");
-      if (error) throw error;
+        .order("display_order").order("id").range(from, to));
       return (data ?? []) as EventCostCategory[];
     },
   });
@@ -124,12 +123,11 @@ export const useEventCostItems = (eventId: string | null) => {
     queryKey: ["event_cost_items", eventId],
     queryFn: async () => {
       if (!eventId) return [];
-      const { data, error } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("event_cost_items")
         .select("*")
         .eq("event_id", eventId)
-        .order("display_order");
-      if (error) throw error;
+        .order("display_order").order("id").range(from, to));
       return (data ?? []) as EventCostItem[];
     },
     enabled: !!eventId,

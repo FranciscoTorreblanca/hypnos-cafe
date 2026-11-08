@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,13 +23,13 @@ export const useTill = () => {
   const query = useQuery({
     queryKey: ["till_transactions", currentBusinessId, user?.id],
     enabled: Boolean(user && currentBusinessId),
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async ({ signal }) => {
+      const data = await fetchAllPages((from, to) => supabase
         .from("till_transactions" as any)
         .select("*")
         .eq("business_id", currentBusinessId ?? "")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .order("created_at", { ascending: false }).order("id")
+        .range(from, to).abortSignal(signal), signal);
 
       const rows = (data ?? []) as any[];
       const userIds = [...new Set(rows.map((r) => r.created_by).filter(Boolean))];

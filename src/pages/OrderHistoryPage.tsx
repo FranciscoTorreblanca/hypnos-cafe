@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { normalizeSearch } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -103,7 +104,7 @@ function computeDeliveryBreakdown(
 
 const OrderHistoryPage = () => {
   const { t, language } = useLanguage();
-  const { isAdmin, currentBusinessId } = useAuth();
+  const { isAdmin, currentBusinessId, user } = useAuth();
 
   // Business VAT rate + delivery platform commissions — needed to compute real
   // restaurant earnings on delivery orders (Rappi etc. take commission + VAT is included in menu prices).
@@ -114,7 +115,7 @@ const OrderHistoryPage = () => {
       const { data } = await supabase
         .from("businesses")
         .select("vat_rate")
-        .eq("id", currentBusinessId!)
+        .eq("id", currentBusinessId ?? "")
         .maybeSingle();
       return data as { vat_rate: number } | null;
     },
@@ -205,26 +206,28 @@ const OrderHistoryPage = () => {
 
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["order-history", dateFrom, dateTo],
-    queryFn: async () => {
+    queryKey: ["order-history", currentBusinessId, user?.id, dateFrom, dateTo],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
       // Parse as local dates by splitting the string (avoids UTC interpretation of "YYYY-MM-DD")
       const [fy, fm, fd] = dateFrom.split("-").map(Number);
       const from = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
       const [ty, tm, td] = dateTo.split("-").map(Number);
       const to = new Date(ty, tm - 1, td, 23, 59, 59, 999);
 
-      const { data, error } = await supabase
+      const data = await fetchAllPages((offset, end) => supabase
         .from("orders")
         .select(`
           *,
           order_items(*, menu_items(name, name_en), combos(name, name_en)),
           payments(id, amount, tip, payment_method, created_at, created_by, business_id)
         `)
+        .eq("business_id", currentBusinessId)
         .gte("created_at", from.toISOString())
         .lte("created_at", to.toISOString())
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+        .order("created_at", { ascending: false }).order("id")
+        .range(offset, end).abortSignal(signal), signal);
 
       // Collect unique user IDs for waiter/cashier names
       const userIds = new Set<string>();

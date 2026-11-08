@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,13 +68,16 @@ export const usePayments = () => {
   const { user, currentBusinessId } = useAuth();
 
   const query = useQuery({
-    queryKey: ["payments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryKey: ["payments", currentBusinessId, user?.id],
+    enabled: Boolean(currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
+      const data = await fetchAllPages((from, to) => supabase
         .from("payments")
         .select("*, orders(table_number, total, created_at, created_by)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .eq("business_id", currentBusinessId)
+        .order("created_at", { ascending: false }).order("id")
+        .range(from, to).abortSignal(signal), signal);
 
       // Fetch waiter profiles for each payment
       const waiterIds = [...new Set((data ?? []).map((p: any) => p.orders?.created_by).filter(Boolean))];

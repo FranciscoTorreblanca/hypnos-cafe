@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,8 +19,7 @@ export const useIngredients = () => {
   const query = useQuery({
     queryKey: ["ingredients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ingredients").select("*").order("name");
-      if (error) throw error;
+      const data = await fetchAllPages((from, to) => supabase.from("ingredients").select("*").order("name").order("id").range(from, to));
       return data as Ingredient[];
     },
   });
@@ -54,7 +54,7 @@ export const useIngredients = () => {
   const bulkImport = useMutation({
     mutationFn: async (items: Array<Partial<Ingredient> & { name: string }>) => {
       // Fetch existing ingredients to match by name
-      const { data: existing } = await supabase.from("ingredients").select("id, name");
+      const existing = await fetchAllPages((from, to) => supabase.from("ingredients").select("id, name").order("id").range(from, to));
       const nameMap = new Map((existing ?? []).map((e) => [e.name.toLowerCase().trim(), e.id]));
 
       for (const item of items) {

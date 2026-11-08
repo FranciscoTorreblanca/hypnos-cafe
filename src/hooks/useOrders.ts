@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,13 +69,16 @@ export const useOrders = () => {
   const query = useQuery({
     queryKey: ORDERS_KEY,
     staleTime: 30 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase
+    enabled: Boolean(currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
+      const data = await fetchAllPages((from, to) => supabase
         .from("orders")
         .select("*, order_items(*, menu_items(name, name_en, beer_brewery, cooking_time_seconds, cooking_warning_seconds, requires_kitchen), combos(name, name_en))")
         .in("status", ["pending", "in_progress", "completed", "ready", "served"])
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .eq("business_id", currentBusinessId)
+        .order("created_at", { ascending: false }).order("id")
+        .range(from, to).abortSignal(signal), signal);
       return (data ?? []).map((o: any) => {
         const order_items = (o.order_items ?? []).map((oi: any) => ({
           ...oi,
