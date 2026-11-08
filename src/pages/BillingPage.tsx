@@ -99,9 +99,15 @@ const BillingPage = () => {
     },
   });
 
-  // Tips cut date range state
-  const [tipsCutFrom, setTipsCutFrom] = useState(() => format(startOfDay(new Date()), "yyyy-MM-dd"));
-  const [tipsCutTo, setTipsCutTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  // Tips cut date range state. Dashboard deep-links can preselect the tips tab
+  // and today's range via /billing?tab=tips&from=YYYY-MM-DD&to=YYYY-MM-DD.
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const urlTipsFrom = searchParams.get("from");
+  const urlTipsTo = searchParams.get("to");
+  const [activeTab, setActiveTab] = useState(() => (urlTab === "tips" ? "tips" : "till"));
+  const [tipsCutFrom, setTipsCutFrom] = useState(() => urlTipsFrom ?? format(startOfDay(new Date()), "yyyy-MM-dd"));
+  const [tipsCutTo, setTipsCutTo] = useState(() => urlTipsTo ?? format(new Date(), "yyyy-MM-dd"));
 
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");

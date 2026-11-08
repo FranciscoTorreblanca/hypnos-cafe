@@ -145,12 +145,23 @@ const OrderHistoryPage = () => {
   const [editPayment, setEditPayment] = useState<{ id: string; current: string; amount: number; tip: number; business_id?: string; created_by: string } | null>(null);
   const [newMethod, setNewMethod] = useState<string>("cash");
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const urlDateFrom = searchParams.get("from");
+  const urlDateTo = searchParams.get("to");
   const [dateFrom, setDateFrom] = useState(() => {
+    if (urlDateFrom) return urlDateFrom;
     const d = new Date();
     d.setDate(d.getDate() - 7);
     return d.toISOString().split("T")[0];
   });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [dateTo, setDateTo] = useState(() => urlDateTo ?? new Date().toISOString().split("T")[0]);
+
+  // Keep the visible range in sync when a dashboard link changes the URL while
+  // this page is already mounted.
+  useEffect(() => {
+    if (urlDateFrom) setDateFrom(urlDateFrom);
+    if (urlDateTo) setDateTo(urlDateTo);
+  }, [urlDateFrom, urlDateTo]);
 
   const fixPaymentMethod = useMutation({
     mutationFn: async ({
