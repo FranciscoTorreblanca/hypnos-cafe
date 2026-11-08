@@ -153,6 +153,7 @@ const Dashboard = () => {
   const todayTips = todayPayments.reduce((s, p) => s + (p.tip ?? 0), 0);
   const todayOrderCount = todayPayments.length;
   const todayAvgTicket = todayOrderCount > 0 ? todayRevenue / todayOrderCount : 0;
+  const todayParam = format(new Date(), "yyyy-MM-dd");
 
   const pendingOrders = dineInOrders.filter((o) => o.status === "pending").length;
   const inProgressOrders = dineInOrders.filter((o) => o.status === "in_progress").length;
@@ -249,7 +250,7 @@ const Dashboard = () => {
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => navigate("/performance")}
+          onClick={() => navigate(`/order-history?from=${todayParam}&to=${todayParam}`)}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -267,7 +268,7 @@ const Dashboard = () => {
 
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => navigate("/performance")}
+          onClick={() => navigate(`/billing?tab=tips&from=${todayParam}&to=${todayParam}`)}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">

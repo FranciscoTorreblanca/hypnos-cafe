@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
 import { usePayments, Payment } from "@/hooks/usePayments";
@@ -98,9 +99,21 @@ const BillingPage = () => {
     },
   });
 
-  // Tips cut date range state
-  const [tipsCutFrom, setTipsCutFrom] = useState(() => format(startOfDay(new Date()), "yyyy-MM-dd"));
-  const [tipsCutTo, setTipsCutTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  // Tips cut date range state. Dashboard deep-links can preselect the tips tab
+  // and today's range via /billing?tab=tips&from=YYYY-MM-DD&to=YYYY-MM-DD.
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const urlTipsFrom = searchParams.get("from");
+  const urlTipsTo = searchParams.get("to");
+  const [activeTab, setActiveTab] = useState(() => (urlTab === "tips" ? "tips" : "till"));
+  const [tipsCutFrom, setTipsCutFrom] = useState(() => urlTipsFrom ?? format(startOfDay(new Date()), "yyyy-MM-dd"));
+  const [tipsCutTo, setTipsCutTo] = useState(() => urlTipsTo ?? format(new Date(), "yyyy-MM-dd"));
+
+  useEffect(() => {
+    if (urlTab === "tips") setActiveTab("tips");
+    if (urlTipsFrom) setTipsCutFrom(urlTipsFrom);
+    if (urlTipsTo) setTipsCutTo(urlTipsTo);
+  }, [urlTab, urlTipsFrom, urlTipsTo]);
 
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
@@ -368,7 +381,7 @@ const BillingPage = () => {
       </Card>
 
 
-      <Tabs defaultValue="till">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="till" className="gap-1"><Vault className="h-3.5 w-3.5" />{t("billing.till")}</TabsTrigger>
           <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
