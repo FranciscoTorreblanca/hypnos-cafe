@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages } from "@/lib/fetchAllPages";
 
 function generateMemberCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -13,11 +14,10 @@ export function useLoyaltyMembers() {
   return useQuery({
     queryKey: ["loyalty-members"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("loyalty_members")
         .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .order("created_at", { ascending: false }).order("id").range(from, to));
       return data;
     },
   });
@@ -64,12 +64,12 @@ export function useLoyaltyVisits(memberId: string | undefined) {
     queryKey: ["loyalty-visits", memberId],
     enabled: !!memberId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!memberId) return [];
+      const data = await fetchAllPages((from, to) => supabase
         .from("loyalty_visits")
         .select("*")
-        .eq("member_id", memberId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .eq("member_id", memberId)
+        .order("created_at", { ascending: false }).order("id").range(from, to));
       return data;
     },
   });

@@ -1,4 +1,5 @@
 import { fetchAllPages } from "@/lib/fetchAllPages";
+import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +67,7 @@ function fmtDuration(ms: number): string {
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--secondary))", "hsl(var(--muted-foreground))"];
 
 export default function AnalyticsPage() {
+  const { currentBusinessId, user, isAdmin } = useAuth();
   const { t, language } = useLanguage();
   const [rangeDays, setRangeDays] = useState<number>(30);
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -73,15 +75,17 @@ export default function AnalyticsPage() {
   const since = useMemo(() => subDays(new Date(), rangeDays).toISOString(), [rangeDays]);
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ["usage-events", rangeDays],
+    queryKey: ["usage-events", currentBusinessId, user?.id, rangeDays],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async ({ signal }) => fetchAllPages<UsageRow>((from, to) =>
-      (supabase.from("usage_events") as any).select("*").gte("created_at", since)
+      (supabase.from("usage_events") as any).select("*").eq("business_id", currentBusinessId).gte("created_at", since)
         .order("created_at", { ascending: false }).order("id").range(from, to).abortSignal(signal), signal),
     staleTime: 60_000,
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["analytics-profiles"],
+    queryKey: ["analytics-profiles", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async ({ signal }) => fetchAllPages((from, to) => supabase.from("profiles")
       .select("id, full_name, email").order("id").range(from, to).abortSignal(signal), signal),
     staleTime: 5 * 60_000,

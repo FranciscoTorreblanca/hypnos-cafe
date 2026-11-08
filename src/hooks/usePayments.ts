@@ -199,12 +199,12 @@ export const usePayments = (loadHistory = true) => {
       // Optimistic: add payment rows to the payments cache
       const optimisticRows = parts.map((p, i) => ({
         id: ids[i], order_id, amount: p.amount, tip: p.tip,
-        payment_method: p.payment_method, created_by: user!.id,
+        payment_method: p.payment_method, created_by: user?.id,
         created_at: new Date().toISOString(),
         evidence_url: evidenceUrls[i], evidence_reference: p.evidence_reference ?? null,
         delivery_platform_id: p.delivery_platform_id ?? null,
       }));
-      queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
+      queryClient.setQueryData<any[]>(["payments", currentBusinessId, user?.id], (old) => [...optimisticRows, ...(old ?? [])]);
 
       // Build enqueue-safe parts (strip File objects, attach uploaded url)
       const safeParts = parts.map((p, i) => ({
