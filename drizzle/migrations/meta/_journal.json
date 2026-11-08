@@ -36,6 +36,13 @@
       "when": 1793716662920,
       "tag": "0004_menu_item_price_label",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794116311524,
+      "tag": "0005_performance_report",
+      "breakpoints": true
     }
   ]
 }
