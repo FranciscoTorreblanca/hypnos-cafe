@@ -1,3 +1,5 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
+import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,21 +48,23 @@ function fmt(sec: number) {
 
 export default function CookingTimeStats() {
   const { language } = useLanguage();
+  const { currentBusinessId, user, isAdmin } = useAuth();
   const [range, setRange] = useState<keyof typeof RANGES>("30d");
   const [selectedItem, setSelectedItem] = useState<string | "">("");
 
   const since = useMemo(() => subDays(new Date(), RANGES[range]).toISOString(), [range]);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["cooking_stats", range],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  const { data: rows = [], isLoading, isError } = useQuery({
+    queryKey: ["cooking_stats", currentBusinessId, user?.id, range],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      const data = await fetchAllPages((from, to) => supabase
         .from("order_items")
         .select("id, menu_item_id, created_at, started_at, ready_at, menu_items(name, name_en, cooking_time_seconds)")
         .not("ready_at", "is", null)
         .gte("ready_at", since)
-        .limit(5000);
-      if (error) throw error;
+        .eq("business_id", currentBusinessId ?? "").order("ready_at").order("id")
+        .range(from, to).abortSignal(signal), signal);
       return (data ?? []) as unknown as Row[];
     },
   });
@@ -82,7 +86,7 @@ export default function CookingTimeStats() {
           durations: [],
         });
       }
-      groups.get(key)!.durations.push(sec);
+      groups.get(key)?.durations.push(sec);
     }
     return Array.from(groups.entries())
       .map(([id, g]) => {
@@ -154,7 +158,9 @@ export default function CookingTimeStats() {
         </Select>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p role="alert" className="text-sm text-destructive">{language === "es" ? "No se pudo cargar el informe completo." : "Could not load the complete report."}</p>
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">{language === "es" ? "Cargando…" : "Loading…"}</p>
       ) : itemStats.length === 0 ? (
         <p className="text-sm text-muted-foreground">

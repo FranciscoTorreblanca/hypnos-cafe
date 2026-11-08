@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -40,12 +41,12 @@ export const useMenus = () => {
   const query = useQuery({
     queryKey: ["menus"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("menus")
-        .select(`*, menu_entries(*, menu_items(*), combos(*))`)
-        .order("updated_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as MenuWithEntries[];
+      const menus = await fetchAllPages((from, to) => supabase.from("menus").select("*")
+        .order("updated_at", { ascending: false }).order("id").range(from, to));
+      if (!menus.length) return [];
+      const entries = await fetchAllPages((from, to) => supabase.from("menu_entries")
+        .select("*, menu_items(*), combos(*)").order("display_order").order("id").range(from, to));
+      return menus.map(menu => ({ ...menu, menu_entries: entries.filter(e => e.menu_id === menu.id) })) as unknown as MenuWithEntries[];
     },
   });
 

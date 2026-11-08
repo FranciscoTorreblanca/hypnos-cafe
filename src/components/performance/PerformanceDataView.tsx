@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -51,7 +52,7 @@ interface Payment {
 }
 
 const PerformanceDataView = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentBusinessId, user } = useAuth();
   const { t, language } = useLanguage();
   const loc = language === "es" ? es : enUS;
 
@@ -108,39 +109,56 @@ const PerformanceDataView = () => {
     );
   };
 
-  // Fetch enough history to cover the selected range + previous period for comparison.
-  // Daily-comparison tab also needs at least last 14 days. Always fetch >= 6 months for trend convenience.
-  const fetchSince = useMemo(() => {
-    const rangeSpanDays = differenceInCalendarDays(range.end, range.start) + 1;
-    const needed = subDays(range.start, rangeSpanDays + 14);
-    const sixMonths = subMonths(new Date(), 6);
-    return (needed < sixMonths ? needed : sixMonths).toISOString();
-  }, [range]);
+  const [dataTab, setDataTab] = useState("top-sellers");
+  // Only the selected period and its comparison; extra calendar windows are
+  // fetched when the user opens the comparison or heatmap views.
+  const fetchWindow = useMemo(() => {
+    const span = range.end.getTime() - range.start.getTime() + 1;
+    let start = new Date(range.start.getTime() - span);
+    let end = range.end;
+    const now = new Date();
+    if (dataTab === "comparison") {
+      const previousMonth = startOfMonth(subMonths(now, 1));
+      if (previousMonth < start) start = previousMonth;
+      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+      if (weekEnd > end) end = weekEnd;
+    }
+    if (dataTab === "heatmap") {
+      const heatmapStart = startOfDay(subDays(now, 27));
+      if (heatmapStart < start) start = heatmapStart;
+      if (endOfDay(now) > end) end = endOfDay(now);
+    }
+    return { since: start.toISOString(), until: end.toISOString() };
+  }, [range, dataTab]);
 
   const ordersQuery = useQuery({
-    queryKey: ["performance-orders", fetchSince],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryKey: ["performance-orders", currentBusinessId, user?.id, fetchWindow],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
+      return await fetchAllPages((from, to) => supabase
         .from("orders")
         .select("id, table_number, total, created_at, order_items(menu_item_id, quantity, unit_price, discount, menu_items(name, name_en, cost))")
+        .eq("business_id", currentBusinessId)
         .in("status", ["paid", "completed"])
-        .gte("created_at", fetchSince)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as PaidOrder[];
+        .gte("created_at", fetchWindow.since).lte("created_at", fetchWindow.until)
+        .order("created_at", { ascending: false }).order("id")
+        .range(from, to).abortSignal(signal), signal) as unknown as PaidOrder[];
     },
   });
 
   const paymentsQuery = useQuery({
-    queryKey: ["performance-payments", fetchSince],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryKey: ["performance-payments", currentBusinessId, user?.id, fetchWindow],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
+      return await fetchAllPages((from, to) => supabase
         .from("payments")
         .select("id, order_id, amount, tip, payment_method, created_at")
-        .gte("created_at", fetchSince)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Payment[];
+        .eq("business_id", currentBusinessId)
+        .gte("created_at", fetchWindow.since).lte("created_at", fetchWindow.until)
+        .order("created_at", { ascending: false }).order("id")
+        .range(from, to).abortSignal(signal), signal) as Payment[];
     },
   });
 
@@ -151,14 +169,15 @@ const PerformanceDataView = () => {
   const HEATMAP_WEEKS = 4;
   const HEATMAP_DAYS = HEATMAP_WEEKS * 7;
   const heatmapEventsQuery = useQuery({
-    queryKey: ["performance-heatmap-events"],
-    queryFn: async () => {
+    queryKey: ["performance-heatmap-events", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user && dataTab === "heatmap"),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
       const since = startOfDay(subDays(new Date(), HEATMAP_DAYS - 1)).toISOString();
-      const { data } = await supabase
-        .from("events")
-        .select("id, name, color, starts_at, ends_at")
-        .gte("starts_at", since);
-      return data ?? [];
+      return fetchAllPages((from, to) => supabase.from("events")
+        .select("id, name, color, starts_at, ends_at").eq("business_id", currentBusinessId)
+        .gte("starts_at", since).lte("starts_at", endOfDay(new Date()).toISOString())
+        .order("starts_at").order("id").range(from, to).abortSignal(signal), signal);
     },
   });
   const heatmapEvents = heatmapEventsQuery.data ?? [];
@@ -395,7 +414,7 @@ const PerformanceDataView = () => {
   };
 
   const exportTopSellers = () => {
-    const sellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories, 999);
+    const sellers = getTopSellers(currentPeriod.start, currentPeriod.end, selectedCategories, Infinity);
     downloadCsv(
       `top-sellers-${format(currentPeriod.start, "yyyy-MM-dd")}`,
       [t("menu.name"), t("performance.qtySold"), t("billing.income")],
@@ -554,7 +573,7 @@ const PerformanceDataView = () => {
           </Popover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title={language === "es" ? "Exportar CSV" : "Export CSV"}>
+              <Button disabled={ordersQuery.isLoading || paymentsQuery.isLoading || ordersQuery.isError || paymentsQuery.isError} variant="outline" size="icon" title={language === "es" ? "Exportar CSV" : "Export CSV"}>
                 <Download className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -570,7 +589,12 @@ const PerformanceDataView = () => {
         </div>
       </div>
 
-      {loading ? (
+      {ordersQuery.isError || paymentsQuery.isError ? (
+        <div role="alert" className="text-destructive">
+          {language === "es" ? "No se pudo cargar el informe completo." : "Could not load the complete report."}
+          <Button variant="outline" className="ml-3" onClick={() => { ordersQuery.refetch(); paymentsQuery.refetch(); }}>{language === "es" ? "Reintentar" : "Retry"}</Button>
+        </div>
+      ) : loading ? (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -637,7 +661,7 @@ const PerformanceDataView = () => {
             </Card>
           </div>
 
-          <Tabs defaultValue="top-sellers" className="space-y-4">
+          <Tabs value={dataTab} onValueChange={setDataTab} className="space-y-4">
             <TabsList className="flex flex-wrap h-auto gap-1">
               <TabsTrigger value="top-sellers">{t("performance.topSellers")}</TabsTrigger>
               <TabsTrigger value="categories">{t("performance.byCategory")}</TabsTrigger>

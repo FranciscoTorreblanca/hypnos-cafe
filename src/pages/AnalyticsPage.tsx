@@ -1,3 +1,5 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
+import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +67,7 @@ function fmtDuration(ms: number): string {
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--secondary))", "hsl(var(--muted-foreground))"];
 
 export default function AnalyticsPage() {
+  const { currentBusinessId, user, isAdmin } = useAuth();
   const { t, language } = useLanguage();
   const [rangeDays, setRangeDays] = useState<number>(30);
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -72,36 +75,19 @@ export default function AnalyticsPage() {
   const since = useMemo(() => subDays(new Date(), rangeDays).toISOString(), [rangeDays]);
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ["usage-events", rangeDays],
-    queryFn: async () => {
-      const all: UsageRow[] = [];
-      let offset = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data, error } = await (supabase.from("usage_events") as any)
-          .select("*")
-          .gte("created_at", since)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + pageSize - 1);
-        if (error) throw error;
-        const rows = (data ?? []) as UsageRow[];
-        all.push(...rows);
-        if (rows.length < pageSize) break;
-        offset += pageSize;
-        if (offset > 20000) break; // safety cap
-      }
-      return all;
-    },
+    queryKey: ["usage-events", currentBusinessId, user?.id, rangeDays],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
+    queryFn: async ({ signal }) => fetchAllPages<UsageRow>((from, to) =>
+      (supabase.from("usage_events") as any).select("*").eq("business_id", currentBusinessId).gte("created_at", since)
+        .order("created_at", { ascending: false }).order("id").range(from, to).abortSignal(signal), signal),
     staleTime: 60_000,
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["analytics-profiles"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, full_name, email");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryKey: ["analytics-profiles", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
+    queryFn: async ({ signal }) => fetchAllPages((from, to) => supabase.from("profiles")
+      .select("id, full_name, email").order("id").range(from, to).abortSignal(signal), signal),
     staleTime: 5 * 60_000,
   });
 

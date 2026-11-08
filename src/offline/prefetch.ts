@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,9 +29,8 @@ const TASKS: PrefetchTask[] = [
     label: { es: "Menú", en: "Menu" },
     run: async (qc) => {
       // Match useMenuItems' key shape ["menu_items", currentBusinessId] for any bizId.
-      const { data, error } = await (supabase as any)
-        .from("menu_items").select("*").order("name");
-      if (error) throw error;
+      const data = await fetchAllPages((from, to) => supabase
+        .from("menu_items").select("*").order("name").order("id").range(from, to));
       qc.setQueryData(["menu_items"], data ?? []);
     },
   },
@@ -73,11 +73,10 @@ const TASKS: PrefetchTask[] = [
       qc.prefetchQuery({
         queryKey: ["orders"],
         queryFn: async () => {
-          const { data, error } = await (supabase as any)
+          const data = await fetchAllPages((from, to) => supabase
             .from("orders").select("*, order_items(*)")
-            .in("status", ["pending", "in_progress", "served"])
-            .order("created_at", { ascending: false });
-          if (error) throw error;
+            .in("status", ["pending", "in_progress", "completed", "ready", "served"])
+            .order("created_at", { ascending: false }).order("id").range(from, to));
           return data ?? [];
         },
       }),
@@ -99,7 +98,7 @@ const TASKS: PrefetchTask[] = [
     label: { es: "Pagos recientes", en: "Recent payments" },
     run: (qc) =>
       qc.prefetchQuery({
-        queryKey: ["payments"],
+        queryKey: ["payments-recent-prefetch"],
         queryFn: async () => {
           const { data, error } = await (supabase as any)
             .from("payments").select("*").order("created_at", { ascending: false }).limit(50);

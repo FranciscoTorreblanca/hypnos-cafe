@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,12 +62,14 @@ export const useMenuItems = () => {
   const query = useQuery({
     queryKey: ["menu_items", currentBusinessId],
     staleTime: 30 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase
+    enabled: Boolean(currentBusinessId),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
+      const data = await fetchAllPages((from, to) => supabase
         .from("menu_items")
         .select("*, menu_item_addons(*)")
-        .order("name");
-      if (error) throw error;
+        .eq("business_id", currentBusinessId).order("name").order("id")
+        .range(from, to).abortSignal(signal), signal);
       return (data ?? []).map((mi: any) => ({
         ...mi,
         menu_item_addons: (mi.menu_item_addons ?? []).sort(

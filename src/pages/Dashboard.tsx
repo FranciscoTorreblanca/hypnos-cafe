@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
@@ -36,16 +37,16 @@ const Dashboard = () => {
     queryKey: ["dashboard-profiles", currentBusinessId],
     enabled: !!currentBusinessId,
     queryFn: async () => {
-      const { data: members } = await supabase
+      const members = await fetchAllPages((from, to) => supabase
         .from("business_members")
         .select("user_id")
-        .eq("business_id", currentBusinessId!);
+        .eq("business_id", currentBusinessId ?? "").order("id").range(from, to));
       const ids = (members ?? []).map((m: any) => m.user_id);
       if (ids.length === 0) return [];
-      const { data } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("profiles")
         .select("id, is_active")
-        .in("id", ids);
+        .in("id", ids).order("id").range(from, to));
       return data ?? [];
     },
   });
@@ -56,10 +57,10 @@ const Dashboard = () => {
     queryKey: ["dashboard-loyalty", currentBusinessId],
     enabled: !!currentBusinessId && loyaltyEnabled,
     queryFn: async () => {
-      const { data: members } = await supabase
+      const members = await fetchAllPages((from, to) => supabase
         .from("loyalty_members")
         .select("id, total_visits, is_active")
-        .eq("business_id", currentBusinessId!);
+        .eq("business_id", currentBusinessId ?? "").order("id").range(from, to));
       const total = members?.length ?? 0;
       const active = members?.filter((m) => m.is_active).length ?? 0;
       const totalVisits = members?.reduce((s, m) => s + (m.total_visits ?? 0), 0) ?? 0;
@@ -69,41 +70,44 @@ const Dashboard = () => {
 
   // Today's payments
   const { data: todayPayments = [] } = useQuery({
-    queryKey: ["dashboard-payments-today"],
+    queryKey: ["dashboard-payments-today", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
-      const { data } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("payments")
         .select("id, amount, tip, payment_method, created_at")
-        .gte("created_at", todayStart);
+        .eq("business_id", currentBusinessId ?? "").gte("created_at", todayStart).order("created_at").order("id").range(from, to));
       return data ?? [];
     },
   });
 
   // Recent paid orders (last 7 days) for top sellers
   const { data: recentPaidOrders = [] } = useQuery({
-    queryKey: ["dashboard-recent-orders"],
+    queryKey: ["dashboard-recent-orders", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async () => {
       const since = subDays(new Date(), 7).toISOString();
-      const { data } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("orders")
         .select("id, total, created_at, status, order_items(quantity, unit_price, menu_item_id)")
         .in("status", ["paid", "completed"])
         .gte("created_at", since)
-        .order("created_at", { ascending: false });
+        .eq("business_id", currentBusinessId ?? "").order("created_at", { ascending: false }).order("id").range(from, to));
       return data ?? [];
     },
   });
 
   // Recent payments (last 7 days) for revenue/tips trend
   const { data: recentPayments = [] } = useQuery({
-    queryKey: ["dashboard-recent-payments"],
+    queryKey: ["dashboard-recent-payments", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async () => {
       const since = subDays(new Date(), 7).toISOString();
-      const { data } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("payments")
         .select("amount, tip, created_at")
-        .gte("created_at", since);
+        .eq("business_id", currentBusinessId ?? "").gte("created_at", since).order("created_at").order("id").range(from, to));
       return data ?? [];
     },
   });
@@ -112,26 +116,28 @@ const Dashboard = () => {
   const HEATMAP_WEEKS = 4;
   const HEATMAP_DAYS = HEATMAP_WEEKS * 7;
   const { data: heatmapPayments = [] } = useQuery({
-    queryKey: ["dashboard-heatmap-payments"],
+    queryKey: ["dashboard-heatmap-payments", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async () => {
       const since = startOfDay(subDays(new Date(), HEATMAP_DAYS - 1)).toISOString();
-      const { data } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("payments")
         .select("amount, created_at")
-        .gte("created_at", since);
+        .eq("business_id", currentBusinessId ?? "").gte("created_at", since).order("created_at").order("id").range(from, to));
       return data ?? [];
     },
   });
 
   // Events in heatmap window — to mark days with special events
   const { data: heatmapEvents = [] } = useQuery({
-    queryKey: ["dashboard-heatmap-events"],
+    queryKey: ["dashboard-heatmap-events", currentBusinessId, user?.id],
+    enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async () => {
       const since = startOfDay(subDays(new Date(), HEATMAP_DAYS - 1)).toISOString();
-      const { data } = await supabase
+      const data = await fetchAllPages((from, to) => supabase
         .from("events")
         .select("id, name, color, starts_at, ends_at")
-        .gte("starts_at", since);
+        .eq("business_id", currentBusinessId ?? "").gte("starts_at", since).order("starts_at").order("id").range(from, to));
       return data ?? [];
     },
   });

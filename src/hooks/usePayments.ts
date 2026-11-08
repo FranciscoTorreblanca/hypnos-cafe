@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,18 +63,21 @@ async function sendToPointMini(deviceId: string, amount: number, orderId: string
   return data;
 }
 
-export const usePayments = () => {
+export const usePayments = (loadHistory = true) => {
   const queryClient = useQueryClient();
   const { user, currentBusinessId } = useAuth();
 
   const query = useQuery({
-    queryKey: ["payments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryKey: ["payments", currentBusinessId, user?.id],
+    enabled: loadHistory && Boolean(currentBusinessId && user),
+    queryFn: async ({ signal }) => {
+      if (!currentBusinessId) throw new Error("No business selected");
+      const data = await fetchAllPages((from, to) => supabase
         .from("payments")
         .select("*, orders(table_number, total, created_at, created_by)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .eq("business_id", currentBusinessId)
+        .order("created_at", { ascending: false }).order("id")
+        .range(from, to).abortSignal(signal), signal);
 
       // Fetch waiter profiles for each payment
       const waiterIds = [...new Set((data ?? []).map((p: any) => p.orders?.created_by).filter(Boolean))];
@@ -195,12 +199,12 @@ export const usePayments = () => {
       // Optimistic: add payment rows to the payments cache
       const optimisticRows = parts.map((p, i) => ({
         id: ids[i], order_id, amount: p.amount, tip: p.tip,
-        payment_method: p.payment_method, created_by: user!.id,
+        payment_method: p.payment_method, created_by: user?.id,
         created_at: new Date().toISOString(),
         evidence_url: evidenceUrls[i], evidence_reference: p.evidence_reference ?? null,
         delivery_platform_id: p.delivery_platform_id ?? null,
       }));
-      queryClient.setQueryData<any[]>(["payments"], (old) => [...optimisticRows, ...(old ?? [])]);
+      queryClient.setQueryData<any[]>(["payments", currentBusinessId, user?.id], (old) => [...optimisticRows, ...(old ?? [])]);
 
       // Build enqueue-safe parts (strip File objects, attach uploaded url)
       const safeParts = parts.map((p, i) => ({

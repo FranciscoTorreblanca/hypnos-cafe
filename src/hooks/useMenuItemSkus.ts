@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,8 +20,7 @@ export const useMenuItemSkus = (menuItemId?: string) => {
     queryFn: async () => {
       let q = supabase.from("menu_item_skus").select("*").order("created_at");
       if (menuItemId) q = q.eq("menu_item_id", menuItemId);
-      const { data, error } = await q;
-      if (error) throw error;
+      const data = await fetchAllPages((from, to) => q.order("id").range(from, to));
       return data as MenuItemSku[];
     },
   });

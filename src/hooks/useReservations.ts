@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -35,8 +36,7 @@ export const useReservations = (eventId?: string | null) => {
     queryFn: async () => {
       let q = supabase.from("reservations").select("*").order("reserved_for", { ascending: true });
       if (eventId) q = q.eq("event_id", eventId);
-      const { data, error } = await q;
-      if (error) throw error;
+      const data = await fetchAllPages((from, to) => q.order("id").range(from, to));
       return (data ?? []) as Reservation[];
     },
   });

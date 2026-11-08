@@ -43,6 +43,13 @@
       "when": 1794116311524,
       "tag": "0005_performance_report",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794155532112,
+      "tag": "0006_complete_item_sales_report",
+      "breakpoints": true
     }
   ]
 }
