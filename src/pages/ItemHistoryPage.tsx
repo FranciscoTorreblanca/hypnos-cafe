@@ -17,20 +17,19 @@ import { Search, History, Download } from "lucide-react";
 import { normalizeSearch } from "@/lib/utils";
 import { itemSearchText } from "@/hooks/useMenuItems";
 
-interface SoldLine {
-  menu_item_id: string;
-  quantity: number;
-  unit_price: number;
-  discount: number;
-  discount_amount: number;
-  sold_at: string;
-  order_id: string;
+interface ItemSaleStats {
+  id: string; first_sale: string | null; last_sale: string | null;
+  units: number; revenue: number; orders: number; days: number;
+}
+interface ItemSalesReport {
+  fetched_at: string; items: ItemSaleStats[];
+  monthly: { month: string; units: number; revenue: number }[];
 }
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 const ItemHistoryPage = () => {
-  const { currentBusinessId } = useAuth();
+  const { currentBusinessId, user, isAdmin } = useAuth();
   const { language } = useLanguage();
   const loc = language === "es" ? es : enUS;
   const es_ = language === "es";
@@ -39,28 +38,6 @@ const ItemHistoryPage = () => {
   const [selectedId, setSelectedId] = useState<string>("");
   const [range, setRange] = useState<"all" | "30" | "90" | "month" | "year">("all");
   const [search, setSearch] = useState("");
-
-  const { data: lines = [], isLoading } = useQuery({
-    queryKey: ["item_sales_history", currentBusinessId],
-    staleTime: 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("menu_item_id, quantity, unit_price, discount, discount_amount, order_id, orders!inner(status, created_at)")
-        .eq("orders.status", "paid")
-        .limit(20000);
-      if (error) throw error;
-      return (data ?? []).map((r: any) => ({
-        menu_item_id: r.menu_item_id,
-        quantity: r.quantity ?? 0,
-        unit_price: Number(r.unit_price ?? 0),
-        discount: Number(r.discount ?? 0),
-        discount_amount: Number(r.discount_amount ?? 0),
-        order_id: r.order_id,
-        sold_at: r.orders?.created_at,
-      })) as SoldLine[];
-    },
-  });
 
   const rangeStart = useMemo(() => {
     const now = new Date();
@@ -73,33 +50,32 @@ const ItemHistoryPage = () => {
     }
   }, [range]);
 
-  const lineNet = (l: SoldLine) =>
-    Math.max(0, l.quantity * l.unit_price * (1 - (l.discount || 0) / 100) - (l.discount_amount || 0));
-
-  // Aggregate per item (all-time + range)
-  const stats = useMemo(() => {
-    const map = new Map<string, {
-      firstSale: string | null; lastSale: string | null; unitsAll: number;
-      units: number; revenue: number; orders: Set<string>; days: Set<string>;
-    }>();
-    for (const l of lines) {
-      if (!l.menu_item_id || !l.sold_at) continue;
-      let s = map.get(l.menu_item_id);
-      if (!s) {
-        s = { firstSale: null, lastSale: null, unitsAll: 0, units: 0, revenue: 0, orders: new Set(), days: new Set() };
-        map.set(l.menu_item_id, s);
-      }
-      if (!s.firstSale || l.sold_at < s.firstSale) s.firstSale = l.sold_at;
-      if (!s.lastSale || l.sold_at > s.lastSale) s.lastSale = l.sold_at;
-      s.unitsAll += l.quantity;
-      if (rangeStart && new Date(l.sold_at) < rangeStart) continue;
-      s.units += l.quantity;
-      s.revenue += lineNet(l);
-      s.orders.add(l.order_id);
-      s.days.add(l.sold_at.slice(0, 10));
-    }
-    return map;
-  }, [lines, rangeStart]);
+  const loadReport = async (itemId: string | null, signal: AbortSignal) => {
+    if (!currentBusinessId) throw new Error("No business selected");
+    const { data, error } = await supabase.rpc("item_sales_report", {
+      _business_id: currentBusinessId,
+      _start: rangeStart?.toISOString() ?? undefined,
+      _end: new Date().toISOString(),
+      _item_id: itemId ?? undefined,
+    }).abortSignal(signal);
+    if (error) throw error;
+    return data as unknown as ItemSalesReport;
+  };
+  const summary = useQuery({
+    queryKey: ["item_sales_history", currentBusinessId, user?.id, rangeStart?.toISOString() ?? "all"],
+    enabled: Boolean(currentBusinessId && user && isAdmin),
+    staleTime: 60_000,
+    queryFn: ({ signal }) => loadReport(null, signal),
+  });
+  // Monthly detail is requested only for the item the user opens.
+  const detail = useQuery({
+    queryKey: ["item_sales_history", currentBusinessId, user?.id, rangeStart?.toISOString() ?? "all", selectedId],
+    enabled: Boolean(currentBusinessId && user && isAdmin && selectedId),
+    staleTime: 60_000,
+    queryFn: ({ signal }) => loadReport(selectedId, signal),
+  });
+  const stats = useMemo(() => new Map((summary.data?.items ?? []).map(s => [s.id, s])), [summary.data]);
+  const isLoading = summary.isLoading;
 
   const rows = useMemo(() => {
     return items
@@ -115,15 +91,15 @@ const ItemHistoryPage = () => {
         return {
           item: i,
           name: es_ ? i.name : i.name_en || i.name,
-          firstSale: s?.firstSale ?? null,
-          lastSale: s?.lastSale ?? null,
+          firstSale: s?.first_sale ?? null,
+          lastSale: s?.last_sale ?? null,
           units,
           revenue,
           cost,
           profit: revenue - cost,
           margin: revenue > 0 ? ((revenue - cost) / revenue) * 100 : 0,
-          ordersCount: s?.orders.size ?? 0,
-          days: s?.days.size ?? 0,
+          ordersCount: s?.orders ?? 0,
+          days: s?.days ?? 0,
         };
       })
       .sort((a, b) => b.units - a.units || b.revenue - a.revenue);
@@ -131,22 +107,9 @@ const ItemHistoryPage = () => {
 
   const selected = rows.find((r) => r.item.id === selectedId) ?? null;
 
-  const monthly = useMemo(() => {
-    if (!selectedId) return [];
-    const m = new Map<string, { units: number; revenue: number }>();
-    for (const l of lines) {
-      if (l.menu_item_id !== selectedId || !l.sold_at) continue;
-      if (rangeStart && new Date(l.sold_at) < rangeStart) continue;
-      const key = l.sold_at.slice(0, 7);
-      const e = m.get(key) ?? { units: 0, revenue: 0 };
-      e.units += l.quantity;
-      e.revenue += lineNet(l);
-      m.set(key, e);
-    }
-    return [...m.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([k, v]) => ({ month: format(parseISO(k + "-01"), "MMM yy", { locale: loc }), ...v }));
-  }, [lines, selectedId, rangeStart, loc]);
+  const monthly = (detail.data?.monthly ?? []).map(m => ({
+    ...m, month: format(parseISO(m.month), "MMM yy", { locale: loc }),
+  }));
 
   const fmtDate = (d: string | null) =>
     d ? format(parseISO(d), "dd MMM yyyy", { locale: loc }) : "—";
@@ -193,7 +156,7 @@ const ItemHistoryPage = () => {
               <SelectItem value="year">{es_ ? "Este año" : "This year"}</SelectItem>
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" onClick={exportCsv}>
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={isLoading || summary.isError}>
             <Download className="h-4 w-4 mr-1" />CSV
           </Button>
         </div>
@@ -216,7 +179,7 @@ const ItemHistoryPage = () => {
             </SelectContent>
           </Select>
 
-          {selected && (
+          {selected && !isLoading && !summary.isError && (
             <>
               <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                 <Stat label={es_ ? "Primera venta" : "First sale"} value={fmtDate(selected.firstSale)}
@@ -235,6 +198,8 @@ const ItemHistoryPage = () => {
                   value={daysSpan > 0 ? `${(selected.units / daysSpan).toFixed(2)} u/${es_ ? "día" : "day"}` : "—"} />
               </div>
 
+              {detail.isLoading && <p className="text-sm text-muted-foreground">{es_ ? "Cargando…" : "Loading…"}</p>}
+              {detail.isError && <p role="alert" className="text-sm text-destructive">{es_ ? "No se pudo cargar el detalle." : "Could not load details."}</p>}
               {monthly.length > 0 && (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -263,7 +228,12 @@ const ItemHistoryPage = () => {
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          {isLoading ? (
+          {summary.isError ? (
+            <div role="alert" className="text-sm text-destructive py-6">
+              {es_ ? "No se pudo cargar el historial completo." : "Could not load complete history."}
+              <Button variant="outline" size="sm" className="ml-3" onClick={() => summary.refetch()}>{es_ ? "Reintentar" : "Retry"}</Button>
+            </div>
+          ) : isLoading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">{es_ ? "Cargando…" : "Loading…"}</p>
           ) : (
             <Table>
