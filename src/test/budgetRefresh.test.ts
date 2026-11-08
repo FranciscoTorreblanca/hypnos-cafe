@@ -9,10 +9,14 @@ describe("confirmed financial summaries", () => {
     client.setQueryData(["budget-summary", "hypnos", "admin"], { cash: 853 });
     client.setQueryData(["till-balance", "hypnos", "admin"], 853);
     client.setQueryData(["payments"], []);
+    client.setQueryData(["item_sales_history", "hypnos", "admin", "all"], { units: 3005 });
+    client.setQueryData(["performance-orders", "hypnos", "admin"], []);
     await client.invalidateQueries({ queryKey: ["payments"] });
     expect(client.getQueryState(["budget-summary", "hypnos", "admin"])?.isInvalidated).toBe(true);
     expect(client.getQueryState(["till-balance", "hypnos", "admin"])?.isInvalidated).toBe(true);
     expect(client.getQueryData(["budget-summary", "hypnos", "admin"])).toEqual({ cash: 853 });
+    expect(client.getQueryState(["item_sales_history", "hypnos", "admin", "all"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["performance-orders", "hypnos", "admin"])?.isInvalidated).toBe(true);
     stop(); client.clear();
   });
 
