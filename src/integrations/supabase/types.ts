@@ -3184,6 +3184,15 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_member_of: { Args: { _business_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      item_sales_report: {
+        Args: {
+          _business_id: string
+          _end?: string
+          _item_id?: string
+          _start?: string
+        }
+        Returns: Json
+      }
       open_till_session:
         | {
             Args: { _notes?: string; _opening_float: number }
