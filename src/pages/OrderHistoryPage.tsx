@@ -1,11 +1,11 @@
 import { normalizeSearch } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { applyLineDiscount, applyGeneralDiscount } from "@/lib/discounts";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import {

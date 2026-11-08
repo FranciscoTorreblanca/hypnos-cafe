@@ -153,6 +153,7 @@ const Dashboard = () => {
   const todayTips = todayPayments.reduce((s, p) => s + (p.tip ?? 0), 0);
   const todayOrderCount = todayPayments.length;
   const todayAvgTicket = todayOrderCount > 0 ? todayRevenue / todayOrderCount : 0;
+  const todayParam = format(new Date(), "yyyy-MM-dd");
 
   const pendingOrders = dineInOrders.filter((o) => o.status === "pending").length;
   const inProgressOrders = dineInOrders.filter((o) => o.status === "in_progress").length;
