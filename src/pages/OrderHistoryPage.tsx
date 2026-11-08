@@ -205,7 +205,7 @@ const OrderHistoryPage = () => {
   });
 
 
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["order-history", currentBusinessId, user?.id, dateFrom, dateTo],
     enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async ({ signal }) => {
@@ -539,7 +539,12 @@ const OrderHistoryPage = () => {
       </div>
 
       {/* Orders */}
-      {isLoading ? (
+      {isError ? (
+        <div role="alert" className="text-destructive py-8">
+          {language === "es" ? "No se pudo cargar el historial completo." : "Could not load the complete history."}
+          <Button variant="outline" className="ml-3" onClick={() => refetch()}>{language === "es" ? "Reintentar" : "Retry"}</Button>
+        </div>
+      ) : isLoading ? (
         <div className="text-center py-8 text-muted-foreground">{t("common.loading")}</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">{language === "es" ? "Sin órdenes en este rango" : "No orders in this range"}</div>

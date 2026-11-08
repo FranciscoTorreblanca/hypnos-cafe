@@ -34,7 +34,7 @@ export const DeliveryOrderDialog = ({ open, onOpenChange, order, defaultPlatform
   const { data: platforms = [] } = useDeliveryPlatforms();
   const { data: menuItems = [] } = useMenuItems();
   const { createDeliveryOrder, updateDeliveryStatus, addItem, removeItem, cancelOrder } = useOrders();
-  const { createPayment } = usePayments();
+  const { createPayment } = usePayments(false);
 
   const isNew = !order;
   const platformId = order?.delivery_platform_id ?? defaultPlatformId ?? platforms[0]?.id ?? "";

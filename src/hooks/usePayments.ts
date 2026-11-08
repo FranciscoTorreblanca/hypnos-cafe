@@ -63,13 +63,13 @@ async function sendToPointMini(deviceId: string, amount: number, orderId: string
   return data;
 }
 
-export const usePayments = () => {
+export const usePayments = (loadHistory = true) => {
   const queryClient = useQueryClient();
   const { user, currentBusinessId } = useAuth();
 
   const query = useQuery({
     queryKey: ["payments", currentBusinessId, user?.id],
-    enabled: Boolean(currentBusinessId && user),
+    enabled: loadHistory && Boolean(currentBusinessId && user),
     queryFn: async ({ signal }) => {
       if (!currentBusinessId) throw new Error("No business selected");
       const data = await fetchAllPages((from, to) => supabase

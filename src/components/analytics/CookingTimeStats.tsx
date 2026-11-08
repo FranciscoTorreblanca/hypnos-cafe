@@ -54,7 +54,7 @@ export default function CookingTimeStats() {
 
   const since = useMemo(() => subDays(new Date(), RANGES[range]).toISOString(), [range]);
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: rows = [], isLoading, isError } = useQuery({
     queryKey: ["cooking_stats", currentBusinessId, user?.id, range],
     enabled: Boolean(isAdmin && currentBusinessId && user),
     queryFn: async ({ signal }) => {
@@ -158,7 +158,9 @@ export default function CookingTimeStats() {
         </Select>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p role="alert" className="text-sm text-destructive">{language === "es" ? "No se pudo cargar el informe completo." : "Could not load the complete report."}</p>
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">{language === "es" ? "Cargando…" : "Loading…"}</p>
       ) : itemStats.length === 0 ? (
         <p className="text-sm text-muted-foreground">
