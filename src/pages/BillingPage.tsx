@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useOrders } from "@/hooks/useOrders";
@@ -108,6 +108,12 @@ const BillingPage = () => {
   const [activeTab, setActiveTab] = useState(() => (urlTab === "tips" ? "tips" : "till"));
   const [tipsCutFrom, setTipsCutFrom] = useState(() => urlTipsFrom ?? format(startOfDay(new Date()), "yyyy-MM-dd"));
   const [tipsCutTo, setTipsCutTo] = useState(() => urlTipsTo ?? format(new Date(), "yyyy-MM-dd"));
+
+  useEffect(() => {
+    if (urlTab === "tips") setActiveTab("tips");
+    if (urlTipsFrom) setTipsCutFrom(urlTipsFrom);
+    if (urlTipsTo) setTipsCutTo(urlTipsTo);
+  }, [urlTab, urlTipsFrom, urlTipsTo]);
 
   // Orders ready to bill: served status
   const billableOrders = orders.filter((o) => o.status === "served");
@@ -375,7 +381,7 @@ const BillingPage = () => {
       </Card>
 
 
-      <Tabs defaultValue="till">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="till" className="gap-1"><Vault className="h-3.5 w-3.5" />{t("billing.till")}</TabsTrigger>
           <TabsTrigger value="cashflow" className="gap-1"><BarChart3 className="h-3.5 w-3.5" />{t("billing.cashFlow")}</TabsTrigger>
