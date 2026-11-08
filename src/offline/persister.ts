@@ -13,7 +13,15 @@ export function createIdbPersister(): Persister {
     restoreClient: async () => {
       const raw = await idbKVStorage.getItem(KEY);
       if (!raw) return undefined;
-      try { return JSON.parse(raw) as PersistedClient; } catch { return undefined; }
+      try {
+        const restored = JSON.parse(raw) as PersistedClient;
+        // JSON cannot restore a dehydrated Promise. Older caches may contain
+        // pending requests; retain only confirmed query data.
+        restored.clientState.queries = restored.clientState.queries
+          .filter(q => q.state.status === "success")
+          .map(q => { const { promise, ...confirmed } = q; return confirmed; });
+        return restored;
+      } catch { return undefined; }
     },
     removeClient: async () => {
       await idbKVStorage.removeItem(KEY);
@@ -52,7 +60,7 @@ export function installPersistence(queryClient: QueryClient, version: string) {
     dehydrateOptions: {
       shouldDehydrateQuery: (q) => {
         const root = q.queryKey?.[0];
-        return typeof root === "string" && OFFLINE_QUERY_KEYS.has(root);
+        return q.state.status === "success" && typeof root === "string" && OFFLINE_QUERY_KEYS.has(root);
       },
     },
   });
