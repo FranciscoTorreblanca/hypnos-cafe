@@ -93,6 +93,17 @@ export const BottomNav = () => {
             <span>{t("nav.tables")}</span>
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => navigate("/dashboard")}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 text-xs transition-colors ${
+              isActive("/dashboard") ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <LayoutDashboard className="h-5 w-5" />
+            <span>{t("nav.dashboard")}</span>
+          </button>
+        )}
         {showWifi && (
           <button
             onClick={() => navigate("/wifi")}
